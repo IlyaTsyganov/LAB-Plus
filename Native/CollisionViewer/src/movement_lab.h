@@ -90,7 +90,7 @@ static std::shared_ptr<const MotionOverlay> readMotionOverlay(const std::filesys
     if(!std::getline(input,line)||line.size()>2048) return result;
     auto split=[](const std::string& text) { std::vector<std::string> cells; std::istringstream stream(text); std::string cell; while(std::getline(stream,cell,'\t')) cells.push_back(cell); return cells; };
     auto header=split(line);
-    if(header.size()!=4||header[0]!="#DEVIL_MOTION_OVERLAY_V1"||header[1]!=std::to_string(process)) return result;
+    if(header.size()!=4||header[0]!="#LABPLUS_MOTION_OVERLAY_V1"||header[1]!=std::to_string(process)) return result;
     result->level=header[2]; result->profile=header[3];
     for(size_t count=0;count<48000&&std::getline(input,line);++count) {
         if(line.size()>256) return std::make_shared<MotionOverlay>();
@@ -106,7 +106,7 @@ static bool writeMotionSamples(const std::filesystem::path& path,DWORD process,u
     auto temporary=path; temporary+=L".tmp";
     try {
         std::filesystem::create_directories(path.parent_path()); std::ofstream out(temporary,std::ios::binary|std::ios::trunc); out.imbue(std::locale::classic()); out.precision(9);
-        out<<"#DEVIL_MOTION_V1\t"<<process<<'\t'<<epoch<<'\t'<<phase<<'\t'<<level.name<<'\t'<<profile<<'\t'<<level.map<<':'<<level.world<<'\n';
+        out<<"#LABPLUS_MOTION_V1\t"<<process<<'\t'<<epoch<<'\t'<<phase<<'\t'<<level.name<<'\t'<<profile<<'\t'<<level.map<<':'<<level.world<<'\n';
         for(const auto& p:samples) {
             out<<"S\t"<<p.sequence<<'\t'<<p.epoch<<'\t'<<p.segment<<'\t'<<p.position.x<<'\t'<<p.position.y<<'\t'<<p.position.z<<'\t'<<p.velocity.x<<'\t'<<p.velocity.y<<'\t'<<p.velocity.z;
             for(float v:p.local) out<<'\t'<<v;
@@ -254,7 +254,7 @@ public:
         lastFormat=now;
         if(!requested) { api.executeCommand("com_debugHUD 1"); requested=true; ++visibilityRequests; }
         state=1;
-        std::array<std::string,6> lines{}; lines[0]="DEViL | Support plane";
+        std::array<std::string,6> lines{}; lines[0]="LAB Plus | Support plane";
         if(!player||!player->valid||now-player->tick>=250) lines[1]="Waiting for current support data";
         else if(!player->contact) lines[1]="No current ground-trace contact";
         else {

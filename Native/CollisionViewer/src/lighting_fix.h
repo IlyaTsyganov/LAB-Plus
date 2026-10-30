@@ -13,7 +13,7 @@ static bool lightingFixEligible(const GameProfile* profile,uint32_t vendor,bool 
 
 static bool lightingFixRequested() {
     wchar_t value[2]{};
-    return GetEnvironmentVariableW(L"DEVIL_LIGHTING_FIX",value,2)==1&&value[0]==L'1';
+    return GetEnvironmentVariableW(L"LABPLUS_LIGHTING_FIX",value,2)==1&&value[0]==L'1';
 }
 
 static VkAccessFlags lightingWritesForStages(VkPipelineStageFlags stages) {

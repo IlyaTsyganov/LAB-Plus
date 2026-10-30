@@ -31,7 +31,7 @@ class LevelStateBridge {
                 std::ifstream input(path); std::string line;
                 if(std::getline(input,line)) {
                     auto header=cells(line);
-                    if(header.size()==8&&header[0]=="#DEVIL_STATE_HIGHLIGHT_V1"&&header[1]==std::to_string(process)&&validStateToken(header[3])&&validStateToken(header[4])&&
+                    if(header.size()==8&&header[0]=="#LABPLUS_STATE_HIGHLIGHT_V1"&&header[1]==std::to_string(process)&&validStateToken(header[3])&&validStateToken(header[4])&&
                        (header[5]=="0"||header[5]=="1")&&(header[6]=="0"||header[6]=="1")&&(header[7]=="0"||header[7]=="1")) {
                         auto expires=std::stoull(header[2]);
                         if(expires>=now&&expires<=now+5000) {
@@ -72,7 +72,7 @@ class LevelStateBridge {
         try {
             auto path=directory/(L"state-highlight-"+std::to_wstring(process)+L".status"),temporary=path; temporary+=L".tmp";
             std::ofstream output(temporary,std::ios::binary|std::ios::trunc);
-            output<<"#DEVIL_STATE_HIGHLIGHT_STATUS_V1\t"<<process<<'\t'<<now<<'\t'<<phase<<'\t'<<exact<<'\t'<<bounds<<'\t'<<missing<<'\n'; output.close();
+            output<<"#LABPLUS_STATE_HIGHLIGHT_STATUS_V1\t"<<process<<'\t'<<now<<'\t'<<phase<<'\t'<<exact<<'\t'<<bounds<<'\t'<<missing<<'\n'; output.close();
             if(output) MoveFileExW(temporary.c_str(),path.c_str(),MOVEFILE_REPLACE_EXISTING);
         } catch(...) {}
     }
@@ -89,7 +89,7 @@ class LevelStateBridge {
                     std::ifstream input(path); std::string line;
                     if(std::getline(input,line)) {
                         auto request=cells(line);
-                        if(request.size()==4&&request[0]=="#DEVIL_POINT_REQUEST_V1"&&request[1]==std::to_string(process)&&validStateToken(request[2])&&request[2]!=seenPoint) {
+                        if(request.size()==4&&request[0]=="#LABPLUS_POINT_REQUEST_V1"&&request[1]==std::to_string(process)&&validStateToken(request[2])&&request[2]!=seenPoint) {
                             auto created=std::stoull(request[3]);
                             if(created<=now+5000&&created+10000>=now) {
                                 seenPoint=request[2]; auto checkpoint=std::atomic_load(&checkpointMetadata);
@@ -106,7 +106,7 @@ class LevelStateBridge {
                     std::ifstream input(path); std::string line;
                     if(std::getline(input,line)) {
                         auto request=cells(line);
-                        if(request.size()==5&&request[0]=="#DEVIL_STATE_REQUEST_V1"&&request[1]==std::to_string(process)&&validStateToken(request[2])&&
+                        if(request.size()==5&&request[0]=="#LABPLUS_STATE_REQUEST_V1"&&request[1]==std::to_string(process)&&validStateToken(request[2])&&
                             request[2]!=seen&&(request[3]=="before"||request[3]=="after")) {
                             auto created=std::stoull(request[4]);
                             if(created<=now+5000&&created+10000>=now) {

@@ -171,7 +171,7 @@ class MeathookHud {
             hudRequested=true;
         }
         std::array<std::string,10> lines;
-        lines[0]="DEViL | Volume inspector";
+        lines[0]="LAB Plus | Volume inspector";
         if(!current.entity) lines[1]="Aim at a trigger or invisible wall";
         else {
             const auto& ref=current.entity;

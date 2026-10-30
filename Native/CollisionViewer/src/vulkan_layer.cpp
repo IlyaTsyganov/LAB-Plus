@@ -33,9 +33,10 @@ extern "C" {
 #include "depth_state.h"
 #include "lighting_fix.h"
 #include "entity_metadata.h"
+#include "labplus_paths.h"
 
 #define EXPORT extern "C" __declspec(dllexport)
-static constexpr char kLayerName[]="VK_LAYER_DOOM_collision";
+static constexpr char kLayerName[]="VK_LAYER_LABPLUS_collision";
 static std::recursive_mutex guard;
 static std::filesystem::path folder;
 static FILE* logfile;
@@ -221,7 +222,7 @@ struct Swapchain {
     VkResult submitFailure=VK_SUCCESS;
 };
 static bool smokeTest();
-static bool sceneTest() { static const bool value=GetEnvironmentVariableW(L"DCV_SCENE_TEST",nullptr,0)>0; return value; }
+static bool sceneTest() { static const bool value=GetEnvironmentVariableW(L"LABPLUS_SCENE_TEST",nullptr,0)>0; return value; }
 static std::unordered_map<void*,std::unique_ptr<Instance>> instances;
 static std::unordered_map<void*,std::unique_ptr<Device>> devices;
 static std::unordered_map<VkQueue,Queue> queues;
@@ -429,16 +430,13 @@ static void initialize(Swapchain& swap,uint32_t family) {
     swap.ready=true; if(sceneTest()) loadScene(); note("Independent Vulkan renderer initialized.");
 }
 
-static bool smokeTest() { static const bool value=GetEnvironmentVariableW(L"DCV_SMOKE_TEST",nullptr,0)>0; return value; }
-static uint32_t occlusionCase() { static const uint32_t value=[] { wchar_t text[32]{}; GetEnvironmentVariableW(L"DCV_OCCLUSION_TEST",text,32); return text[0]=='h'?1u:(text[0]=='p'?2u:(text[0]=='f'?3u:(text[0]=='r'?4u:(text[0]=='i'?(text[9]=='p'?6u:(text[9]=='f'?7u:5u)):0u)))); }(); return value; }
+static bool smokeTest() { static const bool value=GetEnvironmentVariableW(L"LABPLUS_SMOKE_TEST",nullptr,0)>0; return value; }
+static uint32_t occlusionCase() { static const uint32_t value=[] { wchar_t text[32]{}; GetEnvironmentVariableW(L"LABPLUS_OCCLUSION_TEST",text,32); return text[0]=='h'?1u:(text[0]=='p'?2u:(text[0]=='f'?3u:(text[0]=='r'?4u:(text[0]=='i'?(text[9]=='p'?6u:(text[9]=='f'?7u:5u)):0u)))); }(); return value; }
 static void updateViewerSettings() {
     static ULONGLONG lastRead=0;
     static std::wstring settingsPath=[] {
-        wchar_t localAppData[32768]{};
-        constexpr DWORD capacity=32768;
-        DWORD length=GetEnvironmentVariableW(L"LOCALAPPDATA",localAppData,capacity);
-        if(length==0||length>=capacity) return std::wstring{};
-        return std::wstring(localAppData)+L"\\DEViL\\viewer.ini";
+        auto directory=labplusDataDirectory();
+        return directory.empty()?std::wstring{}:(directory/L"viewer.ini").wstring();
     }();
     const ULONGLONG now=GetTickCount64();
     if(settingsPath.empty()||now-lastRead<250) return;
@@ -478,7 +476,7 @@ static void updateViewerSettings() {
     radius=static_cast<float>(std::clamp(GetPrivateProfileIntW(L"Viewer",L"Distance",static_cast<UINT>(radius),settingsPath.c_str()),UINT{20},UINT{200}));
     if(oldEnabled!=enabled||oldTriggers!=showTriggers||oldCollision!=showCollision||oldWalls!=showWalls||oldMode!=collisionMode||oldRadius!=radius||oldDisabled!=showDisabledVolumes||oldHistory!=showVolumeHistory||classFilterChanged) {
         char message[200];
-        sprintf_s(message,"DEViL settings: triggers=%d collision=%d walls=%d disabled=%d history=%d fill=%u radius=%.0f enabled=%d",showTriggers,showCollision,showWalls,showDisabledVolumes,showVolumeHistory,collisionMode,radius,enabled);
+        sprintf_s(message,"LAB Plus settings: triggers=%d collision=%d walls=%d disabled=%d history=%d fill=%u radius=%.0f enabled=%d",showTriggers,showCollision,showWalls,showDisabledVolumes,showVolumeHistory,collisionMode,radius,enabled);
         note(message);
         if(classFilterChanged) {
             char count[150]; sprintf_s(count,"Trigger visibility updated: %zu hidden classes, %zu hidden name paths.",hiddenTriggerClasses.size(),hiddenTriggerPaths.size()); note(count);
@@ -551,7 +549,7 @@ static void sortVisibleCandidates(std::vector<Candidate>& visible) {
 #include "console_clip.h"
 #include "encounter_labels.h"
 #include "meathook_hud.h"
-#include "lab_console.h"
+#include "labplus_console.h"
 #include "active_encounters.h"
 #include "entity_graph.h"
 #include "volume_inspector.h"
@@ -612,7 +610,7 @@ static uint32_t collectVertices(const GameCamera& camera,std::vector<Vertex>& ou
         append({-.8f,0,0},{1,1,1,1}); append({.8f,0,0},{1,1,1,1}); return 3;
     }
     if(sceneTest()) {
-        static const uint32_t testMode=[] { wchar_t value[8]{}; GetEnvironmentVariableW(L"DCV_TEST_COLLISION_MODE",value,8); return value[0]=='1'?1u:0u; }();
+        static const uint32_t testMode=[] { wchar_t value[8]{}; GetEnvironmentVariableW(L"LABPLUS_TEST_COLLISION_MODE",value,8); return value[0]=='1'?1u:0u; }();
         collisionMode=testMode;
     }
     static std::vector<Candidate> visible;
@@ -721,7 +719,7 @@ static bool draw(Swapchain& swap,VkQueue queue,uint32_t imageIndex,const VkPrese
     if(!screenDepth) return false;
     if(!smokeTest()&&!sceneTest()&&!occlusionCase()&&!runtimeLevel) return false;
     float consoleFraction=smokeTest()||sceneTest()||occlusionCase()?0.0f:readConsoleFraction(WallMemory{},gameBase,*profile);
-    if(smokeTest()) { wchar_t value[32]{}; if(GetEnvironmentVariableW(L"DCV_TEST_CONSOLE_FRACTION",value,32)) consoleFraction=static_cast<float>(_wtof(value)); }
+    if(smokeTest()) { wchar_t value[32]{}; if(GetEnvironmentVariableW(L"LABPLUS_TEST_CONSOLE_FRACTION",value,32)) consoleFraction=static_cast<float>(_wtof(value)); }
     uint32_t consoleTop=consoleClipTop(consoleFraction,swap.extent.height);
     if(consoleTop==swap.extent.height&&!smokeTest()) return false;
     static std::vector<Vertex> vertices;
@@ -901,7 +899,7 @@ EXPORT VKAPI_ATTR VkResult VKAPI_CALL vkCreateDevice(VkPhysicalDevice physical,c
         auto properties=reinterpret_cast<PFN_vkGetPhysicalDeviceProperties>(data->instance->gipa(data->instance->handle,"vkGetPhysicalDeviceProperties"));
         VkPhysicalDeviceProperties gpu{}; properties(physical,&gpu);
         const GameProfile* profile=currentGameProfile();
-        const bool lightingTest=smokeTest()&&GetEnvironmentVariableW(L"DCV_TEST_LIGHTING_FIX",nullptr,0)>0;
+        const bool lightingTest=smokeTest()&&GetEnvironmentVariableW(L"LABPLUS_TEST_LIGHTING_FIX",nullptr,0)>0;
         data->lightingFix=lightingFixEligible(profile,gpu.vendorID,lightingFixRequested())||lightingTest;
         char lightingMessage[400]; sprintf_s(lightingMessage,"Lighting fix: %s; profile=%s vendor=0x%x pid=%lu%s.",
             data->lightingFix?"on":"off",profile?profile->name:"unsupported",gpu.vendorID,GetCurrentProcessId(),lightingTest?" (isolated GPU test)":""); note(lightingMessage);
@@ -1035,7 +1033,7 @@ EXPORT VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL vkGetDeviceProcAddr(VkDevice dev
     return next;
 }
 
-EXPORT VKAPI_ATTR VkResult VKAPI_CALL DoomNegotiateLayerInterfaceVersion(VkNegotiateLayerInterface* info) {
+EXPORT VKAPI_ATTR VkResult VKAPI_CALL labplus_negotiate_layer_interface_version(VkNegotiateLayerInterface* info) {
     if(!info||info->sType!=LAYER_NEGOTIATE_INTERFACE_STRUCT) return VK_ERROR_INITIALIZATION_FAILED;
     if(info->loaderLayerInterfaceVersion>2) info->loaderLayerInterfaceVersion=2;
     info->pfnGetInstanceProcAddr=vkGetInstanceProcAddr; info->pfnGetDeviceProcAddr=vkGetDeviceProcAddr; info->pfnGetPhysicalDeviceProcAddr=physicalProcAddr; return VK_SUCCESS;

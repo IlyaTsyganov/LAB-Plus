@@ -169,7 +169,7 @@ class PracticeLiveBridge {
     void result(const std::filesystem::path& directory,const std::string& phase,const std::string& detail,const std::string& level="") {
         auto path=directory/(L"practice-live-"+std::to_wstring(GetCurrentProcessId())+L".tsv"),temporary=path; temporary+=L".tmp";
         std::ofstream out(temporary,std::ios::binary|std::ios::trunc);
-        out<<"#DEVIL_LIVE_PRACTICE_V1\t"<<GetCurrentProcessId()<<'\t'<<token<<'\t'<<encounterEpochMillis()<<'\t'<<phase<<'\t'<<account<<"\tDLC1-AUTOSAVE5\t"<<practiceClean(level)<<'\t'<<practiceClean(checkpoint)<<'\t'<<practiceClean(detail+(cloudDetail.empty()?"":" "+cloudDetail)+recoveryDetail)<<'\n';
+        out<<"#LABPLUS_LIVE_PRACTICE_V1\t"<<GetCurrentProcessId()<<'\t'<<token<<'\t'<<encounterEpochMillis()<<'\t'<<phase<<'\t'<<account<<"\tDLC1-AUTOSAVE5\t"<<practiceClean(level)<<'\t'<<practiceClean(checkpoint)<<'\t'<<practiceClean(detail+(cloudDetail.empty()?"":" "+cloudDetail)+recoveryDetail)<<'\n';
         out.close(); if(out) MoveFileExW(temporary.c_str(),path.c_str(),MOVEFILE_REPLACE_EXISTING);
     }
 public:
@@ -197,7 +197,7 @@ public:
                 std::ifstream in(path,std::ios::binary); std::string line; if(!std::getline(in,line)) return;
                 std::vector<std::string> values; std::istringstream split(line); std::string part;
                 while(std::getline(split,part,'\t')) values.push_back(part);
-                if(values.size()!=8||values[0]!="#DEVIL_LIVE_PRACTICE_REQUEST_V1"||values[1]!=std::to_string(GetCurrentProcessId())||
+                if(values.size()!=8||values[0]!="#LABPLUS_LIVE_PRACTICE_REQUEST_V1"||values[1]!=std::to_string(GetCurrentProcessId())||
                    !practiceToken(values[2])||values[2]==seen||(values[4]!="archive"&&values[4]!="reload"&&values[4]!="restore")||values[6]!="DLC1-AUTOSAVE5") return;
                 auto number=[](const std::string& value) { return !value.empty()&&value.size()<=20&&std::all_of(value.begin(),value.end(),[](char c) { return c>='0'&&c<='9'; }); };
                 if(!number(values[3])||!number(values[5])) return;
@@ -246,7 +246,7 @@ public:
                         return check&&check.map==state.map&&check.record==state.record&&check.user==state.user&&owner.account==steam.account&&owner.cloudDisabled;
                     };
                     commitPracticeRestore(remote,bundle,incoming,files,plan,account,token,practiceStorageApi(),stillIdle,[&](const char* step) {
-                        if(strcmp(step,"backed_up")==0) recoveryDetail=" Original retained: "+(remote.parent_path()/(L".devil-live-original-"+std::wstring(token.begin(),token.end()))).u8string()+". Recovery journal: "+(bundle/L"RESTORE_PATHS.txt").u8string()+".";
+                        if(strcmp(step,"backed_up")==0) recoveryDetail=" Original retained: "+(remote.parent_path()/(L".labplus-live-original-"+std::wstring(token.begin(),token.end()))).u8string()+". Recovery journal: "+(bundle/L"RESTORE_PATHS.txt").u8string()+".";
                     });
                     if(!stillIdle()) throw std::runtime_error("Files installed, but engine/account/Cloud changed before reload. Original retained; do not continue until reviewed.");
                 }

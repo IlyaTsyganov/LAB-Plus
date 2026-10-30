@@ -58,7 +58,7 @@ static PracticeRestorePlan readPracticeRestorePlan(const std::filesystem::path& 
     std::ifstream in(path,std::ios::binary); std::string line,part; std::vector<std::string> header;
     if(!std::getline(in,line)) throw std::runtime_error("Restore plan missing."); std::istringstream fields(line);
     while(std::getline(fields,part,'\t')) header.push_back(part);
-    if(header.size()!=6||header[0]!="#DEVIL_LIVE_RESTORE_PLAN_V1"||header[1]!=account||header[2]!="DLC1-AUTOSAVE5"||header[3]!=token||header[4]!=std::to_string(process)||!practiceToken(header[5]))
+    if(header.size()!=6||header[0]!="#LABPLUS_LIVE_RESTORE_PLAN_V1"||header[1]!=account||header[2]!="DLC1-AUTOSAVE5"||header[3]!=token||header[4]!=std::to_string(process)||!practiceToken(header[5]))
         throw std::runtime_error("Restore plan owner/slot/process/token mismatch.");
     PracticeRestorePlan plan; plan.archive=header[5];
     for(size_t i=0;i<8;++i) {
@@ -115,7 +115,7 @@ static PracticeCommitResult commitPracticeRestore(const std::filesystem::path& r
     const PracticeStorageApi& storage,const std::function<bool()>& stillIdle,const std::function<void(const char*)>& step={}) {
     practiceAuthenticate(incoming,account); practiceAuthenticate(current,account);
     if(!practiceToken(token)||!practiceTargetMatches(current,plan)||!practiceFilesMatch(incoming,plan.sources)) throw std::runtime_error("Archive or target checkpoint changed after review. Nothing restored.");
-    auto app=remote.parent_path(),target=remote/L"DLC1-AUTOSAVE5",original=app/(L".devil-live-original-"+std::wstring(token.begin(),token.end()));
+    auto app=remote.parent_path(),target=remote/L"DLC1-AUTOSAVE5",original=app/(L".labplus-live-original-"+std::wstring(token.begin(),token.end()));
     practiceNoLinks(app); practiceNoLinks(target); practiceNoLinks(original);
     if(std::filesystem::exists(original)||!storage.read||!storage.write) throw std::runtime_error("Restore transaction path already exists or storage unavailable.");
     if(storage.read()!=current||!stillIdle()) throw std::runtime_error("Steam storage and selected disk slot differ, or engine state changed. Nothing restored.");

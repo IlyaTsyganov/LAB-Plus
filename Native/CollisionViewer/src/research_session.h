@@ -1,4 +1,5 @@
 #pragma once
+#include "labplus_paths.h"
 #include <deque>
 #include <sstream>
 #include <locale>
@@ -18,8 +19,7 @@ struct ResearchRow {
     bool positioned=false; Vec3 position{};
 };
 static std::filesystem::path researchDirectory() {
-    wchar_t directory[32768]{}; DWORD length=GetEnvironmentVariableW(L"LOCALAPPDATA",directory,32768);
-    return length&&length<32768?std::filesystem::path(directory)/L"DEViL":std::filesystem::path{};
+    return labplusDataDirectory();
 }
 static bool readResearchPosition(const WallMemory& memory,uintptr_t base,const GameProfile& profile,Vec3& position) {
     uintptr_t system=0,map=0,player=0,vtable=0,physics=0;
@@ -72,7 +72,7 @@ class ResearchSession {
                 std::filesystem::create_directories(directory/L"research");
                 journal.open(directory/L"research"/(session+".full.tsv"),std::ios::binary|std::ios::trunc);
                 journal.imbue(std::locale::classic()); journal.precision(9);
-                journal<<"#DEVIL_RESEARCH_V1\t"<<GetCurrentProcessId()<<"\t1\t0\t"<<session<<'\n';
+                journal<<"#LABPLUS_RESEARCH_V1\t"<<GetCurrentProcessId()<<"\t1\t0\t"<<session<<'\n';
                 journal<<"sequence\telapsed_ms\tkind\tmap\tid\tgeneration\tclass\tx\ty\tz\tdetail\n";
             } catch(...) { }
         }
@@ -167,7 +167,7 @@ public:
             auto target=directory/L"research"/(session+".tsv"); auto temporary=target; temporary+=L".tmp";
             {
                 std::ofstream output(temporary,std::ios::binary|std::ios::trunc); output.imbue(std::locale::classic());
-                output<<"#DEVIL_RESEARCH_V1\t"<<GetCurrentProcessId()<<'\t'<<recording<<'\t'<<omitted<<'\t'<<clean(session)<<'\n';
+                output<<"#LABPLUS_RESEARCH_V1\t"<<GetCurrentProcessId()<<'\t'<<recording<<'\t'<<omitted<<'\t'<<clean(session)<<'\n';
                 output<<"sequence\telapsed_ms\tkind\tmap\tid\tgeneration\tclass\tx\ty\tz\tdetail\n";
                 output.precision(9);
                 for(const auto& row:rows) writeRow(output,row);

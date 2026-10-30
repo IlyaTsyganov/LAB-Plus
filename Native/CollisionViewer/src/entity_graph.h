@@ -217,7 +217,7 @@ static bool writeEntityGraph(const EntityGraphSnapshot& snapshot,const std::file
         std::filesystem::create_directories(directory);
         auto path=directory/(L"entity-graph-"+std::to_wstring(snapshot.process)+L".tsv"),temporary=path; temporary+=L".tmp";
         std::ofstream out(temporary,std::ios::binary|std::ios::trunc); out.imbue(std::locale::classic());
-        out<<"#DEVIL_GRAPH_V1\t"<<snapshot.process<<'\t'<<snapshot.captured<<'\t'<<snapshot.phase<<'\t'<<clean(snapshot.level.name)<<'\t'
+        out<<"#LABPLUS_GRAPH_V1\t"<<snapshot.process<<'\t'<<snapshot.captured<<'\t'<<snapshot.phase<<'\t'<<clean(snapshot.level.name)<<'\t'
            <<snapshot.level.map<<':'<<snapshot.level.world<<'\t'<<snapshot.unavailable<<'\t'<<snapshot.pending<<'\t'<<snapshot.limited<<'\t'
            <<(snapshot.selected?std::to_string(snapshot.selectedId)+":"+std::to_string(snapshot.selectedGeneration):"")<<'\n';
         for(const auto& node:snapshot.nodes) out<<"N\t"<<node.ref.id<<':'<<node.ref.generation<<'\t'<<clean(node.name)<<'\t'<<clean(node.ref.className)<<'\t'<<clean(node.label)<<'\n';

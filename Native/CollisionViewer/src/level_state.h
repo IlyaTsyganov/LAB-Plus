@@ -122,7 +122,7 @@ static bool writeLevelState(const LevelStateSnapshot& state,const std::filesyste
     try {
         std::filesystem::create_directories(path.parent_path()); std::ofstream output(temporary,std::ios::binary|std::ios::trunc);
         output.imbue(std::locale::classic()); output.precision(9);
-        output<<"#DEVIL_LEVEL_STATE_V1\t"<<state.process<<'\t'<<state.token<<'\t'<<state.captured<<'\t'<<state.phase<<'\t'<<stateClean(state.level.name)<<'\t'<<stateClean(state.profile)<<'\t'
+        output<<"#LABPLUS_LEVEL_STATE_V1\t"<<state.process<<'\t'<<state.token<<'\t'<<state.captured<<'\t'<<state.phase<<'\t'<<stateClean(state.level.name)<<'\t'<<stateClean(state.profile)<<'\t'
             <<state.level.map<<':'<<state.level.world<<'\t'<<state.checkpoint.status<<'\t'<<stateClean(state.checkpoint.name,1023)<<'\t'<<state.unavailable<<'\t'<<state.membershipComplete<<'\t'<<state.encounters.phase<<'\n';
         for(auto entry:state.members) output<<"I\t"<<entry.first<<'\t'<<entry.second<<'\n';
         for(const auto& row:state.volumes) {

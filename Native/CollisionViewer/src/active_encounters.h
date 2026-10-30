@@ -116,7 +116,7 @@ static bool writeActiveEncounters(const ActiveEncounterSnapshot& snapshot,const 
         {
             std::ofstream output(temporary,std::ios::binary|std::ios::trunc);
             output.imbue(std::locale::classic());
-            output<<"#DEVIL_ENCOUNTERS_V1\t"<<snapshot.process<<'\t'<<snapshot.captured<<'\t'<<snapshot.phase<<'\t'<<clean(snapshot.level)<<'\t'<<snapshot.unreadable<<'\n';
+            output<<"#LABPLUS_ENCOUNTERS_V1\t"<<snapshot.process<<'\t'<<snapshot.captured<<'\t'<<snapshot.phase<<'\t'<<clean(snapshot.level)<<'\t'<<snapshot.unreadable<<'\n';
             output<<"id\tgeneration\tmanager\tlabel\tthinkFlags\tenabled\tpaused\tspawnPaused\twaitingExit\tscript\tcommands\n";
             for(const auto& row:snapshot.rows) {
                 output<<row.id<<'\t'<<row.generation<<'\t'<<clean(row.name)<<'\t'<<clean(row.label)<<'\t';
@@ -147,7 +147,7 @@ public:
         formattedAt=now;
         if(!requested) { api->executeCommand("com_debugHUD 1"); requested=true; }
         std::array<std::string,14> lines{};
-        lines[0]="DEViL | Active encounters";
+        lines[0]="LAB Plus | Active encounters";
         if(!snapshot||now>snapshot->captured+2000||snapshot->captured>now+5000) lines[1]="Waiting for fresh encounter data";
         else if(snapshot->phase!="live"&&snapshot->phase!="paused") lines[1]="State: "+snapshot->phase;
         else {
@@ -161,7 +161,7 @@ public:
                 ++shown;
             }
             lines[1]=std::string(snapshot->unreadable?"Known active managers: ":"Active managers: ")+std::to_string(active);
-            if(active>shown) lines[12]="+"+std::to_string(active-shown)+" more in DEVIL / lab_encounters_list";
+            if(active>shown) lines[12]="+"+std::to_string(active-shown)+" more in LABPLUS / labplus_encounters_list";
             if(snapshot->unreadable) lines[13]="Unavailable reads: "+std::to_string(snapshot->unreadable);
         }
         for(unsigned i=0;i<lines.size();++i) {
@@ -262,8 +262,8 @@ public:
 static ActiveEncounterBridge& activeEncounters() { static auto* bridge=new ActiveEncounterBridge; return *bridge; }
 static void printActiveEncounters(const MeathookHudApi& api) {
     auto snapshot=activeEncounters().snapshot();
-    if(!snapshot||encounterEpochMillis()>snapshot->captured+2000) { api.consolePrint("%s","lab_encounters: waiting for a fresh snapshot.\n"); return; }
-    if(snapshot->phase!="live"&&snapshot->phase!="paused") { api.consolePrint("lab_encounters: %s\n",snapshot->phase.c_str()); return; }
+    if(!snapshot||encounterEpochMillis()>snapshot->captured+2000) { api.consolePrint("%s","labplus_encounters: waiting for a fresh snapshot.\n"); return; }
+    if(snapshot->phase!="live"&&snapshot->phase!="paused") { api.consolePrint("labplus_encounters: %s\n",snapshot->phase.c_str()); return; }
     unsigned active=0;
     for(const auto& row:snapshot->rows) if(row.active()) {
         if(++active<=128) api.consolePrint("%s | %s | script %d\n",row.label.empty()?"<no reference name>":row.label.c_str(),row.name.empty()?"<name unavailable>":row.name.c_str(),row.script);

@@ -43,7 +43,7 @@ static bool writeBookmark(const BookmarkCapture& value,const std::filesystem::pa
     try {
         std::filesystem::create_directories(path.parent_path()); std::ofstream output(temporary,std::ios::binary|std::ios::trunc);
         output.imbue(std::locale::classic()); output.precision(9);
-        output<<"#DEVIL_POINT_V1\t"<<value.process<<'\t'<<value.token<<'\t'<<value.captured<<'\t'<<value.phase<<'\t'<<stateClean(value.level.name)<<'\t'<<stateClean(value.profile)<<'\t'
+        output<<"#LABPLUS_POINT_V1\t"<<value.process<<'\t'<<value.token<<'\t'<<value.captured<<'\t'<<value.phase<<'\t'<<stateClean(value.level.name)<<'\t'<<stateClean(value.profile)<<'\t'
             <<value.level.map<<':'<<value.level.world<<'\t'<<value.checkpoint.status<<'\t'<<stateClean(value.checkpoint.name,1023)<<'\n';
         if(value.phase=="ready") {
             output<<"P"; for(auto p:{value.body,value.eye,value.forward}) output<<'\t'<<p.x<<'\t'<<p.y<<'\t'<<p.z;

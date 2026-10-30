@@ -1,4 +1,5 @@
 #pragma once
+#include "labplus_paths.h"
 
 static bool validTriggerClassName(const std::string& name) {
     if(name.empty()||name.size()>128||!(name=="idTrigger"||name.rfind("idTrigger_",0)==0||name.rfind("idEncounterTrigger_",0)==0)) return false;
@@ -91,15 +92,15 @@ class TriggerPathDiscovery {
     std::unordered_set<std::string> seen;
     bool dirty=false; ULONGLONG lastAttempt=0;
     static std::filesystem::path defaultPath() {
-        wchar_t directory[32768]{}; DWORD length=GetEnvironmentVariableW(L"LOCALAPPDATA",directory,32768);
-        return length&&length<32768?std::filesystem::path(directory)/L"DEViL"/L"trigger-paths.tsv":std::filesystem::path{};
+        auto directory=labplusDataDirectory();
+        return directory.empty()?directory:directory/L"trigger-paths.tsv";
     }
 public:
     explicit TriggerPathDiscovery(std::filesystem::path output=defaultPath()):path(std::move(output)) {
         std::error_code error;
         if(path.empty()||std::filesystem::file_size(path,error)>1048576||error) return;
         std::ifstream input(path); std::string line;
-        if(std::getline(input,line)&&line=="#DEVIL_TRIGGER_PATHS_V1") for(unsigned i=0;i<2048&&std::getline(input,line);++i) {
+        if(std::getline(input,line)&&line=="#LABPLUS_TRIGGER_PATHS_V1") for(unsigned i=0;i<2048&&std::getline(input,line);++i) {
             auto tab=line.find('\t'); if(tab!=std::string::npos) line[tab]='|';
             if(validTriggerPathKey(line)) seen.insert(line);
         }
@@ -111,7 +112,7 @@ public:
         try {
             std::filesystem::create_directories(path.parent_path());
             std::vector<std::string> keys(seen.begin(),seen.end()); std::sort(keys.begin(),keys.end());
-            std::ofstream output(temporary,std::ios::binary|std::ios::trunc); output<<"#DEVIL_TRIGGER_PATHS_V1\n";
+            std::ofstream output(temporary,std::ios::binary|std::ios::trunc); output<<"#LABPLUS_TRIGGER_PATHS_V1\n";
             for(auto key:keys) { key[key.find('|')]='\t'; output<<key<<'\n'; }
             output.close(); if(output&&MoveFileExW(temporary.c_str(),path.c_str(),MOVEFILE_REPLACE_EXISTING)) dirty=false;
         } catch(...) { /* Optional discovery must not interrupt rendering. */ }
@@ -126,10 +127,8 @@ class TriggerClassDiscovery {
     bool dirty=false;
     ULONGLONG lastAttempt=0;
     static std::filesystem::path defaultPath() {
-        wchar_t directory[32768]{};
-        DWORD length=GetEnvironmentVariableW(L"LOCALAPPDATA",directory,32768);
-        if(!length||length>=32768) return {};
-        return std::filesystem::path(directory)/L"DEViL"/L"trigger-classes.txt";
+        auto directory=labplusDataDirectory();
+        return directory.empty()?directory:directory/L"trigger-classes.txt";
     }
 public:
     explicit TriggerClassDiscovery(std::filesystem::path output=defaultPath()):path(std::move(output)) {}
