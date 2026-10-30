@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\labplus.ico</ApplicationIcon>
+    <AssemblyName>labplus</AssemblyName>
+    <Product>LAB Plus</Product>
+    <AssemblyTitle>LAB Plus</AssemblyTitle>
+    <Version>0.8.0</Version>
+    <RootNamespace>LabPlus</RootNamespace>
+    <PlatformTarget>x64</PlatformTarget>
+  </PropertyGroup>
+  <ItemGroup>
+    <Content Include="Assets\licenses\*.txt" CopyToOutputDirectory="PreserveNewest" TargetPath="licenses\%(Filename)%(Extension)" />
+    <Content Include="Assets\ui\**\*" CopyToOutputDirectory="PreserveNewest" TargetPath="Assets\ui\%(RecursiveDir)%(Filename)%(Extension)" />
+    <Content Include="LICENSE" CopyToOutputDirectory="PreserveNewest" TargetPath="licenses\GPL-3.0.txt" />
+    <Content Include="Native\CollisionViewer\THIRD_PARTY_NOTICES.md" CopyToOutputDirectory="PreserveNewest" TargetPath="licenses\THIRD_PARTY_NOTICES.md" />
+    <Content Include="Assets\labplus.png" CopyToOutputDirectory="PreserveNewest" TargetPath="Assets\labplus.png" />
+    <Compile Remove="Tests\**\*.cs" />
+    <EmbeddedResource Include="Assets\trigger-paths.tsv" LogicalName="LabPlus.TriggerPaths.tsv" />
+    <Content Include="Assets\labplus.ico" CopyToOutputDirectory="PreserveNewest" TargetPath="Assets\labplus.ico" />
+    <Content Include="Assets\fonts\*.ttf" CopyToOutputDirectory="PreserveNewest" TargetPath="Assets\fonts\%(Filename)%(Extension)" />
+    <Content Include="Native\CollisionViewer\bin\labplus-layer.dll" Condition="Exists('Native\CollisionViewer\bin\labplus-layer.dll')" CopyToOutputDirectory="PreserveNewest" TargetPath="Native\CollisionViewer\bin\labplus-layer.dll" />
+    <Content Include="Native\CollisionViewer\licenses\doomfix-MIT.txt" CopyToOutputDirectory="PreserveNewest" TargetPath="licenses\doomfix-MIT.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.4314.35" />
+  </ItemGroup>
+</Project>

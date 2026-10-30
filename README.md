@@ -1,95 +1,54 @@
-# DEViL
+# LAB Plus
 
-**DOOM Eternal Visualization & Inspection Layer** is a Windows companion application for viewing the game's collision geometry. It configures a Vulkan layer for the selected game executable and provides a single window for choosing what geometry to show and how to render it.
+Windows research and practice companion for **DOOM Eternal**, featuring the **Slayer Workspace** interface, original Eternal typefaces and the red/gold Plus emblem. The interface is fully English; technical identifiers and console controls use `labplus` / `labplus_`.
 
-DEViL is an unofficial community tool. The companion configures the Vulkan loader without modifying the game installation or injecting code. The viewer is loaded when the supported game executable starts and reads camera and physics data inside that process. Collision decoding does not modify physics. The optional research features additionally use engine APIs for their debug HUD, command registration and owned console variables. The development live-practice experiment also provides an explicitly requested engine checkpoint reload.
+[Download Windows x64](https://github.com/IlyaTsyganov/LAB-Plus/releases/latest) · [Detailed Wiki](https://github.com/IlyaTsyganov/LAB-Plus/wiki) · [Console reference](https://github.com/IlyaTsyganov/LAB-Plus/wiki/Console-commands-and-cvars)
 
-The volume inspector and encounter HUD call the game's native debug HUD through an already-loaded, compatible meathook. They do not change collision or encounter logic. See [inspector instructions](Native/CollisionViewer/INSPECTOR_LOCAL.md). The research features are experimental: 22 profile fixtures and isolated GPU tests pass, while the new encounter HUD and native cvar registration still need in-game acceptance after restarting with the updated layer. Native cvar creation in the development build is audited for 6.66 Rev 3 only; unsupported versions report it once and retain GUI/action-command functions. Meathook compatibility is not implied for every supported collision-viewer profile.
+![Slayer Workspace](docs/images/workspace.png)
 
 ## Features
 
-- **Сохранения…** opens a simple checkpoint library: pause the game, optionally enter a name, press **Сохранить**, select an entry and press **Загрузить**. The Steam folder is detected automatically when unambiguous. Live loading supports **6.66 Rev 3 / TAG1 / slot 3** with Cloud off. It retains originals, verifies all four containers and uses Steam storage and the engine loader. These are completed autosaves, not arbitrary RAM snapshots. Advanced offline archives/recovery are under **Дополнительно… → Инструменты и диагностика…** ([instructions and limits](Native/CollisionViewer/LIVE_PRACTICE_LOCAL.md)).
+- Collision viewer: independent world collision, triggers and invisible walls; filled/outline style; 20–200 m distance.
+- Persistent trigger-class and hierarchical folder filters, crosshair volume inspector, disabled-volume outlines and recent history.
+- Research timeline: manual recording, in-game path, markers, search and complete CSV export.
+- Movement Lab: named attempts, manual outcomes, up to six route overlays, player collider, velocity, target distances and surface projections.
+- Entity links: navigable observed-reference graphs with fit, zoom, pan and JSON export.
+- Before/after level comparison, changed-volume highlights and CSV/JSON export.
+- Active encounter observations and optional native HUD.
+- Research points with physical/camera data, categories, notes and copyable return data.
+- Checkpoint library plus authenticated same-account archives, reviewed restore and backup recovery.
+- Scoped Vulkan launch and automatic early-version NVIDIA lighting correction.
 
-- **Research points…** stores named category/route observations with distinct physical body and rendered eye/aim data, checkpoint, selected volumes, notes and archive links. The advanced offline save tools authenticate all four Steam containers, prepare recovery archives from valid backup pairs and restore same-account/matching-family occupied slots after review with game/Steam closed ([workflow and limits](Native/CollisionViewer/RESEARCH_POINTS_LOCAL.md)).
-- **Development build:** **Level state: before / after…** captures recognized volumes, raw encounter-manager fields and the loaded checkpoint name; compares state, identity, transform and geometry observations; and highlights selected or all changed volume outlines. Save a pair as JSON or export changes as CSV ([instructions and limits](Native/CollisionViewer/LEVEL_STATE_LOCAL.md)). Unavailable reads remain distinct from deletion; loaded checkpoint data does not prove a new save.
-- Explore observed entity references in **Entity links…**. All neighboring vertices fit automatically; use the wheel to zoom, hold RMB to pan, and click LMB to select. Follow the volume under the crosshair, inspect exact reference fields and export JSON ([details and limits](Native/CollisionViewer/ENTITY_GRAPH_LOCAL.md)). Runtime references are not proof of script execution.
-- **Development build:** **Movement lab…** shows the rounded player collider, physical velocity, body dimensions and support trace; records named attempts with user-assigned outcomes; overlays up to six routes and compares sampled positions, velocity, height, contacts and target-boundary distances. Saved attempts include the map/build and export to CSV ([controls, accuracy and limits](Native/CollisionViewer/MOVEMENT_LAB_LOCAL.md)).
-- Collider pose refreshes every rendered frame using cached geometry. **Surface projections…** shows world-axis plane cuts and numeric tangent angles for live/held/recorded support, with an optional in-game angle HUD. Recording remains about 20 Hz; the older research journal remains about 10 Hz.
-- Enable or disable the Collision Viewer for the next game launch.
-- Display world collision, triggers, and invisible walls independently.
-- Toggle each trigger class separately with persistent **Trigger types…** filters. The development build adds nested folder switches from instance names and entity definitions, with a bundled resource catalogue and live discovery ([details](Native/CollisionViewer/TRIGGER_FILTERS_LOCAL.md)).
-- Manually record the player's path, draw it in-game, review a research timeline and export CSV. Control viewer/research options with `lab_` console controls while the companion is open ([details](Native/CollisionViewer/RESEARCH_LOCAL.md)).
-- View active encounter managers with map-scoped reference names in a live companion window or the native game HUD. State preferences use `lab_*` cvars; actions use separate commands ([details](Native/CollisionViewer/ACTIVE_ENCOUNTERS_LOCAL.md)).
-- Inspect a trigger or invisible wall under the crosshair: highlight its exact geometry and show entity details in the native game HUD through meathook.
-- Optionally show disabled volumes as pale outlines, flash state changes, and retain removed/unreadable geometry as labelled snapshots for up to 15 seconds ([details](Native/CollisionViewer/VOLUME_STATES_LOCAL.md)).
-- Choose filled surfaces or outlines and set the render distance from 20 to 200 metres.
-- Select the game executable and launch it from DEViL, automatically passing `+com_skipIntroVideo 1`. Launch requires Windows Firewall to block all outbound traffic for that exact EXE on every active network profile; enable the matching block in DESRU. DEViL only reads firewall state and does not change rules. This gate applies to DEViL's launch button.
-- Show the selected game version; long executable paths use an ellipsis and reveal the full path on hover.
-- Automatically fix missing lighting on NVIDIA when launching game versions 1.0, 1.1 or 2.0 from DEViL, including when Collision Viewer is disabled.
-- Save viewer and rendering preferences automatically between runs.
-- Show whether the game and companion utility processes are running.
-- Use a per-user Vulkan layer registration scoped to the selected executable; unrelated applications are not opted in.
+## Install and run
 
-## Download and run
+Extract the **entire** release ZIP and run `labplus.exe`. Keep every included file/folder together. Install **.NET 10 Desktop Runtime x64** and **Microsoft Edge WebView2 Evergreen Runtime**. Select `DOOMEternalx64vk.exe` in Settings, configure the matching outbound firewall block in DESRU, enable the viewer and launch the game through LAB Plus. The launch gate reads firewall state without changing it. First enable or a DLL update requires a full game restart.
 
-Download [DEViL 0.8 for Windows x64](https://github.com/IlyaTsyganov/DEVIL/releases/download/0.8/DEViL-0.8.zip), extract the archive, and run `DEViL.exe`. Keep the included files and folders together. The package requires the **.NET 10 Desktop Runtime (x64)**. The archive includes the corresponding source snapshot and licenses; `SHA256SUMS.txt` contains its checksum. A compatible meathook installation is required for native HUD text, encounter metadata and console controls; it is not bundled.
+See [installation](https://github.com/IlyaTsyganov/LAB-Plus/wiki/Installation-and-first-launch), [compatibility](https://github.com/IlyaTsyganov/LAB-Plus/wiki/Compatibility) and [troubleshooting](https://github.com/IlyaTsyganov/LAB-Plus/wiki/Troubleshooting).
 
-In the application, select `DOOMEternalx64vk.exe`, enable Collision Viewer, choose the geometry and rendering options, then launch the game. Changes to the viewer setting take effect on the next game launch. Executable selection and settings accept other game versions without a version hash check. The viewer automatically selects one of the 22 audited profiles below; other executable layouts withhold rendering. All profiles use the same player-blocking contents filter, frustum/distance culling, depth occlusion, menu/pause hiding and console clipping. Levels are discovered from the current map and physics state, including DLC levels present in the selected game version; no map filename list is required.
+## Compatibility and scope
 
-| Game versions | Profile and validation record |
-| --- | --- |
-| 1.0 (Release), 1.1 | [Executable profiles](Native/CollisionViewer/src/native_profile.h) |
-| 2.0, 2.1, 3.0 | [Validation](Native/CollisionViewer/PROFILE_2_0_3_0.md) |
-| 3.1 | [Validation](Native/CollisionViewer/PROFILE_3_1.md) |
-| 4.0, 4.1 | [Validation](Native/CollisionViewer/PROFILE_4_0_4_1.md) |
-| 5.0 | [Validation](Native/CollisionViewer/PROFILE_5_0_6_1.md) |
-| 5.1 | [Validation](Native/CollisionViewer/PROFILE_5_1.md) |
-| 6.0, 6.1 | [Validation](Native/CollisionViewer/PROFILE_5_0_6_1.md) |
-| 6.2, 6.3, 6.4 | [Validation](Native/CollisionViewer/PROFILE_6_2_6_4.md) |
-| 6.66; 6.66 Rev 1, Rev 1.1, Rev 2, Rev 2.2, Rev 3, Rev 3.2 | [Validation](Native/CollisionViewer/PROFILE_6_66.md) |
+The collision reader recognizes 22 audited executable profiles from 1.0 through 6.66 Rev 3.2. Native HUD/console integration requires a compatible, already-loaded meathook, which is not bundled. Native cvar creation is audited for **6.66 Rev 3 only**. Live checkpoint loading is limited to **6.66 Rev 3 / TAG1 / slot 3**, same account, Cloud off and all runtime checks passing. These are completed autosaves, not arbitrary RAM snapshots.
 
-### Lighting fix
+Automated fixtures and isolated GPU tests do not prove every feature in a live game. The latest rebranded layer, encounter HUD and corrected native cvar creation still require in-game acceptance after restarting. The final UI migration passed managed, encrypted checkpoint-fixture, headless screen and packaged WebView checks; its native DLL is byte-identical to the earlier verified local build (11 native suites / 22 profiles / 38 GPU cases).
 
-Launching **1.0, 1.1 or 2.0** with DEViL's launch button automatically enables the default indirect-barrier correction adapted from [billymooreq's DoomEternal-v1.1--RTXFix](https://github.com/billymooreq/DoomEternal-v1.1--RTXFix). The launcher checks the executable's PE identity and code fingerprint; the layer checks its profile again and applies the correction only on NVIDIA devices. Other game versions are excluded. This integration is included starting with DEViL 0.6.
+Collision decoding does not modify physics. The Vulkan loader loads the scoped layer at game startup; optional research integration uses engine APIs and the explicit checkpoint workflow can request an engine reload. LAB Plus is an unofficial community tool.
 
-The fix works independently of the Collision Viewer checkbox. It adds the missing indirect-command read access to the game's Vulkan 1.x pipeline barriers and event waits. Collision Viewer continues rendering at presentation, after the game's corrected lighting, with its existing geometry, depth and console rules. No separate doomfix installation or additional layer is required. Manual or Steam launches do not receive DEViL's lighting-fix opt-in. Restart the game through DEViL after updating the layer. In `viewer-runtime/VulkanViewer.log`, `Lighting fix: on` identifies activation and `Lighting fix: patched ...` confirms barrier correction.
+## Build
 
-For these three versions, DEViL also passes `SteamAppId=782330` to the child process, as the upstream fix launcher does. This prevents the game from restarting through Steam and losing the lighting-fix setting. Keep Steam running before launching. DEViL does not create or modify `steam_appid.txt`.
-
-Lighting, barrels and collision-viewer rendering were checked together in all three versions on Hell on Earth. Runtime logs and the user's visual confirmation passed; see the [lighting fix validation record](Native/CollisionViewer/LIGHTING_FIX.md).
-
-## Build from source
-
-Requirements: Windows x64, Visual Studio Build Tools with the C++ workload, and the .NET 10 SDK.
-
-From the repository root, build the native viewer and then publish the Windows application:
+Requires Windows x64, the .NET 10 SDK and MSVC C++ Build Tools or LLVM-MinGW.
 
 ```powershell
-cmd /c .\Native\CollisionViewer\build-viewer.cmd
-dotnet publish .\DEViL.csproj -c Release -o .\publish
+./build-local.ps1
+# Optional explicit portable native compiler:
+./build-local.ps1 -NativeCompiler C:\tools\llvm-mingw\bin\clang++.exe
 ```
 
-The Windows application source is organized at the repository root. Native source, tests, shaders, and third-party notices are under `Native/CollisionViewer/`. Vulkan-Headers and their license files are included under `third_party/Vulkan-Headers/`.
+This builds the native layer, runs fixtures and managed/UI checks, and publishes the complete application to `publish`. See [Building and validation](https://github.com/IlyaTsyganov/LAB-Plus/wiki/Building-and-validation) for individual commands and test boundaries. Versioned Wiki sources are in [`docs/wiki`](docs/wiki).
 
-The native build creates eleven test suites under `Native/CollisionViewer/bin/`: `ViewerBehaviorTests`, `DepthTrackerTests`, `LightingFixTests`, `InspectorTests`, `ResearchTests`, `EncounterTests`, `EntityGraphTests`, `LabCvarTests`, `MovementTests`, `LevelStateTests`, and `PracticeLiveTests`. It also builds `LayerLoaderProbe.exe`, `RetailProfileProbe.exe`, and `VulkanSmoke.exe`. HUD fixtures use a recording backend and do not verify actual in-game font rendering. The loader probe accepts a Vulkan layer runtime directory. A preconfigured MSVC environment can be used instead of a Visual Studio Installer installation.
+The UI uses packaged HTML/CSS via WebView2. Screen state/actions are plain C# objects; the native host contains only one WebView2 and does not create the former native widget layouts. Windows file/folder pickers remain OS dialogs. `labplus.exe --preview` opens an isolated UI preview.
 
-Run `dotnet run --project Tests/Launcher/LauncherTests.csproj -c Release` to check executable recognition and the process-local launch environment without starting the game. Add `-LightingFix` to the GPU test script below to exercise lighting correction together with all 19 overlay readback cases. The lighting correction's MIT notice is copied to the published application's `licenses` directory.
+Data lives under `%LOCALAPPDATA%\labplus`; `LABPLUS_DATA_DIRECTORY` accepts an absolute override. First-use migration copies previous preferences and archives without modifying originals or overwriting existing LAB Plus data. See [Data and migration](https://github.com/IlyaTsyganov/LAB-Plus/wiki/Data-and-migration).
 
-Run `Native/CollisionViewer/tests/run-gpu-tests.ps1` with PowerShell 7 to execute 19 isolated GPU readback cases for depth occlusion, console clipping and separate graphics/presentation queues. Results are saved to `Native/CollisionViewer/build/gpu-verification.json`. Split-queue cases require a GPU with a non-graphics queue family that supports presentation. If the temporary path contains non-ASCII characters, provide an ASCII directory through `-RuntimeDirectory` for the Vulkan loader. Tests do not launch or modify the game.
+## License and attribution
 
-## Safety and limitations
-
-When enabled, DEViL writes its own manifests under the current user's local application data and registers them in that user's Vulkan layer settings. Registration is scoped to the selected game executable. Disabling the viewer removes only DEViL's own registration. The application does not stop or modify a running game process; a running game must be restarted for changed viewer settings to apply.
-
-The launch button also prepares the same scoped layer for the three lighting-fix versions even when the viewer is disabled. Only the child game receives `DEVIL_LIGHTING_FIX=1`; the parent process, system environment and game files are unchanged. If another Vulkan override meta-layer is registered, DEViL reports the conflict and leaves that registration unchanged.
-
-The bundled layer supports the audited executables identified in `Native/CollisionViewer/src/native_profile.h` and listed above. Executable PE metadata and a code fingerprint select the layout; accepting a path in settings does not imply support for other layouts. Elevated launches have not been verified. Large render distances can reduce game performance. Native behavior has automated tests for all registered profiles, but rendering should be validated in-game on the target system. `RetailProfileProbe.exe <game-pid>` runs the production camera, menu/console and geometry readers against a loaded level with read-only process access; it does not inject code or modify game state.
-
-Presentation may use a compute/transfer queue that cannot draw graphics. The layer renders through a registered graphics queue and forwards the completed image to the original presentation queue. Concurrent sharing respects the game's allowed families; exclusive sharing uses paired image ownership barriers and image-indexed semaphores in both directions. A combined graphics/presentation queue keeps the original submission path. The isolated `VulkanSmoke.exe` test accepts `DCV_TEST_SPLIT_PRESENT=concurrent` or `exclusive` to exercise this on a supported GPU without launching or modifying the game.
-
-Depth diagnostics: `viewer-runtime/Visibility.request` is an optional experiment file containing `imageHandleHex mode probeId bias` (for example, `0 2 0 0.05`). Mode 2 is the normal gameplay default; 0 and 1 are projection experiments. Requests are accepted only when written during the current game process lifetime. Older files are ignored because projection overrides and Vulkan image handles must not carry over between launches. Removing an active request, or replacing it with invalid input, restores defaults. `VulkanViewer.log` records the effective settings, request status and process ID. A requested depth probe also logs the finite sample range and warns about uniform depth; draw-call counts alone do not prove that fragments survived depth rejection.
-
-## Licensing and assets
-
-The source is distributed under [GNU GPL v3](LICENSE). Vulkan-Headers retain their upstream Apache-2.0 and MIT terms and notices. The included DOOM Eternal typefaces and logo assets remain the property of their respective owners; their inclusion does not transfer ownership or grant rights beyond the original terms. DOOM Eternal is a trademark of its respective owners. DEViL is not affiliated with or endorsed by id Software or Bethesda.
-
+Source is [GNU GPL v3](LICENSE), retaining history from [the original project](https://github.com/IlyaTsyganov/DEVIL). Vulkan-Headers, the [lighting correction](https://github.com/billymooreq/DoomEternal-v1.1--RTXFix) and WebView2 retain their included notices/licenses. DOOM Eternal typefaces and logo-derived assets remain the property of their respective owners; inclusion does not transfer ownership or grant additional rights. LAB Plus is not affiliated with or endorsed by id Software or Bethesda.
