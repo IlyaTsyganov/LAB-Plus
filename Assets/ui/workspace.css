@@ -1,0 +1,101 @@
+html,body{margin:0;min-height:100%;background:#191615;color-scheme:dark}
+body{font-family:'LP UI';font-size:16px}
+#labplus-refined{min-height:100vh}
+#labplus-refined .desktop-app.lr-app{min-height:100vh;height:100vh;overflow:hidden}
+#labplus-refined .desktop-app .lr-workspace{min-width:0;min-height:0;overflow:auto}
+#labplus-refined .desktop-app>.lr-appbar,#labplus-refined .desktop-app>.lr-nav,#labplus-refined .desktop-app>.lr-statusbar{flex-shrink:0}
+/* The approved preview's host supplied this heading metric. Keep it explicit
+   when the same stylesheet runs in the desktop WebView. */
+#labplus-refined .desktop-app .lr-panel-title{line-height:1.5555555556}
+#labplus-refined .window-actions{position:absolute;right:12px;top:17px;display:flex;z-index:5;gap:1px}
+#labplus-refined .window-actions button{width:29px;height:28px;padding:0;border:0;background:transparent;color:var(--lr-muted);display:grid;place-items:center;border-radius:1px}
+#labplus-refined .window-actions button:hover{background:var(--lr-elevated);color:var(--lr-text)}
+#labplus-refined .window-actions button[data-window=close]:hover{background:var(--lr-action);color:var(--lr-ink)}
+.minimize-icon{width:10px;height:1px;background:currentColor;margin-top:7px}
+.maximize-icon{width:9px;height:8px;border:1px solid currentColor}
+.close-icon{width:12px;height:12px;position:relative}
+.close-icon:before,.close-icon:after{content:'';position:absolute;top:5px;left:0;width:12px;height:1px;background:currentColor;transform:rotate(45deg)}
+.close-icon:after{transform:rotate(-45deg)}
+#labplus-refined .lr-appbar{app-region:drag;-webkit-app-region:drag}
+#labplus-refined .window-actions{app-region:no-drag;-webkit-app-region:no-drag}
+.resize-zone{position:fixed;z-index:20;touch-action:none;app-region:no-drag;-webkit-app-region:no-drag}
+.resize-n,.resize-s{left:8px;right:8px;height:5px;cursor:ns-resize}.resize-n{top:0}.resize-s{bottom:0}
+.resize-e,.resize-w{top:8px;bottom:8px;width:5px;cursor:ew-resize}.resize-e{right:0}.resize-w{left:0}
+.resize-nw,.resize-ne,.resize-sw,.resize-se{width:8px;height:8px}.resize-nw{top:0;left:0;cursor:nwse-resize}.resize-ne{top:0;right:0;cursor:nesw-resize}.resize-sw{bottom:0;left:0;cursor:nesw-resize}.resize-se{bottom:0;right:0;cursor:nwse-resize}
+#labplus-refined .lr-game-status .lr-small{white-space:nowrap}
+#labplus-refined .lr-game-meta{max-width:520px}
+#labplus-refined .lr-heading-row .lr-master{flex-shrink:0}
+#labplus-refined .lr-toggle-row .lr-text-button{align-self:center}
+#labplus-refined .lr-range-label output[contenteditable]{min-width:42px;text-align:right;white-space:nowrap}
+#labplus-refined .lr-switch:disabled,#labplus-refined .lr-range:disabled{opacity:.45;cursor:default}
+#labplus-refined .lr-tool .tool-arrow{width:12px;height:12px;flex-shrink:0;border-right:1px solid var(--lr-muted);border-top:1px solid var(--lr-muted);position:relative}
+#labplus-refined .lr-tool .tool-arrow:before{content:'';position:absolute;width:15px;height:1px;background:var(--lr-muted);right:-1px;top:4px;transform:rotate(-45deg)}
+#labplus-refined .lr-game-actions button:disabled{cursor:default}
+#labplus-refined .lr-heading-row h1{font-family:'LP Battle'}
+#labplus-refined .research-content{padding:25px 30px 18px;flex:1;min-width:0;min-height:0;overflow:auto}
+#labplus-refined .research-window[data-tool=ResearchForm] .control-grid-table{max-height:clamp(170px,calc(100vh - 515px),430px)}
+#labplus-refined .research-window .lr-appbar{border-bottom:1px solid var(--lr-line)}
+#labplus-refined .window-context{font-size:12px;letter-spacing:1.2px;color:var(--lr-muted)}
+#labplus-refined .control-root{display:flex;flex-direction:column;gap:18px;min-width:0}
+#labplus-refined .control-node{min-width:0}
+#labplus-refined .control-column{display:flex;flex-direction:column;gap:15px;min-width:0}
+#labplus-refined .control-grid{display:grid;gap:15px 18px;align-items:start;min-width:0}
+#labplus-refined .control-toolbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;min-width:0;padding:0;background:transparent}
+#labplus-refined .control-toolbar:empty{display:none}
+#labplus-refined .control-toolbar .control-caption{flex:1 1 220px}
+#labplus-refined .control-label{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.5}
+#labplus-refined .control-caption{font-size:12px;color:var(--lr-muted);white-space:pre-wrap;line-height:1.5}
+#labplus-refined .control-title{font-size:17px;font-weight:700;border-left:3px solid var(--lr-action);padding-left:10px;margin:2px 0 8px}
+#labplus-refined .control-check{display:inline-flex;align-items:center;gap:10px;min-height:39px;font-size:14px;max-width:100%}
+#labplus-refined .control-check input{appearance:none;flex:0 0 17px;width:17px;height:17px;margin:0;border:1px solid var(--lr-muted);background:var(--lr-elevated);border-radius:1px;position:relative}
+#labplus-refined .control-check input:checked{background:var(--lr-action);border-color:var(--lr-action)}
+#labplus-refined .control-check input:checked:after{content:'';width:8px;height:4px;border-left:2px solid var(--lr-ink);border-bottom:2px solid var(--lr-ink);position:absolute;left:3px;top:4px;transform:rotate(-45deg)}
+#labplus-refined .control-check input[type=radio]{border-radius:50%}
+#labplus-refined .control-check input[type=radio]:checked:after{border:0;width:7px;height:7px;left:4px;top:4px;background:var(--lr-ink);border-radius:50%;transform:none}
+#labplus-refined .control-field,#labplus-refined .control-select{font-family:'LP UI';font-size:14px;line-height:1.45;color:var(--lr-text);background:var(--lr-bg);border:1px solid var(--lr-line);border-radius:1px;padding:10px 12px;box-sizing:border-box;min-height:40px;max-width:100%}
+#labplus-refined .control-field::placeholder{color:var(--lr-muted);opacity:.8}
+#labplus-refined .control-field[readonly]{background:var(--lr-panel);color:var(--lr-muted)}
+#labplus-refined textarea.control-field{width:100%;min-height:114px;resize:vertical;white-space:pre;tab-size:4}
+#labplus-refined .control-select{min-width:90px;padding-right:25px}
+#labplus-refined .control-slider{width:100%;accent-color:var(--lr-action);height:20px;margin:8px 0}
+#labplus-refined .control-grid-table{overflow:auto;max-width:100%;max-height:430px;min-height:170px;border-top:1px solid var(--lr-line);background:var(--lr-panel)}
+#labplus-refined .control-grid-table table{border-collapse:collapse;width:100%;font-size:13px}
+#labplus-refined .control-grid-table th{text-align:left;position:sticky;top:0;background:var(--lr-elevated);font-size:12px;letter-spacing:.3px;font-weight:700;color:var(--lr-muted);padding:13px 14px;white-space:nowrap;border-bottom:1px solid var(--lr-line);z-index:1}
+#labplus-refined .control-grid-table td{padding:11px 14px;white-space:nowrap;border-bottom:1px solid var(--lr-line);max-width:520px;overflow:hidden;text-overflow:ellipsis}
+#labplus-refined .control-grid-table tr.selected td{background:var(--lr-elevated);color:var(--lr-gold)}
+#labplus-refined .control-grid-table tbody tr:hover td{background:var(--lr-elevated)}
+#labplus-refined .control-grid-table .empty-row td{text-align:center;color:var(--lr-muted);height:130px;white-space:normal}
+#labplus-refined .control-list{background:var(--lr-panel);border-top:1px solid var(--lr-line);min-height:150px;max-height:390px;overflow:auto;padding:6px 0}
+#labplus-refined .control-list-row{display:flex;align-items:center;gap:10px;padding:9px 13px;min-height:38px}
+#labplus-refined .control-list-row.selected{background:var(--lr-elevated);color:var(--lr-gold)}
+#labplus-refined .control-list-row .control-check{flex:1;min-height:26px}
+#labplus-refined .control-canvas{background:var(--lr-panel);border-top:1px solid var(--lr-line);overflow:hidden;min-height:180px}
+#labplus-refined .control-canvas img{display:block;width:100%;height:auto;touch-action:none;user-select:none}
+#labplus-refined .control-canvas{position:relative}
+#labplus-refined .canvas-actions{position:absolute;right:8px;top:4px}
+#labplus-refined .canvas-actions .lr-btn{font-size:12px;min-height:26px;padding:3px 8px;background:var(--lr-elevated)}
+#labplus-refined .control-tree{background:var(--lr-panel);padding:10px 13px;max-height:600px;overflow:auto;border-top:1px solid var(--lr-line)}
+#labplus-refined .tree-row{display:flex;gap:8px;align-items:center;min-height:37px;font-size:13px}
+#labplus-refined .tree-row button{background:transparent;border:0;color:var(--lr-muted);width:20px;padding:0;font-size:17px}
+#labplus-refined .tree-row .control-check{min-height:30px;font-size:13px}
+#labplus-refined .tree-children{padding-left:22px}
+#labplus-refined .control-tab-nav{display:flex;gap:22px;border-bottom:1px solid var(--lr-line);margin-bottom:18px}
+#labplus-refined .control-tab-nav button{background:transparent;border:0;padding:8px 0 12px;color:var(--lr-muted);border-bottom:2px solid transparent}
+#labplus-refined .control-tab-nav button.selected{color:var(--lr-action);border-bottom-color:var(--lr-action)}
+#labplus-refined .control-group{border:1px solid var(--lr-line);padding:18px 20px;min-width:0}
+#labplus-refined .control-group legend{font-size:17px;font-weight:700;padding:0 8px;color:var(--lr-text)}
+#labplus-refined .control-feedback{font-size:12px;color:var(--lr-gold);padding-top:8px}
+#labplus-refined .control-node[aria-disabled=true]{opacity:.5}
+#labplus-refined .control-node[aria-disabled=true]{pointer-events:none}
+#labplus-refined .control-notes{border-top:1px solid var(--lr-line);padding-top:12px;color:var(--lr-muted);font-size:12px}
+#labplus-refined .control-notes summary{min-height:27px}
+#labplus-refined .control-notes .control-caption{padding-top:8px}
+#labplus-refined .saves-content .control-toolbar{background:transparent;padding:0;border:0}
+#labplus-refined .saves-content .control-column{gap:12px}
+#labplus-refined .saves-content .control-title{display:none}
+#labplus-refined .dialog-window .research-content{padding-bottom:26px}
+#labplus-refined .dialog-window .control-toolbar{background:transparent;border:0;padding:10px 0 0;justify-content:flex-end}
+#labplus-refined .dialog-window .control-label{font-size:14px;max-height:58vh;overflow:auto}
+@media(max-width:800px){#labplus-refined .research-content{padding:23px 20px}#labplus-refined .window-context{display:none}#labplus-refined .control-grid{grid-template-columns:1fr!important}#labplus-refined .control-toolbar{padding:12px}#labplus-refined .control-field{width:100%!important}}
+@media(max-width:800px){#labplus-refined .control-grid>.control-node{grid-column:auto!important;grid-row:auto!important}}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
