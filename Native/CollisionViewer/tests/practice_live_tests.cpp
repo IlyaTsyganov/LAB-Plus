@@ -24,7 +24,7 @@ static void transactionTests() {
     expect(!practiceAuthentic(first[0],"76561197960275730",practiceFileKeys[0]),"foreign Steam owner rejected natively");
     expect(!practiceAuthentic(first[1],owner,practiceFileKeys[0]),"backup filename cannot be relabelled primary");
     auto damaged=first[0]; damaged.back()^=1; expect(!practiceAuthentic(damaged,owner,practiceFileKeys[0]),"tampered AES-GCM tag rejected");
-    auto root=std::filesystem::temp_directory_path()/(L"DEViL-live-transaction-fixture-"+std::to_wstring(GetCurrentProcessId()));
+    auto root=std::filesystem::temp_directory_path()/(L"labplus-live-transaction-fixture-"+std::to_wstring(GetCurrentProcessId()));
     expect(std::filesystem::create_directory(root),"fresh transaction fixture directory");
     auto remote=root/L"Steam"/L"userdata"/L"10001"/L"782330"/L"remote",target=remote/L"DLC1-AUTOSAVE5",bundle=root/L"pending";
     std::filesystem::create_directories(bundle); writePracticeFiles(target,first);
@@ -34,7 +34,7 @@ static void transactionTests() {
     for(size_t i=0;i<4;++i) { plan.targets[i]={first[i].size(),practiceHash(first[i])}; plan.sources[i]={second[i].size(),practiceHash(second[i])}; }
     {
         std::ofstream output(bundle/L"plan.tsv",std::ios::binary);
-        output<<"#DEVIL_LIVE_RESTORE_PLAN_V1\t"<<owner<<"\tDLC1-AUTOSAVE5\t"<<std::string(32,'e')<<'\t'<<GetCurrentProcessId()<<'\t'<<plan.archive<<'\n';
+        output<<"#LABPLUS_LIVE_RESTORE_PLAN_V1\t"<<owner<<"\tDLC1-AUTOSAVE5\t"<<std::string(32,'e')<<'\t'<<GetCurrentProcessId()<<'\t'<<plan.archive<<'\n';
         for(const auto& entries:{plan.targets,plan.sources}) for(size_t i=0;i<4;++i) output<<practiceFileKeys[i]<<'\t'<<entries[i].length<<'\t'<<entries[i].hash<<'\n'; output.close();
         auto parsed=readPracticeRestorePlan(bundle,owner,std::string(32,'e'),GetCurrentProcessId());
         expect(practiceTargetMatches(first,parsed)&&practiceFilesMatch(second,parsed.sources),"native restore plan pins both file sets");
@@ -63,7 +63,7 @@ static void transactionTests() {
     expect(std::filesystem::exists(result.journal),"restore journal preserved");
     std::string text; { std::ifstream file(remote/L"PROFILE"/L"profile.bin"); std::getline(file,text); } expect(text=="profile sentinel","PROFILE untouched");
     { std::ifstream file(remote.parent_path()/L"remotecache.vdf"); std::getline(file,text); } expect(text=="index sentinel","no direct Steam metadata overwrite");
-    auto expectedRoot=std::filesystem::temp_directory_path()/(L"DEViL-live-transaction-fixture-"+std::to_wstring(GetCurrentProcessId()));
+    auto expectedRoot=std::filesystem::temp_directory_path()/(L"labplus-live-transaction-fixture-"+std::to_wstring(GetCurrentProcessId()));
     expect(std::filesystem::weakly_canonical(root)==std::filesystem::weakly_canonical(expectedRoot)&&root.filename()==expectedRoot.filename(),"verified fixture cleanup boundary"); std::filesystem::remove_all(root);
     puts("PASS: independent native AES-GCM/SHA256, foreign/tampered/renamed rejection; reviewed target/cache/idle guards, four-file rollback, verified commit and retained originals/profile/index.");
 }
@@ -123,7 +123,7 @@ int main(int argc,char** argv) {
     expect(!practiceReloadCompleted(transition,100,true,1,100,true,false)&&transition,"loading state observed");
     expect(!practiceReloadCompleted(transition,100,true,2,100,false,false),"missing/wrong loaded map is not completion");
     expect(practiceReloadCompleted(transition,100,true,2,100,false,true),"returned player/map completes observed reload");
-    auto temporary=std::filesystem::temp_directory_path()/(L"DEViL-live-fixture-"+std::to_wstring(GetCurrentProcessId())); std::filesystem::create_directory(temporary);
+    auto temporary=std::filesystem::temp_directory_path()/(L"labplus-live-fixture-"+std::to_wstring(GetCurrentProcessId())); std::filesystem::create_directory(temporary);
     const wchar_t* names[]{L"game.details",L"game.details-BACKUP",L"game_duration.dat",L"game_duration.dat-BACKUP"};
     for(auto name:names) { std::ofstream out(temporary/name,std::ios::binary); out<<std::string(28,'x'); }
     expect(readPracticeFiles(temporary)[0].size()==28,"complete checkpoint copy");

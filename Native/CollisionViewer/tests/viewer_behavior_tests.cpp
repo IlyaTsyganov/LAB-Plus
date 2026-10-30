@@ -12,6 +12,13 @@ static void writeSettings(const std::wstring& path,const wchar_t* body) {
 }
 int main() {
     {
+        void* inaccessible=VirtualAlloc(nullptr,4096,MEM_RESERVE|MEM_COMMIT,PAGE_NOACCESS);
+        expect(inaccessible!=nullptr,"guarded read fixture allocation");
+        unsigned char value=0;
+        expect(!guardedCopy(reinterpret_cast<uintptr_t>(inaccessible),&value,1),"unreadable memory remains inside the SEH guard on every compiler");
+        VirtualFree(inaccessible,0,MEM_RELEASE);
+    }
+    {
         Device device{}; device.families.resize(2); device.families[0].queueFlags=VK_QUEUE_GRAPHICS_BIT|VK_QUEUE_COMPUTE_BIT;
         device.families[1].queueFlags=VK_QUEUE_COMPUTE_BIT;
         VkQueue graphics=reinterpret_cast<VkQueue>(uintptr_t(1)),present=reinterpret_cast<VkQueue>(uintptr_t(2));
@@ -32,8 +39,8 @@ int main() {
            "wire contours are not hidden by the viewer's translucent fill depth");
     wchar_t temp[MAX_PATH]{}; DWORD tempLength=GetTempPathW(MAX_PATH,temp);
     expect(tempLength&&tempLength<MAX_PATH,"temporary directory");
-    std::wstring temporaryRoot=std::wstring(temp)+L"DEViLSettingsTest_"+std::to_wstring(GetCurrentProcessId());
-    std::wstring settingsDirectory=temporaryRoot+L"\\DEViL";
+    std::wstring temporaryRoot=std::wstring(temp)+L"labplus-settings-test-"+std::to_wstring(GetCurrentProcessId());
+    std::wstring settingsDirectory=temporaryRoot+L"\\labplus";
     CreateDirectoryW(temporaryRoot.c_str(),nullptr); CreateDirectoryW(settingsDirectory.c_str(),nullptr);
     std::wstring settingsFile=settingsDirectory+L"\\viewer.ini";
     expect(SetEnvironmentVariableW(L"LOCALAPPDATA",temporaryRoot.c_str()),"isolated settings path");

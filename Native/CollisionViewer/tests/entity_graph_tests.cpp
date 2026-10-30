@@ -83,11 +83,11 @@ int main() {
         expect(reader.capture(WallMemory{},b,profile,mapChanged,lookup).phase=="loading","world identity changes discard snapshots");
         expect(reader.capture(WallMemory{},b,profile,level,[](const std::string&)->const GraphType& { static const GraphType empty; return empty; }).phase=="metadata_pending","missing metadata is explicit");
         if(profiles==1) {
-            auto graphFolder=std::filesystem::temp_directory_path()/(L"DEViL-Graph-Test-"+std::to_wstring(GetCurrentProcessId()));
+            auto graphFolder=std::filesystem::temp_directory_path()/(L"labplus-Graph-Test-"+std::to_wstring(GetCurrentProcessId()));
             graph=reader.capture(WallMemory{},b,profile,level,lookup,aim);
             expect(writeEntityGraph(graph,graphFolder),"atomic graph publication succeeds");
             std::ifstream input(graphFolder/(L"entity-graph-"+std::to_wstring(GetCurrentProcessId())+L".tsv")); std::string text((std::istreambuf_iterator<char>(input)),{}); input.close();
-            expect(text.find("#DEVIL_GRAPH_V1\t")==0&&text.find("E\t100:3\t101:3\towners[0]")!=std::string::npos,"published edges use map-scoped generation identities");
+            expect(text.find("#LABPLUS_GRAPH_V1\t")==0&&text.find("E\t100:3\t101:3\towners[0]")!=std::string::npos,"published edges use map-scoped generation identities");
             auto request=graphFolder/(L"entity-graph-"+std::to_wstring(GetCurrentProcessId())+L".request");
             { std::ofstream file(request); file<<10000; }
             expect(graphRequestFresh(graphFolder,11000)&&!graphRequestFresh(graphFolder,15000)&&!graphRequestFresh(graphFolder,1000),"requests expire and future timestamps are rejected");

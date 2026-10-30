@@ -6,7 +6,7 @@ int main() {
         check(visibilitySettings.bias==.05f,"Default depth tolerance did not include stability margin");
         check(fillDepthBias(visibilitySettings.bias)==.10f&&fillDepthBias(.2f)==.2f,"Filled surfaces did not receive independent depth tolerance");
         wchar_t temporary[MAX_PATH]{}; check(GetTempPathW(MAX_PATH,temporary)>0,"Temporary directory unavailable");
-        folder=std::filesystem::path(temporary)/(L"DEViLDepthTest_"+std::to_wstring(GetCurrentProcessId()));
+        folder=std::filesystem::path(temporary)/(L"labplusDepthTest_"+std::to_wstring(GetCurrentProcessId()));
         std::filesystem::create_directories(folder);
         const auto requestPath=folder/L"Visibility.request";
         Device device{};

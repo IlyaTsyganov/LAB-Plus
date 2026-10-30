@@ -1,4 +1,4 @@
-param([string]$RuntimeDirectory = (Join-Path ([IO.Path]::GetTempPath()) ('DEViL-GPU-'+[Guid]::NewGuid().ToString('N'))), [switch]$LightingFix)
+param([string]$RuntimeDirectory = (Join-Path ([IO.Path]::GetTempPath()) ('labplus-GPU-'+[Guid]::NewGuid().ToString('N'))), [switch]$LightingFix)
 # Run hidden, isolated Vulkan processes. The game and its registration are unchanged.
 if($RuntimeDirectory -match '[^\x00-\x7f]') { throw 'Supply -RuntimeDirectory with an ASCII path for the Vulkan loader.' }
 New-Item -ItemType Directory -Force (Join-Path (Split-Path -Parent $PSScriptRoot) 'build') | Out-Null
@@ -12,10 +12,10 @@ foreach($case in @('hidden','partial','front','reverse','inverted','inverted-par
     if($case.StartsWith('exclusive-')){$split='exclusive';$baseCase=$case.Substring(10)}
     $runtime=Join-Path $RuntimeDirectory $case
     New-Item -ItemType Directory -Force -Path $runtime | Out-Null
-    Copy-Item -LiteralPath (Join-Path $bin 'DoomCollisionLayer.dll') -Destination $runtime -Force
+    Copy-Item -LiteralPath (Join-Path $bin 'labplus-layer.dll') -Destination $runtime -Force
     Copy-Item -LiteralPath (Join-Path $bin 'VulkanSmoke.exe') -Destination $runtime -Force
-    $manifest=[ordered]@{file_format_version='1.2.0';layer=[ordered]@{name='VK_LAYER_DOOM_collision';type='GLOBAL';library_path='.\DoomCollisionLayer.dll';api_version='1.3.0';implementation_version='1';description='DEViL isolated GPU test';functions=@{vkNegotiateLoaderLayerInterfaceVersion='DoomNegotiateLayerInterfaceVersion'}}}
-    [IO.File]::WriteAllText((Join-Path $runtime 'DoomCollisionLayer.json'),($manifest|ConvertTo-Json -Depth 8),[Text.UTF8Encoding]::new($false))
+    $manifest=[ordered]@{file_format_version='1.2.0';layer=[ordered]@{name='VK_LAYER_LABPLUS_collision';type='GLOBAL';library_path='.\labplus-layer.dll';api_version='1.3.0';implementation_version='1';description='LAB Plus isolated GPU test';functions=@{vkNegotiateLoaderLayerInterfaceVersion='labplus_negotiate_layer_interface_version'}}}
+    [IO.File]::WriteAllText((Join-Path $runtime 'labplus-layer.json'),($manifest|ConvertTo-Json -Depth 8),[Text.UTF8Encoding]::new($false))
     $info=[Diagnostics.ProcessStartInfo]::new()
     $info.FileName=Join-Path $runtime 'VulkanSmoke.exe'
     $info.WorkingDirectory=$runtime
@@ -24,20 +24,20 @@ foreach($case in @('hidden','partial','front','reverse','inverted','inverted-par
     $info.WindowStyle=[Diagnostics.ProcessWindowStyle]::Hidden
     $info.RedirectStandardOutput=$true; $info.RedirectStandardError=$true
     $info.Environment['VK_LAYER_PATH']=$runtime
-    $info.Environment['VK_INSTANCE_LAYERS']='VK_LAYER_DOOM_collision'
-    $info.Environment['DEVIL_DISABLE_COLLISION_OVERRIDE']='1'
+    $info.Environment['VK_INSTANCE_LAYERS']='VK_LAYER_LABPLUS_collision'
+    $info.Environment['LABPLUS_DISABLE_COLLISION_OVERRIDE']='1'
     $info.Environment['VK_LOADER_DEBUG']='error,warn'
     $info.Environment['DISABLE_VK_LAYER_reshade_collision_viewer']='1'
     $info.Environment['DISABLE_VK_LAYER_reshade']='1'
-    $info.Environment['DCV_SMOKE_TEST']='1'
-    if($LightingFix){$info.Environment['DCV_TEST_LIGHTING_FIX']='1'}else{$info.Environment.Remove('DCV_TEST_LIGHTING_FIX') | Out-Null}
-    if($split){$info.Environment['DCV_TEST_SPLIT_PRESENT']=$split}else{$info.Environment.Remove('DCV_TEST_SPLIT_PRESENT') | Out-Null}
+    $info.Environment['LABPLUS_SMOKE_TEST']='1'
+    if($LightingFix){$info.Environment['LABPLUS_TEST_LIGHTING_FIX']='1'}else{$info.Environment.Remove('LABPLUS_TEST_LIGHTING_FIX') | Out-Null}
+    if($split){$info.Environment['LABPLUS_TEST_SPLIT_PRESENT']=$split}else{$info.Environment.Remove('LABPLUS_TEST_SPLIT_PRESENT') | Out-Null}
     if($baseCase.StartsWith('console-')) {
-        $info.Environment.Remove('DCV_OCCLUSION_TEST') | Out-Null
-        $info.Environment['DCV_TEST_CONSOLE_FRACTION']=if($baseCase -eq 'console-half'){'0.5'}else{'1'}
+        $info.Environment.Remove('LABPLUS_OCCLUSION_TEST') | Out-Null
+        $info.Environment['LABPLUS_TEST_CONSOLE_FRACTION']=if($baseCase -eq 'console-half'){'0.5'}else{'1'}
     } else {
-        $info.Environment['DCV_OCCLUSION_TEST']=$baseCase
-        $info.Environment['DCV_TEST_CONSOLE_FRACTION']='0'
+        $info.Environment['LABPLUS_OCCLUSION_TEST']=$baseCase
+        $info.Environment['LABPLUS_TEST_CONSOLE_FRACTION']='0'
     }
     $p=[Diagnostics.Process]::Start($info)
     $stdout=$p.StandardOutput.ReadToEndAsync(); $stderr=$p.StandardError.ReadToEndAsync()

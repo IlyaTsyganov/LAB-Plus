@@ -93,11 +93,11 @@ int main() {
     measureMotionTarget(valid,target); expect(fabsf(valid.originDistance-2.8f)<1e-4f&&fabsf(valid.skinGap-1)<1e-4f,"origin distance and rounded-skin gap are distinct surface measurements");
     geometry->triangles={{9.98f,19.98f,30.9f},{10.02f,19.98f,30.9f},{10,20.02f,30.9f}};
     measureMotionTarget(valid,target); expect(valid.skinGap<=0,"a boundary entirely inside the convex core has no positive clearance");
-    auto temporary=std::filesystem::temp_directory_path()/(L"DEViL-Motion-Test-"+std::to_wstring(GetCurrentProcessId())); std::filesystem::create_directories(temporary);
+    auto temporary=std::filesystem::temp_directory_path()/(L"labplus-Motion-Test-"+std::to_wstring(GetCurrentProcessId())); std::filesystem::create_directories(temporary);
     auto file=temporary/L"motion.tsv"; std::deque<PlayerMotion> samples{valid};
     expect(writeMotionSamples(file,1234,1234567,"live",{1,2,"map_a"},"profile_a",samples),"telemetry publishes atomically");
-    { std::ifstream input(file); std::string text((std::istreambuf_iterator<char>(input)),{}); expect(text.find("#DEVIL_MOTION_V1\t1234") == 0&&text.find("\nS\t1\t1234567")!=std::string::npos,"native protocol contains physical values and sequence"); }
-    { std::ofstream output(temporary/L"overlays.tsv"); output<<"#DEVIL_MOTION_OVERLAY_V1\t1234\tmap_a\tprofile_a\n0\t1\t1\t1\t2\t3\n1\t1\t1\t4\t5\t6\n"; }
+    { std::ifstream input(file); std::string text((std::istreambuf_iterator<char>(input)),{}); expect(text.find("#LABPLUS_MOTION_V1\t1234") == 0&&text.find("\nS\t1\t1234567")!=std::string::npos,"native protocol contains physical values and sequence"); }
+    { std::ofstream output(temporary/L"overlays.tsv"); output<<"#LABPLUS_MOTION_OVERLAY_V1\t1234\tmap_a\tprofile_a\n0\t1\t1\t1\t2\t3\n1\t1\t1\t4\t5\t6\n"; }
     auto overlay=readMotionOverlay(temporary/L"overlays.tsv",1234); expect(overlay->points.size()==2&&overlay->points[0].trial!=overlay->points[1].trial,"same-outcome attempts keep separate route identities");
     expect(readMotionOverlay(temporary/L"overlays.tsv",4321)->points.empty(),"overlay is scoped to selected game PID");
     GameCamera camera{}; camera.matrix[0]=camera.matrix[5]=camera.matrix[10]=camera.matrix[15]=1;

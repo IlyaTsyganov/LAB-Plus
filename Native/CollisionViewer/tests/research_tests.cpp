@@ -5,7 +5,7 @@ static size_t count(const ResearchSession& session,const char* kind) {
     return std::count_if(session.events().begin(),session.events().end(),[&](const ResearchRow& row) { return row.kind==kind; });
 }
 int main() {
-    auto temporary=std::filesystem::temp_directory_path()/(L"DEViL-Research-Test-"+std::to_wstring(GetCurrentProcessId()));
+    auto temporary=std::filesystem::temp_directory_path()/(L"labplus-Research-Test-"+std::to_wstring(GetCurrentProcessId()));
     std::filesystem::create_directories(temporary);
     ResearchSession session(temporary); ResearchControl control{}; Vec3 position{0,0,0};
     Mesh volume{}; volume.kind=0; volume.entity={1,1,1,12,3,"idEncounterTrigger_Commit"};
@@ -43,7 +43,7 @@ int main() {
     control.recording=false; session.update(control,3,4,"map_b",nullptr,nullptr,3600);
     std::ifstream pointer(temporary/L"research-current.txt"); std::string filename; std::getline(pointer,filename); pointer.close();
     std::ifstream file(temporary/L"research"/filename); std::string data((std::istreambuf_iterator<char>(file)),{}); file.close();
-    expect(data.find("#DEVIL_RESEARCH_V1\t") == 0&&data.find("recording_stopped")!=std::string::npos,"atomic session snapshots remain readable after stop");
+    expect(data.find("#LABPLUS_RESEARCH_V1\t") == 0&&data.find("recording_stopped")!=std::string::npos,"atomic session snapshots remain readable after stop");
     ResearchSession bounded(std::filesystem::path{}); control.recording=true; control.reset=0; control.marker=0;
     for(unsigned i=0;i<16020;++i) { position.x=float(i); bounded.update(control,1,2,"map_a",&position,nullptr,1000+100*i); }
     expect(bounded.route()->points.size()==ResearchSession::maxPoints&&bounded.events().size()==ResearchSession::maxRows,"recording memory is bounded");
@@ -69,10 +69,10 @@ int main() {
     showResearchPath=false; collectVertices(camera,vertices); expect(vertices.empty(),"path visibility is independent from recording");
     showResearchPath=true; runtimeLevel.name="map_b"; collectVertices(camera,vertices); expect(vertices.empty(),"old-map route is hidden");
 
-    expect(validLabArguments({"lab_trigger","idTrigger", "0"})&&!validLabArguments({"lab_trigger","idTrigger","2"}),"class command is validated");
-    expect(validLabArguments({"lab_distance","200"})&&!validLabArguments({"lab_distance","201"})&&!validLabArguments({"lab_distance","20;quit"}),"console numbers never become engine command text");
-    expect(!validLabArguments({"quit","1"})&&validLabArguments({"lab_clear"})&&!validLabArguments({"lab_clear","1"}),"only explicit lab commands are accepted");
-    std::wstring presenceName=L"Local\\DEViL-Lab-Test-"+std::to_wstring(GetCurrentProcessId());
+    expect(validLabArguments({"labplus_trigger","idTrigger", "0"})&&!validLabArguments({"labplus_trigger","idTrigger","2"}),"class command is validated");
+    expect(validLabArguments({"labplus_distance","200"})&&!validLabArguments({"labplus_distance","201"})&&!validLabArguments({"labplus_distance","20;quit"}),"console numbers never become engine command text");
+    expect(!validLabArguments({"quit","1"})&&validLabArguments({"labplus_clear"})&&!validLabArguments({"labplus_clear","1"}),"only explicit lab commands are accepted");
+    std::wstring presenceName=L"Local\\labplus-Lab-Test-"+std::to_wstring(GetCurrentProcessId());
     expect(!labAppAvailable(presenceName.c_str()),"lab commands are unavailable without the companion presence");
     HANDLE presence=CreateEventW(nullptr,TRUE,TRUE,presenceName.c_str());
     expect(presence&&labAppAvailable(presenceName.c_str()),"live companion presence permits lab commands");

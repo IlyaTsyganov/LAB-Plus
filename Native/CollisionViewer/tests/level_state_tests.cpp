@@ -97,10 +97,10 @@ int main() {
         draw.expires=encounterEpochMillis()+1000; auto other=before.level; ++other.world; appendStateHighlight(camera,vertices,draw,other,encounterEpochMillis()); expect(vertices.empty(),"captured outline never crosses world identity");
         saved=std::move(before);
     }
-    auto directory=std::filesystem::temp_directory_path()/(L"DEViL-LevelState-Test-"+std::to_wstring(GetCurrentProcessId())); std::filesystem::create_directories(directory);
+    auto directory=std::filesystem::temp_directory_path()/(L"labplus-LevelState-Test-"+std::to_wstring(GetCurrentProcessId())); std::filesystem::create_directories(directory);
     expect(writeLevelState(saved,directory/L"state.tsv"),"state protocol publishes atomically");
     std::ifstream input(directory/L"state.tsv"); std::string text((std::istreambuf_iterator<char>(input)),{}); input.close();
-    expect(text.find("#DEVIL_LEVEL_STATE_V1\t")==0&&text.find("\nI\t2\t3\n")!=std::string::npos&&text.find("\nV\t2\t3\ttrigger/test/volume")!=std::string::npos&&text.find("\nM\t4\t3\ttest_manager")!=std::string::npos,"protocol includes scope, membership and copied values");
+    expect(text.find("#LABPLUS_LEVEL_STATE_V1\t")==0&&text.find("\nI\t2\t3\n")!=std::string::npos&&text.find("\nV\t2\t3\ttrigger/test/volume")!=std::string::npos&&text.find("\nM\t4\t3\ttest_manager")!=std::string::npos,"protocol includes scope, membership and copied values");
     std::filesystem::remove(directory/L"state.tsv"); std::filesystem::remove(directory);
     puts("PASS: complete state membership, disabled/deleted/unavailable/generation distinctions, loaded checkpoint validation, retained outlines/expiry/world scope and protocol on 22 profiles.");
 }

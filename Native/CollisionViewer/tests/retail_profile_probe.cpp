@@ -43,7 +43,7 @@ int wmain(int argc,wchar_t** argv) {
         }
         if(graphOnly||triggerPathsOnly||playerOnly||stateOnly||pointOnly) {
             std::ifstream input{std::filesystem::path(argv[3])}; std::string line;
-            if(!std::getline(input,line)||line!="#DEVIL_GRAPH_LAYOUTS_V1\t"+std::to_string(pid)) throw std::runtime_error("Graph metadata address file belongs to a different game process");
+            if(!std::getline(input,line)||line!="#LABPLUS_GRAPH_LAYOUTS_V1\t"+std::to_string(pid)) throw std::runtime_error("Graph metadata address file belongs to a different game process");
             std::unordered_map<std::string,uintptr_t> addresses;
             while(std::getline(input,line)) {
                 auto split=line.find('\t'); if(split==std::string::npos||split>255||addresses.size()>100000) throw std::runtime_error("Invalid metadata address row");
@@ -155,11 +155,11 @@ int wmain(int argc,wchar_t** argv) {
         }
         if(argc>=3) {
             auto commandSystem=resolveLabCommandSystem(memory,_wcstoui64(argv[2],nullptr,0),base,*profile);
-            printf("lab_ command ABI validated (read-only, no registration): %d\n",bool(commandSystem));
+            printf("labplus_ command ABI validated (read-only, no registration): %d\n",bool(commandSystem));
             if(!commandSystem) throw std::runtime_error("Command-system ABI validation failed");
             auto cvarSystem=resolveLabCvarSystem(memory,commandSystem,base,*profile);
             auto cvarFactory=resolveLabCvarFactory(memory,cvarSystem,base,*profile);
-            printf("lab_ native cvar factory validated (read-only, no creation): %d\n",bool(cvarFactory));
+            printf("labplus_ native cvar factory validated (read-only, no creation): %d\n",bool(cvarFactory));
             if(cvarsOnly) {
                 if(!cvarFactory) throw std::runtime_error("Native cvar factory ABI validation failed");
                 CloseHandle(process); return 0;

@@ -30,7 +30,7 @@ int wmain(int argc, wchar_t** argv) {
     }
 
     VkApplicationInfo application{VK_STRUCTURE_TYPE_APPLICATION_INFO};
-    application.pApplicationName = "DEViL layer loader probe";
+    application.pApplicationName = "LAB Plus layer loader probe";
     application.apiVersion = VK_API_VERSION_1_0;
     VkInstanceCreateInfo createInfo{VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO};
     createInfo.pApplicationInfo = &application;
@@ -50,6 +50,6 @@ int wmain(int argc, wchar_t** argv) {
         return 5;
     }
 
-    std::cout << "PASS: Vulkan Loader called the DEViL layer. vkCreateInstance result=" << result << "\n";
+    std::cout << "PASS: Vulkan Loader called the LAB Plus layer. vkCreateInstance result=" << result << "\n";
     return 0;
 }

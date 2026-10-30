@@ -37,7 +37,7 @@ int main() {
             if(physical) break;
         }
         if(!physical) throw std::runtime_error("No graphics/present queue");
-        wchar_t splitMode[32]{}; GetEnvironmentVariableW(L"DCV_TEST_SPLIT_PRESENT",splitMode,32);
+        wchar_t splitMode[32]{}; GetEnvironmentVariableW(L"LABPLUS_TEST_SPLIT_PRESENT",splitMode,32);
         bool split=splitMode[0]!=0,exclusive=split&&splitMode[0]=='e'; uint32_t presentFamily=family;
         if(split) {
             uint32_t n=0; GetPhysicalDeviceQueueFamilyProperties(physical,&n,nullptr); std::vector<VkQueueFamilyProperties> properties(n); GetPhysicalDeviceQueueFamilyProperties(physical,&n,properties.data());
@@ -100,10 +100,10 @@ int main() {
         }
         VkSemaphoreCreateInfo semInfo{VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO}; VkSemaphore acquired{},ready{}; check(CreateSemaphore(device,&semInfo,nullptr,&acquired),"CreateSemaphore"); check(CreateSemaphore(device,&semInfo,nullptr,&ready),"CreateSemaphore");
         VkSemaphore graphicsComplete{}; if(exclusive) check(CreateSemaphore(device,&semInfo,nullptr,&graphicsComplete),"Create app graphics semaphore");
-        for(int frame=0;frame<(GetEnvironmentVariableW(L"DCV_PROBE_TEST",nullptr,0)?8:3);++frame) {
+        for(int frame=0;frame<(GetEnvironmentVariableW(L"LABPLUS_PROBE_TEST",nullptr,0)?8:3);++frame) {
             uint32_t index=0; check(AcquireNextImageKHR(device,swap,2000000000ull,acquired,VK_NULL_HANDLE,&index),"AcquireNextImage");
             check(ResetCommandBuffer(commands,0),"ResetCommandBuffer"); VkCommandBufferBeginInfo begin{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO}; check(BeginCommandBuffer(commands,&begin),"BeginCommandBuffer");
-            wchar_t visibilityCase[32]{}; GetEnvironmentVariableW(L"DCV_OCCLUSION_TEST",visibilityCase,32);
+            wchar_t visibilityCase[32]{}; GetEnvironmentVariableW(L"LABPLUS_OCCLUSION_TEST",visibilityCase,32);
             VkClearValue depthClear{}; depthClear.depthStencil={visibilityCase[0]=='i'?0.0f:1.0f,0};
             if(visibilityCase[0]=='r') { VkViewport reversed{0,0,static_cast<float>(extent.width),static_cast<float>(extent.height),1,0}; CmdSetViewport(commands,0,1,&reversed); }
             VkRenderPassBeginInfo depthBegin{VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO}; depthBegin.renderPass=depthPass; depthBegin.framebuffer=depthFramebuffer; depthBegin.renderArea.extent=extent; depthBegin.clearValueCount=1; depthBegin.pClearValues=&depthClear;
@@ -117,7 +117,7 @@ int main() {
             barrier.dstAccessMask=VK_ACCESS_TRANSFER_WRITE_BIT; barrier.srcQueueFamilyIndex=barrier.dstQueueFamilyIndex=VK_QUEUE_FAMILY_IGNORED; barrier.image=images[index]; barrier.subresourceRange={VK_IMAGE_ASPECT_COLOR_BIT,0,1,0,1};
             CmdPipelineBarrier(commands,VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,VK_PIPELINE_STAGE_TRANSFER_BIT,0,0,nullptr,0,nullptr,1,&barrier);
             VkClearColorValue black{{0,0,0,1}}; CmdClearColorImage(commands,images[index],VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,&black,1,&barrier.subresourceRange);
-            if(GetEnvironmentVariableW(L"DCV_TEST_LIGHTING_FIX",nullptr,0)>0) {
+            if(GetEnvironmentVariableW(L"LABPLUS_TEST_LIGHTING_FIX",nullptr,0)>0) {
                 // Present the overlay after a real corrected indirect barrier.
                 VkMemoryBarrier indirect{VK_STRUCTURE_TYPE_MEMORY_BARRIER,nullptr,VK_ACCESS_TRANSFER_WRITE_BIT,VK_ACCESS_SHADER_READ_BIT};
                 CmdPipelineBarrier(commands,VK_PIPELINE_STAGE_TRANSFER_BIT,VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT|VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,0,1,&indirect,0,nullptr,0,nullptr);
