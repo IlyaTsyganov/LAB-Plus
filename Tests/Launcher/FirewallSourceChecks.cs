@@ -1,5 +1,5 @@
-using Devil.Configuration;
-using Devil.Game;
+using LabPlus.Configuration;
+using LabPlus.Game;
 
 internal static class FirewallSourceChecks
 {
@@ -36,7 +36,7 @@ internal static class FirewallSourceChecks
         Check(PracticeSaveSource.Choose([one], other, null) is null, "Wrong account fallback chosen");
         Check(PracticeSaveSource.Choose([one, one], null, null) == one, "Duplicate roots made source ambiguous");
         string response = Path.Combine(temporary, $"practice-live-{Environment.ProcessId}.tsv"), token = new('a', 32);
-        string Reply(long time) => $"#DEVIL_LIVE_PRACTICE_V1\t{Environment.ProcessId}\t{token}\t{time}\tarchived\t{owner}\tDLC1-AUTOSAVE5\tgame/dlc/e4m1_rig/e4m1_rig\tcp_01a\tfixture";
+        string Reply(long time) => $"#LABPLUS_LIVE_PRACTICE_V1\t{Environment.ProcessId}\t{token}\t{time}\tarchived\t{owner}\tDLC1-AUTOSAVE5\tgame/dlc/e4m1_rig/e4m1_rig\tcp_01a\tfixture";
         File.WriteAllText(response, Reply(1)); Check(PracticeSaveSource.RuntimeAccount(temporary, Environment.ProcessId) is null, "Stale PID reply selected an owner");
         File.WriteAllText(response, Reply(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds())); Check(PracticeSaveSource.RuntimeAccount(temporary, Environment.ProcessId) == owner, "Current owner response not recognized");
         Console.WriteLine("PASS: firewall path/profile/protocol/address/interface/policy checks and blocked launch before registration; automatic save source chooses one matching owner and rejects stale PID data.");

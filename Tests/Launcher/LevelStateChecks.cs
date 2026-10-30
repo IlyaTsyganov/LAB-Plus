@@ -1,4 +1,4 @@
-using Devil.Game;
+using LabPlus.Game;
 using System.Globalization;
 using System.Text.Json;
 
@@ -16,7 +16,7 @@ internal static class LevelStateChecks
     internal static void Run(string directory)
     {
         string token = new('a', 32);
-        string header = $"#DEVIL_LEVEL_STATE_V1\t1234\t{token}\t1000\tready\tmap_a\tprofile_a\t1:2\tknown\tcp_a\t0\t1\tlive";
+        string header = $"#LABPLUS_LEVEL_STATE_V1\t1234\t{token}\t1000\tready\tmap_a\tprofile_a\t1:2\tknown\tcp_a\t0\t1\tlive";
         string[] lines = [header, "I\t1\t3", "I\t2\t3", "I\t3\t3", "I\t4\t3", Volume(1), Volume(2), "M\t4\t3\tmanager\tArena 1\t1\t1\t0\t0\t0\t2\t3"];
         var before = LevelStateSnapshot.Parse(lines)!;
         Check(before is { Ready: true, Volumes.Count: 2, Members.Count: 4, Managers.Count: 1 }, "Valid state protocol rejected");
@@ -41,7 +41,7 @@ internal static class LevelStateChecks
         Check(LevelStateComparison.Compare(before, unknown).Count(c => c.Kind == "Unavailable") == 3 && !LevelStateComparison.Compare(before, unknown).Any(c => c.Kind is "Enabled" or "Disabled" or "Loaded checkpoint changed"), "Unavailable data fabricated state transitions");
         foreach (var incompatible in new[] { after with { Process = 9 }, after with { Identity = "3:4" }, after with { Map = "map_b" }, after with { Profile = "other" }, after with { Captured = 1 }, after with { MembershipComplete = false } })
             Reject(() => LevelStateComparison.Compare(before, incompatible), "Incompatible snapshots compared");
-        string path = Path.Combine(directory, "state-pair.json"); var pair = new LevelStatePair("DEVIL_LEVEL_STATE_PAIR_V1", "Test experiment", before, after);
+        string path = Path.Combine(directory, "state-pair.json"); var pair = new LevelStatePair("LABPLUS_LEVEL_STATE_PAIR_V1", "Test experiment", before, after);
         pair.Save(path); var loaded = LevelStatePair.Load(path);
         Check(loaded.Note == pair.Note && LevelStateComparison.Compare(loaded.Before, loaded.After).Count == changes.Count, "JSON round trip lost changes");
         File.WriteAllText(path, JsonSerializer.Serialize(pair with { Before = before with { Managers = [before.Managers[0] with { Enabled = 99 }] } }));
@@ -50,7 +50,7 @@ internal static class LevelStateChecks
         Reject(() => (pair with { After = after with { Identity = "3:4" } }).Save(path), "Incompatible pair saved");
         LevelStateSnapshot.Request(directory, 1234, token, "before");
         string request = File.ReadAllText(Path.Combine(directory, "level-state-1234.request"));
-        Check(request.StartsWith($"#DEVIL_STATE_REQUEST_V1\t1234\t{token}\tbefore\t") && !File.Exists(Path.Combine(directory, "level-state-1234.request.tmp")), "Request not atomically scoped");
+        Check(request.StartsWith($"#LABPLUS_STATE_REQUEST_V1\t1234\t{token}\tbefore\t") && !File.Exists(Path.Combine(directory, "level-state-1234.request.tmp")), "Request not atomically scoped");
         Reject(() => LevelStateSnapshot.Request(directory, 1234, "bad", "before"), "Invalid token requested");
         Reject(() => LevelStateSnapshot.Request(directory, 1234, token, "../after"), "Invalid role requested");
         File.WriteAllLines(LevelStateSnapshot.FilePath(directory, 5678, "before"), lines);

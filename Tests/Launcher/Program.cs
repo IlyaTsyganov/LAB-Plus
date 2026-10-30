@@ -1,7 +1,7 @@
 using System.Buffers.Binary;
 using System.Text.RegularExpressions;
-using Devil.Game;
-using Devil.Configuration;
+using LabPlus.Game;
+using LabPlus.Configuration;
 
 static void Check(bool condition, string message)
 {
@@ -25,7 +25,7 @@ if (args.Length == 1 && args[0] == "--native-crypto-fixture")
 if (args.Length == 4 && args[0] is "--live-restore" or "--live-restore-plan" or "--live-restore-stage")
 {
     Check(int.TryParse(args[1], out int process) && process > 0, "Expected running game PID");
-    string directory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "DEViL"); var vault = new PracticeSaveVault(directory);
+    string directory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "labplus"); var vault = new PracticeSaveVault(directory);
     var plan = vault.PlanLiveRestore(process, args[3], args[2], "DLC1-AUTOSAVE5", true);
     Console.WriteLine(plan.Description); if (args[0] == "--live-restore-plan") { Console.WriteLine("PLAN ONLY: no request sent and no checkpoint files changed."); return 0; }
     vault.StageLiveRestore(directory, plan);
@@ -40,7 +40,7 @@ if (args.Length == 5 && args[0] == "--live-practice")
 {
     Check(int.TryParse(args[1], out int process) && process > 0, "Expected live game PID");
     Check(args[2] is "archive" or "reload", "Expected archive or reload");
-    string directory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "DEViL");
+    string directory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "labplus");
     var result = await LivePracticeBridge.Execute(directory, () => ProcessExists(process) ? process : 0, args[2], args[3], "DLC1-AUTOSAVE5", true);
     Console.WriteLine($"Live operation: {result.Phase}; PID {result.Process}; map {result.Map}; loaded checkpoint {result.Checkpoint}; token {result.Token}");
     Console.WriteLine(result.Detail);
@@ -121,8 +121,9 @@ static byte[] Fixture(uint timestamp, uint size, uint rva, bool validCode = true
     return data;
 }
 
-string temporary = Path.Combine(Path.GetTempPath(), "DEViL-Launcher-" + Guid.NewGuid().ToString("N"));
+string temporary = Path.Combine(Path.GetTempPath(), "labplus-Launcher-" + Guid.NewGuid().ToString("N"));
 Directory.CreateDirectory(temporary);
+RebrandChecks.Run(Path.Combine(temporary, "rebrand"));
 string? inherited = Environment.GetEnvironmentVariable(LightingFixPolicy.EnvironmentVariable);
 string? inheritedSteamAppId = Environment.GetEnvironmentVariable("SteamAppId");
 try
@@ -154,7 +155,7 @@ try
         == TriggerClassCatalog.Known.Count + 1, "Discovered classes must be validated and deduplicated");
     File.WriteAllText(store.SettingsPath, "{\"HiddenTriggerClasses\":null}");
     Check(store.Load().HiddenTriggerClasses.Count == 0, "Null class preferences must load safely");
-    var pathSettings = new DevilSettings();
+    var pathSettings = new LabPlusSettings();
     pathSettings.SetTriggerPathVisible("idTrigger", "Trigger\\Props\\", false);
     pathSettings.SetTriggerPathVisible("idTrigger", "trigger/../", false);
     pathSettings.SetTriggerPathVisible("idTrigger", "trigger/props/\nEnabled=0", false);
@@ -180,22 +181,22 @@ try
         && TriggerPathCatalog.Known.Contains(new("idTrigger_Hurt", "trigger/ai/"))
         && TriggerPathCatalog.Known.Contains(new("idTrigger", "trigger/props/weapons/"))
         && TriggerPathCatalog.Known.Contains(new("idTrigger_StatDrivenEvent", "trigger/stat_event/")), "Bundled resource catalogue missing or incomplete");
-    var researchSettings = new DevilSettings();
+    var researchSettings = new LabPlusSettings();
     Check(!researchSettings.RecordResearch, "Research must not record automatically");
-    Check(LabCommands.Apply(researchSettings, ["lab_record", "1"], 1234, 100)
+    Check(LabCommands.Apply(researchSettings, ["labplus_record", "1"], 1234, 100)
         && researchSettings.RecordResearch && researchSettings.ResearchProcess == 1234, "Console recording did not use the sending game process");
-    Check(LabCommands.Apply(researchSettings, ["lab_path", "0"], 1234, 100)
+    Check(LabCommands.Apply(researchSettings, ["labplus_path", "0"], 1234, 100)
         && !researchSettings.ShowResearchPath && researchSettings.RecordResearch, "Path visibility must not stop recording");
-    Check(LabCommands.Apply(researchSettings, ["lab_mark", "checkpoint", "test"], 1234, 101)
+    Check(LabCommands.Apply(researchSettings, ["labplus_mark", "checkpoint", "test"], 1234, 101)
         && researchSettings.ResearchMarker == 101 && researchSettings.ResearchMarkerLabel == "checkpoint test", "Console marker was not preserved");
-    Check(LabCommands.Apply(researchSettings, ["lab_clear"], 1234, 102) && researchSettings.ResearchReset == 102, "Clear did not change session token");
-    Check(LabCommands.Apply(researchSettings, ["lab_trigger", "idTrigger", "0"], 1234, 102)
+    Check(LabCommands.Apply(researchSettings, ["labplus_clear"], 1234, 102) && researchSettings.ResearchReset == 102, "Clear did not change session token");
+    Check(LabCommands.Apply(researchSettings, ["labplus_trigger", "idTrigger", "0"], 1234, 102)
         && !researchSettings.IsTriggerClassVisible("idTrigger") && researchSettings.IsTriggerClassVisible("idTrigger_Teleporter"), "Console class filter must use exact names");
-    Check(!LabCommands.Apply(researchSettings, ["lab_distance", "201"], 1234, 102)
+    Check(!LabCommands.Apply(researchSettings, ["labplus_distance", "201"], 1234, 102)
         && !LabCommands.Apply(researchSettings, ["quit", "1"], 1234, 102), "Unexpected console command accepted");
     store.Save(researchSettings);
     Check(File.ReadAllText(store.ViewerSettingsPath).Contains("ResearchProcess=1234") && store.Load().ResearchMarker == 101, "Research controls did not reach the native settings");
-    string[] sessionLines = ["#DEVIL_RESEARCH_V1\t1234\t0\t2\t1234-1000", "sequence\telapsed_ms\tkind\tmap\tid\tgeneration\tclass\tx\ty\tz\tdetail",
+    string[] sessionLines = ["#LABPLUS_RESEARCH_V1\t1234\t0\t2\t1234-1000", "sequence\telapsed_ms\tkind\tmap\tid\tgeneration\tclass\tx\ty\tz\tdetail",
         "1\t100\tposition\tmap_a\t0\t0\t\t1.25\t-2.5\t3\t1", "2\t200\tmarker\tmap_a\t0\t0\t\t1.25\t-2.5\t3\tcheckpoint, note", "partial\trow"];
     var researchLog = ResearchLog.Parse(sessionLines) ?? throw new Exception("Session header was not recognized");
     Check(researchLog.Rows.Count == 2 && researchLog.Rows[0].Y == -2.5f && researchLog.Omitted == 2, "Session parsing lost coordinates or accepted partial rows");
@@ -207,23 +208,23 @@ try
     Check(File.ReadAllLines(csv).Length == 3, "Full journal CSV export lost valid samples");
     File.WriteAllText(store.ResearchCurrentPath, "../../outside.tsv");
     Check(ResearchLog.ReadLatest(store.SettingsDirectory) is null, "Session pointer escaped the research directory");
-    string pipeName = "DEViL-Lab-Test-" + Guid.NewGuid().ToString("N");
+    string pipeName = "labplus-Lab-Test-" + Guid.NewGuid().ToString("N");
     string presenceName = @"Local\" + pipeName;
     using var received = new ManualResetEventSlim(); int receivedProcess = 0; string[] receivedArgs = [];
     using (var server = new LabCommandServer((process, command) => { receivedProcess = process; receivedArgs = command; received.Set(); }, pipeName, presenceName))
     {
         using (var presence = EventWaitHandle.OpenExisting(presenceName)) Check(presence.WaitOne(0), "Running companion presence was not signalled");
         using var client = new System.IO.Pipes.NamedPipeClientStream(".", pipeName, System.IO.Pipes.PipeDirection.Out);
-        client.Connect(1500); byte[] message = System.Text.Encoding.UTF8.GetBytes("1234\tlab_path\t1\n"); client.Write(message); client.Flush();
-        Check(received.Wait(1500) && receivedProcess == 1234 && receivedArgs.SequenceEqual(new[] { "lab_path", "1" }), "lab_ IPC lost its sender or arguments");
+        client.Connect(1500); byte[] message = System.Text.Encoding.UTF8.GetBytes("1234\tlabplus_path\t1\n"); client.Write(message); client.Flush();
+        Check(received.Wait(1500) && receivedProcess == 1234 && receivedArgs.SequenceEqual(new[] { "labplus_path", "1" }), "labplus_ IPC lost its sender or arguments");
     }
     bool presenceRemains = EventWaitHandle.TryOpenExisting(presenceName, out var stalePresence); stalePresence?.Dispose();
     Check(!presenceRemains, "Console availability must end with the companion server");
-    Check(LabCommands.Apply(researchSettings, ["lab_encounters", "1"], 1234, 102) && researchSettings.ShowActiveEncountersHud, "Encounter HUD value did not reach shared UI settings");
+    Check(LabCommands.Apply(researchSettings, ["labplus_encounters", "1"], 1234, 102) && researchSettings.ShowActiveEncountersHud, "Encounter HUD value did not reach shared UI settings");
     store.Save(researchSettings);
     Check(File.ReadAllText(store.ViewerSettingsPath).Contains("ShowActiveEncountersHud=1"), "Encounter HUD setting did not reach the native layer");
     long encounterTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-    string[] encounterLines = [$"#DEVIL_ENCOUNTERS_V1\t1234\t{encounterTime}\tlive\tgame/dlc/e4m1_rig/e4m1_rig\t1",
+    string[] encounterLines = [$"#LABPLUS_ENCOUNTERS_V1\t1234\t{encounterTime}\tlive\tgame/dlc/e4m1_rig/e4m1_rig\t1",
         "id\tgeneration\tmanager\tlabel\tthinkFlags\tenabled\tpaused\tspawnPaused\twaitingExit\tscript\tcommands",
         "100\t3\tstarting_platform_encounter_manager_1\tUAC Atlantica / Combat 1 Landing Pad 1\t1\t1\t0\t0\t0\t0\t1",
         "101\t3\tinactive_manager\t\t0\t1\t0\t0\t0\t-1\t0",
@@ -242,7 +243,7 @@ try
     File.WriteAllLines(encounterFile, new[] { encounterLines[0].Replace("\t1234\t", "\t4321\t"), encounterLines[1] });
     Check(ActiveEncounterSnapshot.Read(store.SettingsDirectory, 1234) is null, "Encounter snapshot from a different game process accepted");
     Check(ActiveEncounterSnapshot.Parse(encounterLines.Append("partial\trow").ToArray()) is null, "Partial encounter snapshot accepted as a valid list");
-    string[] graphLines = [$"#DEVIL_GRAPH_V1\t1234\t{encounterTime}\tlive\tgame/dlc/e4m1_rig/e4m1_rig\t500:600\t1\t0\t0\t100:3",
+    string[] graphLines = [$"#LABPLUS_GRAPH_V1\t1234\t{encounterTime}\tlive\tgame/dlc/e4m1_rig/e4m1_rig\t500:600\t1\t0\t0\t100:3",
         "N\t100:3\tarena_trigger\tidEncounterTrigger_Commit\t",
         "N\t101:3\tstarting_platform_encounter_manager_1\tidEncounterManager\tEncounter: UAC Atlantica / Combat 1 Landing Pad 1",
         "N\t102:3\tgate_entity\tidEntity\t", "N\t103:3\tunlinked_entity\tidEntity\t",
@@ -267,11 +268,11 @@ try
     string graphExport = Path.Combine(temporary, "graph.json"); graph.ExportJson(graphExport);
     using (var json = System.Text.Json.JsonDocument.Parse(File.ReadAllText(graphExport)))
         Check(json.RootElement.GetProperty("Edges").GetArrayLength() == 2 && json.RootElement.GetProperty("MapIdentity").GetString() == "500:600", "Graph JSON lost edges or map identity");
-    const string expectedViewer = "DoomCollisionLayer-49e948b4f93f2050.dll";
+    const string expectedViewer = "labplus-layer-49e948b4f93f2050.dll";
     Check(ProcessMonitor.UsesExpectedViewer(["XINPUT1_3.dll", expectedViewer], expectedViewer), "Current viewer build not recognised");
-    Check(!ProcessMonitor.UsesExpectedViewer(["DoomCollisionLayer-51548400bd3b5c96.dll"], expectedViewer), "Old loaded viewer falsely reported as current");
+    Check(!ProcessMonitor.UsesExpectedViewer(["labplus-layer-51548400bd3b5c96.dll"], expectedViewer), "Old loaded viewer falsely reported as current");
     Check(!ProcessMonitor.UsesExpectedViewer([], expectedViewer), "Missing viewer falsely reported as loaded");
-    Check(!ProcessMonitor.UsesExpectedViewer([expectedViewer, "DoomCollisionLayer-51548400bd3b5c96.dll"], expectedViewer), "Conflicting loaded viewer builds accepted");
+    Check(!ProcessMonitor.UsesExpectedViewer([expectedViewer, "labplus-layer-51548400bd3b5c96.dll"], expectedViewer), "Conflicting loaded viewer builds accepted");
     Check(ProcessMonitor.UsesExpectedViewer([expectedViewer.ToUpperInvariant()], expectedViewer), "Module comparison must ignore Windows filename case");
     string path = Path.Combine(temporary, "DOOMEternalx64vk.exe");
     // Cross-check the companion's version catalog against the independently

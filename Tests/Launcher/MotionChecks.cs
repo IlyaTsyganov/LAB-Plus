@@ -1,5 +1,5 @@
-using Devil.Configuration;
-using Devil.Game;
+using LabPlus.Configuration;
+using LabPlus.Game;
 
 internal static class MotionChecks
 {
@@ -7,7 +7,7 @@ internal static class MotionChecks
     internal static void Run(string temporary)
     {
         long epoch = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-        string header = $"#DEVIL_MOTION_V1\t1234\t{epoch + 1000}\tlive\tmap_a\tprofile_a\t1:2";
+        string header = $"#LABPLUS_MOTION_V1\t1234\t{epoch + 1000}\tlive\tmap_a\tprofile_a\t1:2";
         string Row(int i, long time, int segment = 1) => FormattableString.Invariant($"S\t{i}\t{time}\t{segment}\t1\t2\t3\t3\t4\t0\t-0.4\t-0.4\t0\t0.4\t0.4\t1.8\t1\t0\t0.3\t1\t1\t2\t3\t0\t0\t1\t0\t0\t1\t7\t2\t2\t1.5");
         var lines = new[] { header, Row(1, epoch), Row(2, epoch + 50), Row(3, epoch + 100), Row(4, epoch + 1000, 2) };
         var snapshot = MotionSnapshot.Parse(lines) ?? throw new Exception("Movement protocol rejected valid rows");
@@ -45,9 +45,9 @@ internal static class MotionChecks
         File.WriteAllLines(Path.Combine(directory, "motion-1234.tsv"), lines);
         Check(MotionSnapshot.Read(directory, 1234)?.Process == 1234 && MotionSnapshot.Read(directory, 4321) is null, "Movement capture crossed game PID");
         MotionSnapshot.Request(directory, 1234); Check(File.Exists(Path.Combine(directory, "motion-1234.request")), "Motion request not published");
-        var settings = new DevilSettings(); Check(LabCommands.Apply(settings, ["lab_player", "1"], 1234, 1) && settings.ShowPlayerCollider && settings.MotionProcess == 1234, "Player visibility cvar transport failed");
-        Check(LabCommands.Apply(settings, ["lab_attempts", "0"], 1234, 1) && !settings.ShowMotionPaths, "Comparison visibility cvar transport failed");
-        Check(LabCommands.Apply(settings, ["lab_surface", "1"], 1234, 1) && settings.ShowSupportHud, "Surface HUD cvar transport failed");
+        var settings = new LabPlusSettings(); Check(LabCommands.Apply(settings, ["labplus_player", "1"], 1234, 1) && settings.ShowPlayerCollider && settings.MotionProcess == 1234, "Player visibility cvar transport failed");
+        Check(LabCommands.Apply(settings, ["labplus_attempts", "0"], 1234, 1) && !settings.ShowMotionPaths, "Comparison visibility cvar transport failed");
+        Check(LabCommands.Apply(settings, ["labplus_surface", "1"], 1234, 1) && settings.ShowSupportHud, "Surface HUD cvar transport failed");
         var settingsStore = new SettingsStore(Path.Combine(directory, "settings")); settingsStore.Save(settings);
         Check(settingsStore.Load().ShowPlayerCollider && File.ReadAllText(settingsStore.ViewerSettingsPath).Contains("MotionProcess=1234"), "Motion settings not persisted/exported");
         Console.WriteLine("PASS: motion parsing, physical metrics, gap-aware comparison, attempts/save/load, outcomes, overlay scope/identity, CSV and visibility transport.");

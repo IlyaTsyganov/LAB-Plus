@@ -1,5 +1,5 @@
 using System.Text;
-using Devil.Game;
+using LabPlus.Game;
 internal static class LivePracticeChecks
 {
     private static void Check(bool condition, string message) { if (!condition) throw new Exception(message); }
@@ -8,7 +8,7 @@ internal static class LivePracticeChecks
     {
         string directory = Path.Combine(root, "live-practice-tests"), remote = Path.Combine(directory, "Steam", "userdata", "10001", "782330", "remote"); Directory.CreateDirectory(remote);
         var location = SteamSaveLocation.Parse(remote); string token = new('a', 32); long now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-        string response = $"#DEVIL_LIVE_PRACTICE_V1\t1234\t{token}\t{now}\tarchived\t{location.Account}\tDLC1-AUTOSAVE5\tgame/dlc/e4m1_rig/e4m1_rig\tcp1\tCopied\n";
+        string response = $"#LABPLUS_LIVE_PRACTICE_V1\t1234\t{token}\t{now}\tarchived\t{location.Account}\tDLC1-AUTOSAVE5\tgame/dlc/e4m1_rig/e4m1_rig\tcp1\tCopied\n";
         var capture = LivePracticeResult.Parse(response) ?? throw new Exception("Valid live response rejected");
         Check(LivePracticeResult.Parse(response.Replace("DLC1-AUTOSAVE5", "GAME-AUTOSAVE0")) is null, "Main slot accepted by prototype");
         Check(LivePracticeResult.Parse(response.Replace(token, "../escape")) is null, "Capture path traversal accepted");

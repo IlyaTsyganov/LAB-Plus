@@ -1,4 +1,4 @@
-using Devil.Game;
+using LabPlus.Game;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -14,13 +14,13 @@ internal static class BookmarkSaveChecks
     {
         string root = Path.Combine(directory, "points-and-saves"); Directory.CreateDirectory(root);
         long epoch = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(); string token = new('a', 32);
-        string[] lines = [$"#DEVIL_POINT_V1\t1234\t{token}\t{epoch}\tready\tmap_a\tprofile_a\t1:2\tknown\tcp_a",
+        string[] lines = [$"#LABPLUS_POINT_V1\t1234\t{token}\t{epoch}\tready\tmap_a\tprofile_a\t1:2\tknown\tcp_a",
             "P\t0\t0\t0\t1\t2\t3\t0\t1\t0\t1\t0\t0\t-1\t0\t0\t1\t-3\t0\t0\t0\t0\t0\t1\t0\t-2",
             "E\t100\t3\ttrigger/interact/exit\tidTrigger\tenabled\t200"];
         var observation = BookmarkObservation.Parse(lines); Check(observation is { Ready: true } && observation.Body.Z == 0 && observation.Eye.Z == 3 && observation.Yaw == 90, "Point lost distinct body/camera/aim");
         Check(BookmarkObservation.Parse(lines.Select(l => l.Replace("P\t0", "P\tNaN")).ToArray()) is null, "Nonfinite point accepted");
         Check(BookmarkObservation.Parse([.. lines, lines[2]]) is null, "Duplicate selected identities accepted");
-        var point = new ResearchBookmark("DEVIL_RESEARCH_POINT_V1", Guid.NewGuid().ToString("N"), "Before trick", "Any% Restricted", "Test hypothesis", observation!);
+        var point = new ResearchBookmark("LABPLUS_RESEARCH_POINT_V1", Guid.NewGuid().ToString("N"), "Before trick", "Any% Restricted", "Test hypothesis", observation!);
         var store = new BookmarkStore(root); store.Save(point); Check(store.Load().Count == 1, "Point not persisted");
         Check(point.ReturnCommand() == "setviewpos 1 2 3 90.000000 -0.000000" || point.ReturnCommand() == "setviewpos 1 2 3 90.000000 0.000000", "Return command not invariant or used body instead of eye");
         string export = Path.Combine(root, "point.json"); BookmarkStore.Export(point, export); var imported = store.Import(export);
@@ -60,7 +60,7 @@ internal static class BookmarkSaveChecks
         var result = vault.Restore(plan); Check(Same(slot1, original) && Same(result.OriginalSlot, target), "Restored files or retained original differ");
         Check(File.ReadAllText(Path.Combine(profile, "profile.bin")) == "profile sentinel" && File.ReadAllText(Path.Combine(location.AppRoot, "remotecache.vdf")) == "cloud sentinel", "Restore altered PROFILE or Steam metadata");
         Check(File.ReadAllText(Path.Combine(result.Evidence, "PROFILE", "profile.bin")) == "profile sentinel" && File.Exists(Path.Combine(result.Evidence, "app-metadata", "remotecache.vdf")), "Recovery evidence missing");
-        Check(!Directory.EnumerateDirectories(location.Remote).Any(p => Path.GetFileName(p).StartsWith(".devil")), "Staging left non-slot directories inside remote");
+        Check(!Directory.EnumerateDirectories(location.Remote).Any(p => Path.GetFileName(p).StartsWith(".labplus")), "Staging left non-slot directories inside remote");
         string exported = Path.Combine(root, "exported-archive"); vault.Export(saved.Id, exported);
         Reject(() => vault.Import(exported, foreign.Account), "Foreign-account archive imported");
         var copy = vault.Import(exported, location.Account); Check(copy.Id != saved.Id && vault.Verify(copy.Id).Files.Count == 4, "Archive import/export damaged data");
