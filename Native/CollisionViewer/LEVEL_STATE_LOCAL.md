@@ -1,6 +1,6 @@
 # Level state: before / after — local development build
 
-Proposal item 6 compares observed state in one loaded map instance. Open **Level state: before / after…** in DEViL. Keep the companion open and Collision Viewer enabled; load this build through a full game restart.
+Proposal item 6 compares observed state in one loaded map instance. Open **Level state: before / after…** in LAB Plus. Keep the companion open and Collision Viewer enabled; load this build through a full game restart.
 
 1. Load a level and press **Capture BEFORE**. Wait for the captured-volume count.
 2. Return to the game and perform the action being investigated: pick up a prop, interact, finish an encounter or cross a volume.
@@ -30,7 +30,7 @@ Both captures must be ready, chronological and from the same process, executable
 - Existing audited entity/physics readers decode volume geometry. Reflection supplied by the already-loaded compatible meathook resolves manager/name/checkpoint fields on its game-frame callback. Snapshot reading remains on the background worker. Missing meathook metadata is visible as unavailable sources.
 - Limits: 32,768 membership rows, 8,192 recognized volumes, 2,048 managers; retained exact geometry up to 1.5 million vertices per capture, then bounding outlines. Highlight requests expire after three seconds and are renewed while the comparison window stays open. Native requests require both retained capture tokens; the viewer does not accept arbitrary geometry from JSON.
 - Highlight preparation limits exact wire geometry to 300,000 source vertices, then uses bounds for the remaining selected identities. Captured geometry is immutable/shared and survives ordinary short volume-history expiry. Unavailable geometry cannot be reconstructed from the saved fields alone.
-- Local files under `%LOCALAPPDATA%\DEViL`: `level-state-<PID>.request`, `level-state-<PID>-before.tsv`, `level-state-<PID>-after.tsv`, `state-highlight-<PID>.request` and `.status`. Closing the comparison window clears its highlight request. Closing the companion stops native work through the existing presence check.
+- Local files under `%LOCALAPPDATA%\LAB Plus`: `level-state-<PID>.request`, `level-state-<PID>-before.tsv`, `level-state-<PID>-after.tsv`, `state-highlight-<PID>.request` and `.status`. Closing the comparison window clears its highlight request. Closing the companion stops native work through the existing presence check.
 
 ## Verification
 

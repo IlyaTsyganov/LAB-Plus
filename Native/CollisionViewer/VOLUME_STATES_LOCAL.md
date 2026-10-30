@@ -1,6 +1,6 @@
 # Disabled volumes and recent changes
 
-Included in DEViL 0.7 alongside the volume inspector.
+Included in LAB Plus 0.7 alongside the volume inspector.
 
 ## Controls
 
@@ -29,4 +29,4 @@ Checked locally on 2026-10-27:
 - Companion launch/version tests and window layout check, including no overlapping controls or clipped legend.
 - Read-only production probe against the user's running 6.66 Rev 3 on `game/dlc/e4m1_rig/e4m1_rig`: 991 active triggers, 25 active walls, 23 additional disabled volumes; no missing geometry or unsupported active shapes in that sample. This probe did not inject the new viewer or change game state.
 
-Visual in-game acceptance of the new colours and history still needs loading the updated DLL on the next complete game launch. The existing process cannot switch an already-loaded viewer DLL in place. DEViL's **Update pending** status detects this mismatch. Meathook does not need to be reinstalled or reloaded through DESRU.
+Visual in-game acceptance of the new colours and history still needs loading the updated DLL on the next complete game launch. The existing process cannot switch an already-loaded viewer DLL in place. LAB Plus's **Update pending** status detects this mismatch. Meathook does not need to be reinstalled or reloaded through DESRU.

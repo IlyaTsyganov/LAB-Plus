@@ -1,12 +1,12 @@
 # Lighting fix validation
 
-Included in DEViL 0.6, checked on 2026-10-26.
+Included in LAB Plus 0.6, checked on 2026-10-26.
 
-The default Vulkan 1.x indirect-barrier correction is adapted from [billymooreq's DoomEternal-v1.1--RTXFix](https://github.com/billymooreq/DoomEternal-v1.1--RTXFix/tree/0bf1f44b5f4945eb7e6b76a204b4f6f2a074e23e), under the [MIT license](licenses/doomfix-MIT.txt). The DEViL launch button opts in audited 1.0, 1.1 and 2.0 executables. The native layer verifies the profile and NVIDIA vendor ID again. The child also receives `SteamAppId=782330`, as in the upstream launcher, to prevent a Steam restart from discarding its environment.
+The default Vulkan 1.x indirect-barrier correction is adapted from [billymooreq's DoomEternal-v1.1--RTXFix](https://github.com/billymooreq/DoomEternal-v1.1--RTXFix/tree/0bf1f44b5f4945eb7e6b76a204b4f6f2a074e23e), under the [MIT license](licenses/doomfix-MIT.txt). The LAB Plus launch button opts in audited 1.0, 1.1 and 2.0 executables. The native layer verifies the profile and NVIDIA vendor ID again. The child also receives `SteamAppId=782330`, as in the upstream launcher, to prevent a Steam restart from discarding its environment.
 
 ## In-game checks
 
-All three versions were launched through DEViL and tested on Hell on Earth (`game/sp/e1m1_intro/e1m1_intro`). The user confirmed restored lighting, correct barrel rendering and correct collision-viewer volumes in each version. Runtime logs independently confirmed `Lighting fix: on`, increasing patched-barrier counters, loaded world geometry and overlay draw calls.
+All three versions were launched through LAB Plus and tested on Hell on Earth (`game/sp/e1m1_intro/e1m1_intro`). The user confirmed restored lighting, correct barrel rendering and correct collision-viewer volumes in each version. Runtime logs independently confirmed `Lighting fix: on`, increasing patched-barrier counters, loaded world geometry and overlay draw calls.
 
 | Version | World collision instances | Unique geometries | Triangles | Unsupported world shapes | Result |
 | --- | ---: | ---: | ---: | ---: | --- |

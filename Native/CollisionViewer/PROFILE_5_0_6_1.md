@@ -1,6 +1,6 @@
 # 5.0, 6.0 and 6.1 profile validation
 
-Validation date: 2026-10-26. These profiles are included in DEViL 0.5.
+Validation date: 2026-10-26. These profiles are included in LAB Plus 0.5.
 
 ## Executable identities
 

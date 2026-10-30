@@ -1,6 +1,6 @@
 # Entity links — development build
 
-Open **Entity links…** from DEViL's main window. This modeless window can stay open while playing. The selected game's updated viewer layer and an already installed compatible meathook are required. Completely restart the game through this build of DEViL with Collision Viewer enabled to load the new layer.
+Open **Entity links…** from LAB Plus's main window. This modeless window can stay open while playing. The selected game's updated viewer layer and an already installed compatible meathook are required. Completely restart the game through this build of LAB Plus with Collision Viewer enabled to load the new layer.
 
 Enable **Volume inspector (meathook)** and **Follow crosshair**, then aim at a displayed trigger or invisible wall. Its map-scoped ID and generation select the graph root. Switching to the companion retains the last selected root. Selecting an entity in the list, clicking a graph node or double-clicking an edge row turns off following and lets you explore the graph. Select **Follow crosshair** again to follow the game selection.
 
@@ -30,13 +30,13 @@ Offsets, type sizes and list element strides come from the current game's meatho
 
 ## Sampling and limits
 
-While the graph window is open it renews a PID-scoped request once per second. The native worker captures approximately once per second; an expired request stops scanning within four seconds. Closing DEViL stops work through the companion presence check. Initial type resolution may take several updates. Meathook class lookup runs only on its game-frame callback, at most four types per frame. The worker receives immutable copied metadata and calls no engine methods.
+While the graph window is open it renews a PID-scoped request once per second. The native worker captures approximately once per second; an expired request stops scanning within four seconds. Closing LAB Plus stops work through the companion presence check. Initial type resolution may take several updates. Meathook class lookup runs only on its game-frame callback, at most four types per frame. The worker receives immutable copied metadata and calls no engine methods.
 
 The status distinguishes pending metadata, unavailable/unsupported reads, stale snapshots and scan limits. Snapshots older than four seconds are labelled stale; loading or missing data clears the displayed graph. Readable stale snapshots remain available as historical captures. Failed metadata resolution is retried periodically while the window is open.
 
 The reader caps the entity table at 32,768 nodes, edges at 16,384, each list at 256 sampled elements (counts above 4,096 are rejected), nested structures at five levels, inheritance at 24 steps and reference-shaped traversal work at 250,000 visits per capture. Triggers, encounter entities and the crosshair root are scanned first. Fixed arrays, unknown container layouts, arbitrary object-pointer traversal and unsupported pointer qualifiers are omitted. These limits mean the graph can be partial even with no read errors. Sampling is not an atomic or frame-accurate event journal.
 
-Snapshots use versioned, atomically replaced `entity-graph-<PID>.tsv` files under `%LOCALAPPDATA%\DEViL`. Companion reads are bounded, reject partial rows, duplicate or dangling identities and mismatched PIDs, and never dereference entity pointers. JSON exports preserve technical identities and evidence for offline inspection.
+Snapshots use versioned, atomically replaced `entity-graph-<PID>.tsv` files under `%LOCALAPPDATA%\LAB Plus`. Companion reads are bounded, reject partial rows, duplicate or dangling identities and mismatched PIDs, and never dereference entity pointers. JSON exports preserve technical identities and evidence for offline inspection.
 
 ## Validation
 

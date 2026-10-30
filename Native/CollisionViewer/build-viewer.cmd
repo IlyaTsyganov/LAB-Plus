@@ -23,7 +23,7 @@ if not exist "%VULKAN_HEADERS%\vulkan\vulkan.h" (
 )
 if not exist build mkdir build
 if not exist bin mkdir bin
-cl /nologo /std:c++17 /W4 /O2 /EHsc /MD /LD /I"%VULKAN_HEADERS%" src\vulkan_layer.cpp /Fo:build\vulkan_layer.obj /Fe:bin\DoomCollisionLayer.dll user32.lib /link /INCREMENTAL:NO
+cl /nologo /std:c++17 /W4 /O2 /EHsc /MD /LD /I"%VULKAN_HEADERS%" src\vulkan_layer.cpp /Fo:build\vulkan_layer.obj /Fe:bin\labplus-layer.dll user32.lib /link /INCREMENTAL:NO
 if errorlevel 1 exit /b %errorlevel%
 cl /nologo /std:c++17 /W4 /O2 /EHsc /MD /I"%VULKAN_HEADERS%" tests\practice_live_tests.cpp /Fo:build\practice_live_tests.obj /Fe:bin\PracticeLiveTests.exe user32.lib /link /INCREMENTAL:NO
 if errorlevel 1 exit /b %errorlevel%
@@ -43,7 +43,7 @@ cl /nologo /std:c++17 /W4 /O2 /EHsc /MD /I"%VULKAN_HEADERS%" tests\encounter_tes
 if errorlevel 1 exit /b %errorlevel%
 cl /nologo /std:c++17 /W4 /O2 /EHsc /MD /I"%VULKAN_HEADERS%" tests\entity_graph_tests.cpp /Fo:build\entity_graph_tests.obj /Fe:bin\EntityGraphTests.exe user32.lib /link /INCREMENTAL:NO
 if errorlevel 1 exit /b %errorlevel%
-cl /nologo /std:c++17 /W4 /O2 /EHsc /MD /I"%VULKAN_HEADERS%" tests\lab_cvar_tests.cpp /Fo:build\lab_cvar_tests.obj /Fe:bin\LabCvarTests.exe user32.lib /link /INCREMENTAL:NO
+cl /nologo /std:c++17 /W4 /O2 /EHsc /MD /I"%VULKAN_HEADERS%" tests\labplus_cvar_tests.cpp /Fo:build\labplus_cvar_tests.obj /Fe:bin\LabCvarTests.exe user32.lib /link /INCREMENTAL:NO
 if errorlevel 1 exit /b %errorlevel%
 cl /nologo /std:c++17 /W4 /O2 /EHsc /MD /I"%VULKAN_HEADERS%" tests\lighting_fix_tests.cpp /Fo:build\lighting_fix_tests.obj /Fe:bin\LightingFixTests.exe user32.lib /link /INCREMENTAL:NO
 if errorlevel 1 exit /b %errorlevel%

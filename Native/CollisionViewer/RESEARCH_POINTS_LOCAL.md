@@ -1,6 +1,6 @@
 # Research points and practice saves — proposal item 7
 
-Open **Research points…** for observations or **Сохранения…** for checkpoint loading. Keep DEViL running; installing a changed native viewer requires a game restart, while the simplified save UI uses the same native DLL as the accepted live-restore build. A research point records an observation; a practice archive preserves files from a normal game checkpoint slot.
+Open **Research points…** for observations or **Saves** for checkpoint loading. Keep LAB Plus running; installing a changed native viewer requires a game restart, while the simplified save UI uses the same native DLL as the accepted live-restore build. A research point records an observation; a practice archive preserves files from a normal game checkpoint slot.
 
 ## Research points
 
@@ -22,7 +22,7 @@ A position return does not restore enemies, their AI, pickups, unlocks, cooldown
 
 The latest development experiment also provides live checkpoint archival, current-checkpoint reload and **Restore archive + reload…**, restricted to native live-copy archives for TAG1 slot 3 on 6.66 Rev 3. See [live experiment status and test instructions](LIVE_PRACTICE_LOCAL.md). Archival and repeated restoration between earlier/later checkpoints passed retail acceptance without restarting game/Steam. The offline workflow below remains available.
 
-The main **Сохранения…** window provides simple live **Сохранить / Загрузить** controls ([instructions](LIVE_PRACTICE_LOCAL.md)). For the offline workflow below, open **Дополнительно… → Инструменты и диагностика…**. Select `Steam/userdata/<account>/782330/remote` and the campaign slot. **Find** discovers Steam locations; **Browse…** supports an explicit location. Campaign slots 0–2, TAG1 slots 3–5 and TAG2 slots 6–8 use their actual folder names.
+The main **Saves** window provides simple live **Save / Load** controls ([instructions](LIVE_PRACTICE_LOCAL.md)). For the offline workflow below, open **Advanced… → Tools and diagnostics…**. Select `Steam/userdata/<account>/782330/remote` and the campaign slot. **Find** discovers Steam locations; **Browse…** supports an explicit location. Campaign slots 0–2, TAG1 slots 3–5 and TAG2 slots 6–8 use their actual folder names.
 
 1. Close the game and Steam, including Steam's background client processes.
 2. Enter an archive name/category and optional map tag. These are annotations, not inferred checkpoint contents.
@@ -34,7 +34,7 @@ External archives are independent of the game's three slots per campaign. To use
 
 ## Restoring a full archive
 
-Close the game and Steam. Disable DOOM Eternal's Steam Cloud setting yourself, then check the explicit Cloud confirmation in this window. DEViL does not change Steam settings. Select a same-account archive and a matching campaign-family **occupied** target slot, then choose **Review restore…**. The review shows the exact target and archive before the final replacement.
+Close the game and Steam. Disable DOOM Eternal's Steam Cloud setting yourself, then check the explicit Cloud confirmation in this window. LAB Plus does not change Steam settings. Select a same-account archive and a matching campaign-family **occupied** target slot, then choose **Review restore…**. The review shows the exact target and archive before the final replacement.
 
 The operation revalidates source hashes/authentication and the target fingerprint after review. It stages the complete replacement, preserves the raw current slot, copies `PROFILE` and the Steam app's flat metadata into recovery evidence, and retains the original directory outside `remote`. It does not replace/delete `PROFILE`, `remotecache.vdf` or the numbered Steam metadata files. Failure between directory renames attempts to return the original directory immediately. A detected game/Steam start during the operation aborts and rolls back the rename when possible.
 
@@ -59,7 +59,7 @@ Unknown nested slot/profile folders, reparse-point/junction paths, more than 256
 
 ## Storage, verification and further work
 
-`%LOCALAPPDATA%\DEViL\research-points/<id>.json` stores points. `practice-saves/<id>/manifest.json` plus `slot/` stores archived checkpoint files. `practice-saves/recovery-evidence/` retains originals used to prepare recovered archives; `restore-evidence/` retains before-restore files, profile/Steam copies and exact paths. Point JSON and archive folders are exported/imported separately. Imported archives receive a new local ID, so re-link points after importing both. No real/user save files are bundled in a DEViL release.
+`%LOCALAPPDATA%\LAB Plus\research-points/<id>.json` stores points. `practice-saves/<id>/manifest.json` plus `slot/` stores archived checkpoint files. `practice-saves/recovery-evidence/` retains originals used to prepare recovered archives; `restore-evidence/` retains before-restore files, profile/Steam copies and exact paths. Point JSON and archive folders are exported/imported separately. Imported archives receive a new local ID, so re-link points after importing both. No real/user save files are bundled in a LAB Plus release.
 
 Native tests cover guarded point reads, distinct body/camera/aim, selected-entity scope and invalid views on all 22 profile fixtures. Managed tests cover points and full archives, account/family/process/Cloud guards, all four authenticated files, corruption and path-tamper rejection, backup-pair reconstruction, target changes, failed-rename and process-start rollback, preservation of `PROFILE`/Steam metadata, and import/export. WinForms checks exercise capture, edits, attachments, search, archive/verify/link controls, blocked restores and minimum layouts; previews use synthetic data.
 
@@ -70,6 +70,6 @@ True arbitrary savestates with live AI, cooldowns, pickups and all script state 
 Sources used to establish the current workflow/format:
 
 - [Community save-management guide](https://docs.google.com/document/d/1V2LA0XIt7bjm1VX_p3aHk22Z0oUWTCk6pud1pUnxW7k/edit): occupied slots, full backups, Reset Mission behavior and practice categories.
-- [Community troubleshooting FAQ](https://docs.google.com/document/d/13xX4mG9_gzWdSXrEIvh5pzzQAh3tl7__TUzne41OJag/edit): profile/index symptoms. Its deletion-based procedures are not performed automatically by DEViL.
+- [Community troubleshooting FAQ](https://docs.google.com/document/d/13xX4mG9_gzWdSXrEIvh5pzzQAh3tl7__TUzne41OJag/edit): profile/index symptoms. Its deletion-based procedures are not performed automatically by LAB Plus.
 - [Hg.SaveHistory changelog](https://github.com/HgAlexx/Hg.SaveHistory): version 0.7.5 removed the filter that omitted internal backup files.
-- [DOOMSaveManager container framing](https://github.com/GoobyCorp/DOOMSaveManager/blob/master/Crypto.cs) and [filename/account context](https://github.com/GoobyCorp/DOOMSaveManager/blob/master/DoomEternalSavePath.cs). DEViL uses its own .NET AES-GCM implementation; no source or binary from that project is incorporated.
+- [DOOMSaveManager container framing](https://github.com/GoobyCorp/DOOMSaveManager/blob/master/Crypto.cs) and [filename/account context](https://github.com/GoobyCorp/DOOMSaveManager/blob/master/DoomEternalSavePath.cs). LAB Plus uses its own .NET AES-GCM implementation; no source or binary from that project is incorporated.

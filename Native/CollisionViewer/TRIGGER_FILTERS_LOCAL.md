@@ -1,6 +1,6 @@
 # Trigger class and path visibility
 
-Open **Trigger types…** beside the main **Triggers** checkbox in DEViL.
+Open **Trigger types…** beside the main **Triggers** checkbox in LAB Plus.
 
 - Root checkboxes control exact classes. `idTrigger` does not include `idTrigger_Teleporter` or other derived classes.
 - Expand a class to see folders from trigger instance names **and entity-definition names**. For example, `idTrigger → trigger/ → props/` controls both `trigger/props/pickup_8469` and a map-renamed `pickup_123` whose definition is `trigger/props/pickup`. Either matching path can hide an object.
@@ -34,7 +34,7 @@ It reads the installed resource containers and uses the game's installed Oodle d
 
 Settings use `HiddenTriggerClasses` and `HiddenTriggerPaths` in the companion's per-user JSON. `viewer.ini` exports disabled classes as `ClassName=0` in `[TriggerClasses]` and folders as `ClassName|trigger/props/=0` in `[TriggerPaths]`. Omitted items remain visible. Separators/case normalize; invalid paths and settings separators are rejected.
 
-The scanner atomically writes `trigger-classes.txt` and bounded, versioned `trigger-paths.tsv` in the per-user DEViL directory. The latter contains class/folder pairs, never addresses or full instance names. Previous discoveries and saved hidden paths remain available on other maps. Discovery and history tracking continue for hidden objects.
+The scanner atomically writes `trigger-classes.txt` and bounded, versioned `trigger-paths.tsv` in the per-user LAB Plus directory. The latter contains class/folder pairs, never addresses or full instance names. Previous discoveries and saved hidden paths remain available on other maps. Discovery and history tracking continue for hidden objects.
 
 The existing meathook game-frame callback resolves `idEntity::name` / `idStr::data`, plus `idEntity::entityDef` / `idResource::name` / `idAtomicString::str`. It publishes one immutable validated layout to the scanner. The scanner copies bounded strings and does not call engine methods. Missing definition metadata does not prevent reading a valid instance-name path. A compatible loaded meathook is required for paths; the Volume inspector HUD checkbox need not be enabled. Class filtering works without path metadata.
 
