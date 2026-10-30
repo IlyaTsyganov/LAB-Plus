@@ -1,9 +1,9 @@
 using System.Drawing.Drawing2D;
-using Devil.Game;
+using LabPlus.Game;
 
-namespace Devil;
+namespace LabPlus;
 
-internal sealed class EntityGraphCanvas : Control
+internal sealed class EntityGraphCanvas : UiPlot
 {
     private sealed record Target(RectangleF Bounds, string Key, bool Selected);
     private const float NodeWidth = 220, NodeHeight = 42, RowGap = 10, ColumnGap = 72, HeaderHeight = 26;
@@ -11,13 +11,13 @@ internal sealed class EntityGraphCanvas : Control
     private string? _selected;
     private string[] _incoming = [], _outgoing = [];
     private readonly List<Target> _targets = [];
-    private readonly Button _fit = new() { Text = "Fit graph", Size = new Size(84, 26), FlatStyle = FlatStyle.Flat,
+    private readonly UiAction _fit = new() { Text = "Fit graph", Size = new Size(84, 26), FlatStyle = FlatStyle.Flat,
         BackColor = Color.FromArgb(55, 55, 55), ForeColor = Color.Gainsboro, UseVisualStyleBackColor = false };
-    private readonly ToolTip _tooltip = new();
+    private readonly UiToolTip _tooltip = new();
     private RectangleF _bounds;
     private float _zoom = 1;
     private PointF _offset;
-    private bool _autoFit = true, _panning;
+    private bool _autoFit = true, _panning, _browserPointer;
     private Point _dragPoint;
     private string? _hovered;
     private RectangleF Viewport => new(12, 36, Math.Max(1, ClientSize.Width - 24), Math.Max(1, ClientSize.Height - 66));
@@ -25,7 +25,7 @@ internal sealed class EntityGraphCanvas : Control
 
     public EntityGraphCanvas()
     {
-        DoubleBuffered = true; BackColor = Color.FromArgb(28, 28, 28); TabStop = true;
+        DoubleBuffered = true; BackColor = LabPlusTheme.Panel; TabStop = true;
         SetStyle(ControlStyles.Selectable | ControlStyles.ResizeRedraw, true);
         AccessibleName = "Entity reference graph";
         AccessibleDescription = "Wheel to zoom, hold right mouse button to pan, left-click to select. Fit graph shows all neighbors.";
@@ -94,7 +94,7 @@ internal sealed class EntityGraphCanvas : Control
     {
         base.OnPaint(e);
         var g = e.Graphics;
-        TextRenderer.DrawText(g, "Wheel: zoom · RMB: drag · LMB: select", Font, new Rectangle(8, 5, Math.Max(1, ClientSize.Width - 108), 25), Color.Silver,
+        TextRenderer.DrawText(g, "Wheel: zoom · RMB: drag · LMB: select", Font, new Rectangle(8, 5, Math.Max(1, ClientSize.Width - 108), 25), LabPlusTheme.Muted,
             TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPrefix);
         if (_graph is null || _targets.Count == 0) return;
         string status = _incoming.Length + _outgoing.Length == 0 ? "No references found within the scanned fields."
@@ -151,9 +151,9 @@ internal sealed class EntityGraphCanvas : Control
     }
     protected override void OnMouseDown(MouseEventArgs e)
     {
-        base.OnMouseDown(e); Focus();
+        base.OnMouseDown(e); if (!_browserPointer) Focus();
         if (e.Button != MouseButtons.Right || _targets.Count == 0 || !Viewport.Contains(e.Location)) return;
-        _panning = true; _autoFit = false; _dragPoint = e.Location; Capture = true; Cursor = Cursors.SizeAll;
+        _panning = true; _autoFit = false; _dragPoint = e.Location; if (!_browserPointer) Capture = true; Cursor = Cursors.SizeAll;
         _tooltip.SetToolTip(this, null); _hovered = null;
     }
     protected override void OnMouseMove(MouseEventArgs e)
@@ -168,7 +168,7 @@ internal sealed class EntityGraphCanvas : Control
         if (_hovered == target?.Key) return;
         _hovered = target?.Key;
         var node = target is not null ? _graph?.Nodes[target.Key] : null;
-        _tooltip.SetToolTip(this, node is null ? null : $"{node.Display}\n{node.Class} · {node.Key}");
+        if (!_browserPointer) _tooltip.SetToolTip(this, node is null ? null : $"{node.Display}\n{node.Class} · {node.Key}");
     }
     protected override void OnMouseUp(MouseEventArgs e) { base.OnMouseUp(e); if (e.Button == MouseButtons.Right) StopPanning(); }
     protected override void OnMouseCaptureChanged(EventArgs e) { base.OnMouseCaptureChanged(e); if (!Capture) { _panning = false; Cursor = Cursors.Default; } }
@@ -177,6 +177,27 @@ internal sealed class EntityGraphCanvas : Control
     {
         base.OnMouseClick(e);
         if (e.Button == MouseButtons.Left && !_panning && Hit(e.Location) is { } target) NodeClicked?.Invoke(target.Key);
+    }
+    internal void BrowserMouse(string phase, MouseEventArgs e)
+    {
+        // The WebView owns OS pointer capture and keyboard focus. Reuse the same
+        // graph navigation without giving its covered native control either.
+        _browserPointer = true;
+        try
+        {
+            switch (phase)
+            {
+                case "down": OnMouseDown(e); break;
+                case "move": OnMouseMove(e); break;
+                case "up": OnMouseUp(e); break;
+                case "wheel": OnMouseWheel(e); break;
+                case "click":
+                    if (e.Button == MouseButtons.Left && _fit.Bounds.Contains(e.Location)) _fit.PerformClick();
+                    else OnMouseClick(e);
+                    break;
+            }
+        }
+        finally { _browserPointer = false; }
     }
     protected override void Dispose(bool disposing) { if (disposing) _tooltip.Dispose(); base.Dispose(disposing); }
 }

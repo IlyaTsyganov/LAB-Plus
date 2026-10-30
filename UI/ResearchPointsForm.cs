@@ -1,22 +1,22 @@
-using Devil.Game;
+using LabPlus.Game;
 
-namespace Devil;
+namespace LabPlus;
 
-internal sealed class ResearchPointsForm : Form
+internal sealed class ResearchPointsForm : LabPlusForm
 {
     private readonly string _directory;
     private readonly Func<int> _gameProcess;
     private readonly BookmarkStore _store;
-    private readonly TextBox _search = new() { Width = 440, PlaceholderText = "Search category, map, name, checkpoint or note…" };
-    private readonly ListBox _points = new() { Dock = DockStyle.Fill, HorizontalScrollbar = true };
-    private readonly TextBox _name = new() { Dock = DockStyle.Fill, MaxLength = 160 };
-    private readonly ComboBox _category = new() { Dock = DockStyle.Fill, MaxLength = 160 };
-    private readonly TextBox _note = new() { Dock = DockStyle.Fill, Multiline = true, MaxLength = 8192, ScrollBars = ScrollBars.Vertical };
-    private readonly TextBox _details = new() { Dock = DockStyle.Fill, Multiline = true, ReadOnly = true, ScrollBars = ScrollBars.Vertical };
-    private readonly Label _status = new() { Dock = DockStyle.Fill, AutoEllipsis = true, UseMnemonic = false };
-    private readonly Label _linked = new() { Dock = DockStyle.Fill, UseMnemonic = false, AutoEllipsis = true };
-    private readonly Button _capture = MakeButton("Capture new point", 160);
-    private readonly Button _attach = MakeButton("Attach recent aim", 175);
+    private readonly UiInput _search = new() { Width = 440, PlaceholderText = "Search category, map, name, checkpoint or note…" };
+    private readonly UiList _points = new() { Dock = DockStyle.Fill, HorizontalScrollbar = true };
+    private readonly UiInput _name = new() { Dock = DockStyle.Fill, MaxLength = 160 };
+    private readonly UiSelect _category = new() { Dock = DockStyle.Fill, MaxLength = 160 };
+    private readonly UiInput _note = new() { Dock = DockStyle.Fill, Multiline = true, MaxLength = 8192, ScrollBars = ScrollBars.Vertical };
+    private readonly UiInput _details = new() { Dock = DockStyle.Fill, Multiline = true, ReadOnly = true, ScrollBars = ScrollBars.Vertical };
+    private readonly UiText _status = new() { Dock = DockStyle.Fill, AutoEllipsis = true, UseMnemonic = false };
+    private readonly UiText _linked = new() { Dock = DockStyle.Fill, UseMnemonic = false, AutoEllipsis = true };
+    private readonly UiAction _capture = MakeButton("Capture new point", 160);
+    private readonly UiAction _attach = MakeButton("Attach recent aim", 175);
     private readonly System.Windows.Forms.Timer _timer = new() { Interval = 250 };
     private ResearchBookmark? _selected;
     private IReadOnlyList<ResearchBookmark> _all = [];
@@ -29,13 +29,13 @@ internal sealed class ResearchPointsForm : Form
     public ResearchPointsForm(string directory, Func<int> gameProcess)
     {
         _directory = directory; _gameProcess = gameProcess; _store = new(directory);
-        Text = "DEViL — Research points & practice presets"; ClientSize = new(1240, 800); MinimumSize = new(1120, 740);
+        Text = "LAB Plus — Research points & practice presets"; ClientSize = new(1240, 800); MinimumSize = new(1120, 740);
         StartPosition = FormStartPosition.CenterParent; ShowInTaskbar = false; AutoScaleMode = AutoScaleMode.Font;
-        BackColor = Color.FromArgb(35, 35, 35); ForeColor = Color.Gainsboro; Font = new Font("Segoe UI", 10f);
-        var layout = new TableLayoutPanel { Dock = DockStyle.Fill, Padding = new Padding(12), ColumnCount = 1, RowCount = 6 };
+        BackColor = Color.FromArgb(35, 35, 35); ForeColor = Color.Gainsboro; Font = LabPlusTheme.Ui(10f);
+        var layout = new UiGrid { Dock = DockStyle.Fill, Padding = new Padding(12), ColumnCount = 1, RowCount = 6 };
         foreach (float height in new[] { 40f, 38f }) layout.RowStyles.Add(new(SizeType.Absolute, height));
         layout.RowStyles.Add(new(SizeType.Percent, 100)); layout.RowStyles.Add(new(SizeType.Absolute, 38)); layout.RowStyles.Add(new(SizeType.Absolute, 30)); layout.RowStyles.Add(new(SizeType.Absolute, 90)); Controls.Add(layout);
-        var actions = new FlowLayoutPanel { Dock = DockStyle.Fill, WrapContents = false, Margin = Padding.Empty };
+        var actions = new UiToolbar { Dock = DockStyle.Fill, WrapContents = false, Margin = Padding.Empty };
         _capture.Click += (_, _) => BeginCapture(false); _attach.Click += (_, _) => BeginCapture(true);
         var save = MakeButton("Save edits", 110); save.Click += (_, _) => SaveEdits();
         var import = MakeButton("Import point…", 130); import.Click += (_, _) => ImportPoint();
@@ -43,30 +43,30 @@ internal sealed class ResearchPointsForm : Form
         var vault = MakeButton("Practice saves…", 150); vault.Click += (_, _) => OpenVault();
         actions.Controls.AddRange([_capture, _attach, save, import, export, vault]); layout.Controls.Add(actions, 0, 0);
         layout.Controls.Add(_search, 0, 1); _search.TextChanged += (_, _) => Populate(_selected?.Id);
-        var split = new SplitContainer { Dock = DockStyle.Fill, Size = new(1200, 500), SplitterDistance = 370, Panel1MinSize = 230, Panel2MinSize = 470, FixedPanel = FixedPanel.Panel1 };
+        var split = new UiSplit { Dock = DockStyle.Fill, Size = new(1200, 500), SplitterDistance = 370, Panel1MinSize = 230, Panel2MinSize = 470, FixedPanel = FixedPanel.Panel1 };
         layout.Controls.Add(split, 0, 2); split.Panel1.Controls.Add(_points);
-        var editor = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 6, Padding = new Padding(8, 0, 0, 0) };
+        var editor = new UiGrid { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 6, Padding = new Padding(8, 0, 0, 0) };
         editor.ColumnStyles.Add(new(SizeType.Absolute, 90)); editor.ColumnStyles.Add(new(SizeType.Percent, 100));
         foreach (float height in new[] { 36f, 36f, 36f }) editor.RowStyles.Add(new(SizeType.Absolute, height));
         editor.RowStyles.Add(new(SizeType.Percent, 40)); editor.RowStyles.Add(new(SizeType.Percent, 60)); editor.RowStyles.Add(new(SizeType.Absolute, 26)); split.Panel2.Controls.Add(editor);
-        void Row(string label, Control control, int row) { editor.Controls.Add(new Label { Text = label, AutoSize = true, Margin = new Padding(0, 5, 0, 0) }, 0, row); editor.Controls.Add(control, 1, row); }
+        void Row(string label, UiNode control, int row) { editor.Controls.Add(new UiText { Text = label, AutoSize = true, Margin = new Padding(0, 5, 0, 0) }, 0, row); editor.Controls.Add(control, 1, row); }
         Row("Name", _name, 0); Row("Category", _category, 1); Row("Save link", _linked, 2); Row("Hypothesis /\nroute notes", _note, 3);
         editor.Controls.Add(_details, 0, 4); editor.SetColumnSpan(_details, 2);
-        editor.Controls.Add(new Label { Text = "Categories and setup notes are user-defined; they do not apply inventory upgrades.", Dock = DockStyle.Fill, Font = new(Font.FontFamily, 8.5f) }, 0, 5); editor.SetColumnSpan(editor.Controls[^1], 2);
+        editor.Controls.Add(new UiText { Text = "Categories and setup notes are user-defined; they do not apply inventory upgrades.", Dock = DockStyle.Fill, Font = new(Font.FontFamily, 8.5f) }, 0, 5); editor.SetColumnSpan(editor.Controls[^1], 2);
         _category.Items.AddRange(["Research", "Any% Restricted", "100% Restricted (master heatblast)"]); _category.Text = "Research"; _name.Text = "New research point";
-        var copy = new FlowLayoutPanel { Dock = DockStyle.Fill, WrapContents = false, Margin = Padding.Empty };
+        var copy = new UiToolbar { Dock = DockStyle.Fill, WrapContents = false, Margin = Padding.Empty };
         foreach (var (text, width, content) in new (string, int, Func<ResearchBookmark, string>)[] {
             ("Copy position / aim", 180, p => p.PositionText()), ("Copy return command", 190, p => p.ReturnCommand()), ("Copy spawn info", 165, p => p.SpawnInfo()) })
         {
             var button = MakeButton(text, width); button.Click += (_, _) => { if (_selected is { } point) { try { Clipboard.SetText(content(point)); _status.Text = "Copied. Return command changes position/aim only; use on the matching map/build. It has not been executed."; } catch (System.Runtime.InteropServices.ExternalException) { _status.Text = "Clipboard is busy; retry."; } } }; copy.Controls.Add(button);
         }
         layout.Controls.Add(copy, 0, 3); layout.Controls.Add(_status, 0, 4);
-        layout.Controls.Add(new Label { Dock = DockStyle.Fill, Font = new(Font.FontFamily, 9f), UseMnemonic = false, Text = "A point stores the physical player origin, rendered camera eye/aim, full view-projection matrix, loaded checkpoint, selected volumes and your notes. Keep DEViL open to capture.\nReturn commands use the captured camera eye and yaw/pitch (roll zero); test them in a practice slot. They do not restore enemies, items, cooldowns, scripts or progress.\nPractice saves are separate full checkpoint-file archives, restored offline to an existing slot. A linked save is not guaranteed to match the point's exact moment.\nLoaded checkpoint is spawn-info data, not proof of a new save. Entity IDs/generations belong to the original map instance; camera/body data are a polled observation." }, 0, 5);
+        layout.Controls.Add(new UiText { Dock = DockStyle.Fill, Font = new(Font.FontFamily, 9f), UseMnemonic = false, Text = "A point stores the physical player origin, rendered camera eye/aim, full view-projection matrix, loaded checkpoint, selected volumes and your notes. Keep LAB Plus open to capture.\nReturn commands use the captured camera eye and yaw/pitch (roll zero); test them in a practice slot. They do not restore enemies, items, cooldowns, scripts or progress.\nPractice saves are separate full checkpoint-file archives, restored offline to an existing slot. A linked save is not guaranteed to match the point's exact moment.\nLoaded checkpoint is spawn-info data, not proof of a new save. Entity IDs/generations belong to the original map instance; camera/body data are a polled observation." }, 0, 5);
         _points.SelectedIndexChanged += (_, _) => { if (!_populating) SelectPoint(_points.SelectedItem as ResearchBookmark); };
         _timer.Tick += async (_, _) => await Poll(); _timer.Start(); FormClosing += (_, _) => _timer.Stop();
         Reload();
     }
-    private static Button MakeButton(string text, int width) => new() { Text = text, Size = new(width, 30), FlatStyle = FlatStyle.Flat,
+    private static UiAction MakeButton(string text, int width) => new() { Text = text, Size = new(width, 30), FlatStyle = FlatStyle.Flat,
         BackColor = Color.FromArgb(65, 65, 65), ForeColor = Color.Gainsboro, Margin = new(0, 0, 8, 0) };
     private void Reload(string? id = null) { _all = _store.Load(); Populate(id ?? _selected?.Id); }
     private void Populate(string? id)
@@ -101,7 +101,7 @@ internal sealed class ResearchPointsForm : Form
         {
             _pending = Guid.NewGuid().ToString("N"); _pendingProcess = process; _deadline = Environment.TickCount64 + 10000; _attaching = attach;
             BookmarkObservation.Request(_directory, process, _pending); _capture.Enabled = _attach.Enabled = false;
-            foreach (var control in new Control[] { _points, _search, _name, _category, _note }) control.Enabled = false;
+            foreach (var control in new UiNode[] { _points, _search, _name, _category, _note }) control.Enabled = false;
             _status.Text = "Capturing current physical position and rendered aim…";
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { _pending = null; _capture.Enabled = true; _attach.Enabled = _selected is not null; _status.Text = ex.Message; }
@@ -112,7 +112,7 @@ internal sealed class ResearchPointsForm : Form
         try
         {
             if (_gameProcess() != _pendingProcess) { Finish("Game process changed; point capture canceled."); return; }
-            if (Environment.TickCount64 >= _deadline) { Finish("Capture timed out. Load the new viewer DLL with a full game restart and keep DEViL open."); return; }
+            if (Environment.TickCount64 >= _deadline) { Finish("Capture timed out. Load the new viewer DLL with a full game restart and keep LAB Plus open."); return; }
             var observation = await Task.Run(() => BookmarkObservation.Read(_directory, _pendingProcess)); if (IsDisposed) return;
             if (_gameProcess() != _pendingProcess) { Finish("Game process changed; point capture canceled."); return; }
             if (observation?.Token != _pending) return;
@@ -127,13 +127,13 @@ internal sealed class ResearchPointsForm : Form
                 if (entities.Length > 32) { Finish("A point can retain up to 32 selected volume identities."); return; }
                 point = selected with { Name = _name.Text.Trim(), Category = _category.Text.Trim(), Note = _note.Text, Observation = selected.Observation with { Entities = entities } };
             }
-            else point = new("DEVIL_RESEARCH_POINT_V1", Guid.NewGuid().ToString("N"), _name.Text.Trim(), _category.Text.Trim(), _note.Text, observation);
+            else point = new("LABPLUS_RESEARCH_POINT_V1", Guid.NewGuid().ToString("N"), _name.Text.Trim(), _category.Text.Trim(), _note.Text, observation);
             _store.Save(point); Reload(point.Id); Finish(_attaching ? "Aimed volume attached; saved position retained." : "Research point captured and saved.");
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { if (!IsDisposed) _status.Text = "Capture/read failed: " + ex.Message; }
         finally { _busy = false; }
     }
-    private void Finish(string text) { _pending = null; _capture.Enabled = true; _attach.Enabled = _selected is not null; foreach (var control in new Control[] { _points, _search, _name, _category, _note }) control.Enabled = true; _status.Text = text; }
+    private void Finish(string text) { _pending = null; _capture.Enabled = true; _attach.Enabled = _selected is not null; foreach (var control in new UiNode[] { _points, _search, _name, _category, _note }) control.Enabled = true; _status.Text = text; }
     private void OpenVault()
     {
         if (_vault is null || _vault.IsDisposed) { _vault = new PracticeSaveForm(_directory, save => { if (_selected is null || _pending is not null) { _status.Text = "Select a point and wait for capture before linking a save archive."; return; } _store.Save(_selected with { SaveId = save.Id }); Reload(_selected.Id); _status.Text = "Archive linked. This is a reference; no save was loaded."; }, context: _selected, gameProcess: _gameProcess); _vault.Show(this); }
@@ -147,7 +147,7 @@ internal sealed class ResearchPointsForm : Form
     }
     private void ExportPoint()
     {
-        if (_selected is null) return; using var dialog = new SaveFileDialog { Filter = "Research point (*.json)|*.json", FileName = "devil-research-point.json" }; if (dialog.ShowDialog(this) != DialogResult.OK) return;
+        if (_selected is null) return; using var dialog = new SaveFileDialog { Filter = "Research point (*.json)|*.json", FileName = "labplus-research-point.json" }; if (dialog.ShowDialog(this) != DialogResult.OK) return;
         try { BookmarkStore.Export(_selected, dialog.FileName); _status.Text = "Point exported; save files are a separate archive."; }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { _status.Text = ex.Message; }
     }

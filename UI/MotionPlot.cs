@@ -1,9 +1,9 @@
 using System.Drawing.Drawing2D;
-using Devil.Game;
+using LabPlus.Game;
 
-namespace Devil;
+namespace LabPlus;
 
-internal sealed class MotionPlot : Control
+internal sealed class MotionPlot : UiPlot
 {
     private IReadOnlyList<MotionAttempt> _attempts = [];
     private MotionAttempt? _reference;
@@ -11,7 +11,7 @@ internal sealed class MotionPlot : Control
     private int _projection;
     private bool _align;
     internal static Color AttemptColor(MotionAttempt attempt, int index) => new[] { Color.FromArgb(64, 255, 115), Color.FromArgb(255, 77, 102), Color.FromArgb(64, 179, 255), Color.FromArgb(255, 204, 51), Color.FromArgb(204, 115, 255), Color.FromArgb(51, 255, 255) }[MotionStore.ColorIndex(attempt, index)];
-    public MotionPlot() { DoubleBuffered = true; BackColor = Color.FromArgb(28, 28, 28); SetStyle(ControlStyles.ResizeRedraw, true); }
+    public MotionPlot() { DoubleBuffered = true; BackColor = LabPlusTheme.Panel; SetStyle(ControlStyles.ResizeRedraw, true); }
     public void Set(IReadOnlyList<MotionAttempt> attempts, MotionAttempt? reference, long time, int projection, bool align)
     { _attempts = attempts; _reference = reference; _time = time; _projection = projection; _align = align; Invalidate(); }
     protected override void OnPaint(PaintEventArgs e)

@@ -1,59 +1,59 @@
-using Devil.Configuration;
-using Devil.Game;
+using LabPlus.Configuration;
+using LabPlus.Game;
 using System.Globalization;
 
-namespace Devil;
+namespace LabPlus;
 
-internal sealed class ResearchForm : Form
+internal sealed class ResearchForm : LabPlusForm
 {
-    private readonly DevilSettings _settings;
+    private readonly LabPlusSettings _settings;
     private readonly string _directory;
     private readonly Action _save;
     private readonly Func<int> _gameProcess;
-    private readonly Button _record = Button("Start recording", 145);
-    private readonly CheckBox _showPath = new() { Text = "Show path in game", AutoSize = true };
-    private readonly TextBox _marker = new() { Width = 190, PlaceholderText = "Marker / checkpoint note", MaxLength = 160 };
-    private readonly TextBox _search = new() { Width = 280, PlaceholderText = "Search event, class, map or note…" };
-    private readonly CheckBox _samples = new() { Text = "Include position samples", AutoSize = true };
-    private readonly Label _status = new() { Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft };
-    private readonly DataGridView _grid = new();
+    private readonly UiAction _record = UiAction("Start recording", 145);
+    private readonly UiToggle _showPath = new() { Text = "Show path in game", AutoSize = true };
+    private readonly UiInput _marker = new() { Width = 190, PlaceholderText = "Marker / checkpoint note", MaxLength = 160 };
+    private readonly UiInput _search = new() { Width = 280, PlaceholderText = "Search event, class, map or note…" };
+    private readonly UiToggle _samples = new() { Text = "Include position samples", AutoSize = true };
+    private readonly UiText _status = new() { Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft };
+    private readonly UiTable _grid = new();
     private readonly System.Windows.Forms.Timer _timer = new() { Interval = 1000 };
     private ResearchLog? _log;
     private List<ResearchEvent> _visible = [];
     private bool _loading, _busy;
 
-    public ResearchForm(DevilSettings settings, string directory, Action save, Func<int> gameProcess)
+    public ResearchForm(LabPlusSettings settings, string directory, Action save, Func<int> gameProcess)
     {
         _settings = settings; _directory = directory; _save = save; _gameProcess = gameProcess;
-        Text = "DEViL — Research timeline & player path";
+        Text = "LAB Plus — Research timeline & player path";
         StartPosition = FormStartPosition.CenterParent; ClientSize = new Size(1120, 650); MinimumSize = new Size(920, 500);
-        BackColor = Color.FromArgb(35, 35, 35); ForeColor = Color.Gainsboro; Font = new Font("Segoe UI", 10f);
+        BackColor = Color.FromArgb(35, 35, 35); ForeColor = Color.Gainsboro; Font = LabPlusTheme.Ui(10f);
         AutoScaleMode = AutoScaleMode.Font; ShowInTaskbar = false;
-        var layout = new TableLayoutPanel { Dock = DockStyle.Fill, Padding = new Padding(12), ColumnCount = 1, RowCount = 6 };
+        var layout = new UiGrid { Dock = DockStyle.Fill, Padding = new Padding(12), ColumnCount = 1, RowCount = 6 };
         foreach (float height in new[] { 38f, 38f, 34f }) layout.RowStyles.Add(new RowStyle(SizeType.Absolute, height));
         layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
         layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 40)); layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 34));
         layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100)); Controls.Add(layout);
-        var controls = new FlowLayoutPanel { Dock = DockStyle.Fill, WrapContents = false, Margin = Padding.Empty };
+        var controls = new UiToolbar { Dock = DockStyle.Fill, WrapContents = false, Margin = Padding.Empty };
         _record.Click += (_, _) => ToggleRecording(); controls.Controls.Add(_record);
-        var reset = Button("New session", 125);
+        var reset = UiAction("New session", 125);
         reset.Click += (_, _) => { _settings.ResearchReset = DateTime.UtcNow.Ticks; _save(); }; controls.Controls.Add(reset);
         _showPath.Checked = settings.ShowResearchPath;
         _showPath.CheckedChanged += (_, _) => { if (!_loading) { _settings.ShowResearchPath = _showPath.Checked; _save(); } };
         controls.Controls.Add(_showPath);
-        var export = Button("Export CSV…", 130); export.Click += (_, _) => Export(); controls.Controls.Add(export);
+        var export = UiAction("Export CSV…", 130); export.Click += (_, _) => Export(); controls.Controls.Add(export);
         layout.Controls.Add(controls, 0, 0);
-        var markers = new FlowLayoutPanel { Dock = DockStyle.Fill, WrapContents = false, Margin = Padding.Empty };
-        markers.Controls.Add(_marker); var addMarker = Button("Add marker", 120); markers.Controls.Add(addMarker);
+        var markers = new UiToolbar { Dock = DockStyle.Fill, WrapContents = false, Margin = Padding.Empty };
+        markers.Controls.Add(_marker); var addMarker = UiAction("Add marker", 120); markers.Controls.Add(addMarker);
         addMarker.Click += (_, _) =>
         {
             if (!_settings.RecordResearch || _settings.ResearchProcess != _gameProcess()) return;
             _settings.ResearchMarkerLabel = SettingsStore.CleanMarker(_marker.Text);
             _settings.ResearchMarker = DateTime.UtcNow.Ticks; _save(); _marker.Clear();
         };
-        markers.Controls.Add(new Label { Text = "Markers are notes; volume state changes are observations, not proof of activation.", AutoSize = true, Margin = new Padding(8, 5, 0, 0), Font = new Font(Font.FontFamily, 9f) });
+        markers.Controls.Add(new UiText { Text = "Markers are notes; volume state changes are observations, not proof of activation.", AutoSize = true, Margin = new Padding(8, 5, 0, 0), Font = new Font(Font.FontFamily, 9f) });
         layout.Controls.Add(markers, 0, 1);
-        var filters = new FlowLayoutPanel { Dock = DockStyle.Fill, WrapContents = false, Margin = Padding.Empty };
+        var filters = new UiToolbar { Dock = DockStyle.Fill, WrapContents = false, Margin = Padding.Empty };
         filters.Controls.Add(_search); filters.Controls.Add(_samples); layout.Controls.Add(filters, 0, 2);
         _search.TextChanged += (_, _) => Filter(); _samples.CheckedChanged += (_, _) => Filter();
         _grid.Dock = DockStyle.Fill; _grid.ReadOnly = true; _grid.AllowUserToAddRows = _grid.AllowUserToDeleteRows = false;
@@ -61,7 +61,7 @@ internal sealed class ResearchForm : Form
         _grid.BackgroundColor = Color.FromArgb(45, 45, 45); _grid.DefaultCellStyle.BackColor = Color.FromArgb(45, 45, 45);
         _grid.DefaultCellStyle.ForeColor = ForeColor; _grid.DefaultCellStyle.SelectionBackColor = Color.FromArgb(90, 50, 80);
         foreach (var column in new[] { ("Time", 115), ("Event", 165), ("Class", 240), ("ID / gen", 85), ("X", 80), ("Y", 80), ("Z", 80), ("Detail", 340), ("Map", 240) })
-            _grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = column.Item1, Width = column.Item2, SortMode = DataGridViewColumnSortMode.NotSortable });
+            _grid.Columns.Add(new UiTableColumn { HeaderText = column.Item1, Width = column.Item2, SortMode = DataGridViewColumnSortMode.NotSortable });
         _grid.CellValueNeeded += (_, e) =>
         {
             if (e.RowIndex >= _visible.Count) return;
@@ -71,17 +71,17 @@ internal sealed class ResearchForm : Form
                 6 => row.Z?.ToString("F3", CultureInfo.InvariantCulture), 7 => row.Detail, 8 => row.Map, _ => "" };
         };
         layout.Controls.Add(_grid, 0, 3); layout.Controls.Add(_status, 0, 4);
-        layout.Controls.Add(new Label { Text = "Path: blue → pink. Stop keeps the line; New session clears it. Menus and large jumps break the line. Viewer and distance settings apply.", AutoSize = true, Font = new Font(Font.FontFamily, 9f), Anchor = AnchorStyles.Left }, 0, 5);
+        layout.Controls.Add(new UiText { Text = "Path: blue → pink. Stop keeps the line; New session clears it. Menus and large jumps break the line. Viewer and distance settings apply.", AutoSize = true, Font = new Font(Font.FontFamily, 9f), Anchor = AnchorStyles.Left }, 0, 5);
         _timer.Tick += async (_, _) => await RefreshLog(); _timer.Start(); Shown += async (_, _) => await RefreshLog();
         UpdateControls();
     }
 
-    private static Button Button(string text, int width) => new() { Text = text, Size = new Size(width, 29), FlatStyle = FlatStyle.Flat,
+    private static UiAction UiAction(string text, int width) => new() { Text = text, Size = new Size(width, 29), FlatStyle = FlatStyle.Flat,
         BackColor = Color.FromArgb(65, 65, 65), ForeColor = Color.Gainsboro, Margin = new Padding(0, 0, 10, 0) };
     private void ToggleRecording()
     {
         int game = _gameProcess();
-        if (game == 0) { MessageBox.Show(this, "Launch the selected game through DEViL first.", "Research recording"); return; }
+        if (game == 0) { WorkspaceDialog.Show(this, "Launch the selected game through LAB Plus first.", "Research recording"); return; }
         _settings.RecordResearch = !(_settings.RecordResearch && _settings.ResearchProcess == game);
         _settings.ResearchProcess = game; _save(); UpdateControls();
     }
@@ -117,10 +117,10 @@ internal sealed class ResearchForm : Form
     private void Export()
     {
         if (_log is null) return;
-        using var dialog = new SaveFileDialog { Filter = "CSV (*.csv)|*.csv", FileName = $"DEViL-{_log.Session}.csv", AddExtension = true };
+        using var dialog = new SaveFileDialog { Filter = "CSV (*.csv)|*.csv", FileName = $"labplus-{_log.Session}.csv", AddExtension = true };
         if (dialog.ShowDialog(this) != DialogResult.OK) return;
         try { _log.ExportFullCsv(_directory, dialog.FileName); }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { MessageBox.Show(this, ex.Message, "Export failed"); }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { WorkspaceDialog.Show(this, ex.Message, "Export failed"); }
     }
     protected override void Dispose(bool disposing) { if (disposing) _timer.Dispose(); base.Dispose(disposing); }
 }

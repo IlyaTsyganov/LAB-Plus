@@ -1,25 +1,25 @@
-using Devil.Game;
+using LabPlus.Game;
 using System.Globalization;
 using System.Text;
 
-namespace Devil;
+namespace LabPlus;
 
-internal sealed class LevelStateForm : Form
+internal sealed class LevelStateForm : LabPlusForm
 {
     private readonly string _directory;
     private readonly Func<int> _gameProcess;
-    private readonly Button _captureBefore = Button("Capture BEFORE", 145), _captureAfter = Button("Capture AFTER", 145);
-    private readonly TextBox _note = new() { Width = 220, PlaceholderText = "Experiment note", MaxLength = 1024 };
-    private readonly TextBox _search = new() { Width = 360, PlaceholderText = "Search object, class, change or ID…" };
-    private readonly Label _captures = new() { Dock = DockStyle.Fill, UseMnemonic = false };
-    private readonly Label _summary = new() { Dock = DockStyle.Fill, UseMnemonic = false };
-    private readonly Label _status = new() { Dock = DockStyle.Fill, UseMnemonic = false, AutoEllipsis = true };
-    private readonly CheckBox _all = new() { Text = "Highlight all volume changes (max 256)", AutoSize = true };
-    private readonly CheckBox _old = new() { Text = "Before outlines", Checked = true, AutoSize = true };
-    private readonly CheckBox _new = new() { Text = "After outlines", Checked = true, AutoSize = true };
-    private readonly CheckBox _far = new() { Text = "Ignore view distance for highlights", Checked = true, AutoSize = true };
-    private readonly DataGridView _grid = new();
-    private readonly TextBox _detail = new() { Dock = DockStyle.Fill, Multiline = true, ReadOnly = true, ScrollBars = ScrollBars.Vertical };
+    private readonly UiAction _captureBefore = UiAction("Capture BEFORE", 145), _captureAfter = UiAction("Capture AFTER", 145);
+    private readonly UiInput _note = new() { Width = 220, PlaceholderText = "Experiment note", MaxLength = 1024 };
+    private readonly UiInput _search = new() { Width = 360, PlaceholderText = "Search object, class, change or ID…" };
+    private readonly UiText _captures = new() { Dock = DockStyle.Fill, UseMnemonic = false };
+    private readonly UiText _summary = new() { Dock = DockStyle.Fill, UseMnemonic = false };
+    private readonly UiText _status = new() { Dock = DockStyle.Fill, UseMnemonic = false, AutoEllipsis = true };
+    private readonly UiToggle _all = new() { Text = "Highlight all volume changes (max 256)", AutoSize = true };
+    private readonly UiToggle _old = new() { Text = "Before outlines", Checked = true, AutoSize = true };
+    private readonly UiToggle _new = new() { Text = "After outlines", Checked = true, AutoSize = true };
+    private readonly UiToggle _far = new() { Text = "Ignore view distance for highlights", Checked = true, AutoSize = true };
+    private readonly UiTable _grid = new();
+    private readonly UiInput _detail = new() { Dock = DockStyle.Fill, Multiline = true, ReadOnly = true, ScrollBars = ScrollBars.Vertical };
     private readonly System.Windows.Forms.Timer _timer = new() { Interval = 250 };
     private LevelStateSnapshot? _before, _after;
     private IReadOnlyList<LevelStateChange> _changes = [];
@@ -32,24 +32,24 @@ internal sealed class LevelStateForm : Form
     public LevelStateForm(string directory, Func<int> gameProcess)
     {
         _directory = directory; _gameProcess = gameProcess;
-        Text = "DEViL — Level state: before / after"; ClientSize = new Size(1240, 790); MinimumSize = new Size(1100, 700);
+        Text = "LAB Plus — Level state: before / after"; ClientSize = new Size(1240, 790); MinimumSize = new Size(1100, 700);
         StartPosition = FormStartPosition.CenterParent; ShowInTaskbar = false; AutoScaleMode = AutoScaleMode.Font;
-        BackColor = Color.FromArgb(35, 35, 35); ForeColor = Color.Gainsboro; Font = new Font("Segoe UI", 10f);
-        var layout = new TableLayoutPanel { Dock = DockStyle.Fill, Padding = new Padding(12), ColumnCount = 1, RowCount = 9 };
+        BackColor = Color.FromArgb(35, 35, 35); ForeColor = Color.Gainsboro; Font = LabPlusTheme.Ui(10f);
+        var layout = new UiGrid { Dock = DockStyle.Fill, Padding = new Padding(12), ColumnCount = 1, RowCount = 9 };
         layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
         foreach (float height in new[] { 38f, 60f, 56f, 36f, 34f }) layout.RowStyles.Add(new RowStyle(SizeType.Absolute, height));
         layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100)); layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 86));
         layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 30)); layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 64)); Controls.Add(layout);
-        var actions = new FlowLayoutPanel { Dock = DockStyle.Fill, WrapContents = false, Margin = Padding.Empty };
+        var actions = new UiToolbar { Dock = DockStyle.Fill, WrapContents = false, Margin = Padding.Empty };
         actions.Controls.AddRange([_captureBefore, _captureAfter]); _captureBefore.Click += (_, _) => BeginCapture("before"); _captureAfter.Click += (_, _) => BeginCapture("after");
-        var save = Button("Save pair…", 120); save.Click += (_, _) => SavePair();
-        var open = Button("Open pair…", 120); open.Click += async (_, _) => await OpenPair();
-        var export = Button("Export changes…", 140); export.Click += (_, _) => ExportChanges();
+        var save = UiAction("Save pair…", 120); save.Click += (_, _) => SavePair();
+        var open = UiAction("Open pair…", 120); open.Click += async (_, _) => await OpenPair();
+        var export = UiAction("Export changes…", 140); export.Click += (_, _) => ExportChanges();
         actions.Controls.AddRange([save, open, export, _note]); layout.Controls.Add(actions, 0, 0); layout.Controls.Add(_captures, 0, 1); layout.Controls.Add(_summary, 0, 2);
-        var filters = new FlowLayoutPanel { Dock = DockStyle.Fill, WrapContents = false, Margin = Padding.Empty };
-        filters.Controls.Add(_search); filters.Controls.Add(new Label { Text = "Click a change to highlight its captured volume.", AutoSize = true, Margin = new Padding(10, 6, 0, 0) });
+        var filters = new UiToolbar { Dock = DockStyle.Fill, WrapContents = false, Margin = Padding.Empty };
+        filters.Controls.Add(_search); filters.Controls.Add(new UiText { Text = "Click a change to highlight its captured volume.", AutoSize = true, Margin = new Padding(10, 6, 0, 0) });
         layout.Controls.Add(filters, 0, 3); _search.TextChanged += (_, _) => Filter();
-        var highlighting = new FlowLayoutPanel { Dock = DockStyle.Fill, WrapContents = false, Margin = Padding.Empty };
+        var highlighting = new UiToolbar { Dock = DockStyle.Fill, WrapContents = false, Margin = Padding.Empty };
         highlighting.Controls.AddRange([_all, _old, _new, _far]); layout.Controls.Add(highlighting, 0, 4);
         foreach (var check in new[] { _all, _old, _new, _far }) check.CheckedChanged += (_, _) => PublishHighlight(true);
         _grid.Dock = DockStyle.Fill; _grid.VirtualMode = true; _grid.ReadOnly = true; _grid.AllowUserToAddRows = _grid.AllowUserToDeleteRows = false;
@@ -57,7 +57,7 @@ internal sealed class LevelStateForm : Form
         _grid.BackgroundColor = _grid.DefaultCellStyle.BackColor = Color.FromArgb(45, 45, 45); _grid.DefaultCellStyle.ForeColor = ForeColor;
         _grid.DefaultCellStyle.SelectionBackColor = Color.FromArgb(85, 55, 85);
         foreach (var (title, width) in new[] { ("Category", 95), ("Change", 170), ("Object", 270), ("Class", 220), ("ID / generation", 110), ("Before", 230), ("After", 230), ("Detail", 600) })
-            _grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = title, Width = width, SortMode = DataGridViewColumnSortMode.NotSortable });
+            _grid.Columns.Add(new UiTableColumn { HeaderText = title, Width = width, SortMode = DataGridViewColumnSortMode.NotSortable });
         _grid.Columns[0].Frozen = true;
         _grid.CellValueNeeded += (_, e) =>
         {
@@ -68,12 +68,12 @@ internal sealed class LevelStateForm : Form
         _grid.SelectionChanged += (_, _) => { if (!_populating) { ShowSelection(); PublishHighlight(true); } };
         layout.Controls.Add(_grid, 0, 5); _detail.BackColor = Color.FromArgb(45, 45, 45); _detail.ForeColor = ForeColor;
         layout.Controls.Add(_detail, 0, 6); layout.Controls.Add(_status, 0, 7);
-        layout.Controls.Add(new Label { Dock = DockStyle.Fill, Font = new Font(Font.FontFamily, 9f), Text = "Before: dashed cyan; missing identities: red. After: green / disabled pink. These are captured outlines; bounding boxes are used if geometry is unavailable or over budget.\nHighlights override class/path visibility; Collision Viewer must be enabled. No camera movement or game state is restored. Managers/checkpoint names may have no drawable volume.\nLoaded checkpoint is spawn-info data, not proof of a new save. Entity-table completeness does not make this a frame-atomic snapshot; unavailable data stays explicit." }, 0, 8);
+        layout.Controls.Add(new UiText { Dock = DockStyle.Fill, Font = new Font(Font.FontFamily, 9f), Text = "Before: dashed cyan; missing identities: red. After: green / disabled pink. These are captured outlines; bounding boxes are used if geometry is unavailable or over budget.\nHighlights override class/path visibility; Collision Viewer must be enabled. No camera movement or game state is restored. Managers/checkpoint names may have no drawable volume.\nLoaded checkpoint is spawn-info data, not proof of a new save. Entity-table completeness does not make this a frame-atomic snapshot; unavailable data stays explicit." }, 0, 8);
         _timer.Tick += async (_, _) => await Poll(); _timer.Start(); Shown += async (_, _) => await Poll();
         FormClosing += (_, _) => { _timer.Stop(); ClearHighlight(); };
         RefreshComparison();
     }
-    private static Button Button(string text, int width) => new() { Text = text, Size = new Size(width, 29), FlatStyle = FlatStyle.Flat,
+    private static UiAction UiAction(string text, int width) => new() { Text = text, Size = new Size(width, 29), FlatStyle = FlatStyle.Flat,
         BackColor = Color.FromArgb(65, 65, 65), ForeColor = Color.Gainsboro, Margin = new Padding(0, 0, 8, 0) };
     private void BeginCapture(string role)
     {
@@ -97,7 +97,7 @@ internal sealed class LevelStateForm : Form
             if (_pendingToken is not null && _pendingRole is { } role)
             {
                 if (_gameProcess() != _pendingProcess) { _pendingToken = _pendingRole = null; _status.Text = "Game process changed; capture canceled."; UpdateButtons(); return; }
-                if (Environment.TickCount64 >= _deadline) { _pendingToken = _pendingRole = null; _status.Text = "Capture timed out. Load this viewer build through a full game restart and keep DEViL open."; UpdateButtons(); return; }
+                if (Environment.TickCount64 >= _deadline) { _pendingToken = _pendingRole = null; _status.Text = "Capture timed out. Load this viewer build through a full game restart and keep LAB Plus open."; UpdateButtons(); return; }
                 var state = await Task.Run(() => LevelStateSnapshot.Read(_directory, _pendingProcess, role));
                 if (IsDisposed) return;
                 if (_gameProcess() != _pendingProcess) { _pendingToken = _pendingRole = null; _status.Text = "Game process changed; capture canceled."; UpdateButtons(); return; }
@@ -112,7 +112,7 @@ internal sealed class LevelStateForm : Form
                     }
                     UpdateButtons();
                 }
-                else if (Environment.TickCount64 >= _deadline) { _pendingToken = _pendingRole = null; _status.Text = "Capture timed out. Load this viewer build through a full game restart and keep DEViL open."; UpdateButtons(); }
+                else if (Environment.TickCount64 >= _deadline) { _pendingToken = _pendingRole = null; _status.Text = "Capture timed out. Load this viewer build through a full game restart and keep LAB Plus open."; UpdateButtons(); }
             }
             PublishHighlight(false); ReadHighlightStatus();
         }
@@ -169,7 +169,7 @@ internal sealed class LevelStateForm : Form
             string path = Path.Combine(_directory, $"state-highlight-{_before.Process}.request"), temporary = path + ".tmp";
             using (var writer = new StreamWriter(temporary, false, new UTF8Encoding(false)))
             {
-                writer.WriteLine($"#DEVIL_STATE_HIGHLIGHT_V1\t{_before.Process}\t{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() + 3000}\t{_before.Token}\t{_after.Token}\t{(_old.Checked ? 1 : 0)}\t{(_new.Checked ? 1 : 0)}\t{(_far.Checked ? 1 : 0)}");
+                writer.WriteLine($"#LABPLUS_STATE_HIGHLIGHT_V1\t{_before.Process}\t{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() + 3000}\t{_before.Token}\t{_after.Token}\t{(_old.Checked ? 1 : 0)}\t{(_new.Checked ? 1 : 0)}\t{(_far.Checked ? 1 : 0)}");
                 foreach (string key in keys) { var values = key.Split(':'); writer.WriteLine($"V\t{values[0]}\t{values[1]}"); }
             }
             File.Move(temporary, path, true);
@@ -189,7 +189,7 @@ internal sealed class LevelStateForm : Form
         {
             string path = Path.Combine(_directory, $"state-highlight-{_before.Process}.status"); if (!File.Exists(path) || new FileInfo(path).Length > 1024) return;
             string[] cells = File.ReadAllText(path).TrimEnd('\r', '\n').Split('\t');
-            if (cells.Length != 7 || cells[0] != "#DEVIL_STATE_HIGHLIGHT_STATUS_V1" || cells[1] != _before.Process.ToString(CultureInfo.InvariantCulture)
+            if (cells.Length != 7 || cells[0] != "#LABPLUS_STATE_HIGHLIGHT_STATUS_V1" || cells[1] != _before.Process.ToString(CultureInfo.InvariantCulture)
                 || !long.TryParse(cells[2], out long time) || Math.Abs(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - time) > 3000) return;
             _status.Text = cells[3] switch
             {
@@ -205,9 +205,9 @@ internal sealed class LevelStateForm : Form
     {
         if (_pendingToken is not null) { _status.Text = "Wait until the capture completes."; return; }
         if (_before is null || _after is null) { _status.Text = "Capture both states first."; return; }
-        using var dialog = new SaveFileDialog { Filter = "Level state pair (*.json)|*.json", FileName = "devil-level-state-pair.json" };
+        using var dialog = new SaveFileDialog { Filter = "Level state pair (*.json)|*.json", FileName = "labplus-level-state-pair.json" };
         if (dialog.ShowDialog(this) != DialogResult.OK) return;
-        try { new LevelStatePair("DEVIL_LEVEL_STATE_PAIR_V1", _note.Text, _before, _after).Save(dialog.FileName); _status.Text = "Snapshot pair saved."; }
+        try { new LevelStatePair("LABPLUS_LEVEL_STATE_PAIR_V1", _note.Text, _before, _after).Save(dialog.FileName); _status.Text = "Snapshot pair saved."; }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { _status.Text = "Save failed: " + ex.Message; }
     }
     private async Task OpenPair()
@@ -225,7 +225,7 @@ internal sealed class LevelStateForm : Form
     private void ExportChanges()
     {
         if (_before is null || _after is null) return;
-        using var dialog = new SaveFileDialog { Filter = "Changes CSV (*.csv)|*.csv", FileName = "devil-state-changes.csv" };
+        using var dialog = new SaveFileDialog { Filter = "Changes CSV (*.csv)|*.csv", FileName = "labplus-state-changes.csv" };
         if (dialog.ShowDialog(this) != DialogResult.OK) return;
         try
         {

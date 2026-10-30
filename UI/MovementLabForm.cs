@@ -1,32 +1,32 @@
-using Devil.Configuration;
-using Devil.Game;
+using LabPlus.Configuration;
+using LabPlus.Game;
 using System.Globalization;
 
-namespace Devil;
+namespace LabPlus;
 
-internal sealed class MovementLabForm : Form
+internal sealed class MovementLabForm : LabPlusForm
 {
-    private readonly DevilSettings _settings;
+    private readonly LabPlusSettings _settings;
     private readonly string _directory;
     private readonly Action _save;
     private readonly Func<int> _gameProcess;
     private readonly MotionStore _store;
-    private readonly CheckedListBox _attempts = new() { Dock = DockStyle.Fill, CheckOnClick = true, IntegralHeight = false, HorizontalScrollbar = true };
-    private readonly CheckBox _collider = new() { Text = "Show player collider", AutoSize = true };
-    private readonly CheckBox _paths = new() { Text = "Show compared paths in game", AutoSize = true };
-    private readonly CheckBox _follow = new() { Text = "Follow aimed volume", AutoSize = true };
-    private readonly CheckBox _latest = new() { Text = "Latest sample", AutoSize = true };
-    private readonly CheckBox _align = new() { Text = "Align starts (plot)", AutoSize = true };
-    private readonly ComboBox _projection = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 66 };
-    private readonly ComboBox _outcome = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 105 };
-    private readonly TextBox _name = new() { Width = 180, MaxLength = 80, Text = "Attempt 1" };
-    private readonly Button _record = Button("Start attempt", 130);
-    private readonly Label _telemetry = new() { Dock = DockStyle.Fill, UseMnemonic = false };
-    private readonly Label _status = new() { Dock = DockStyle.Fill, UseMnemonic = false, AutoEllipsis = true };
-    private readonly Label _timeLabel = new() { AutoSize = true, Margin = new Padding(10, 6, 0, 0) };
-    private readonly TrackBar _time = new() { Dock = DockStyle.Fill, Minimum = 0, Maximum = 1, TickStyle = TickStyle.None, SmallChange = 50, LargeChange = 500 };
+    private readonly UiCheckList _attempts = new() { Dock = DockStyle.Fill, CheckOnClick = true, IntegralHeight = false, HorizontalScrollbar = true };
+    private readonly UiToggle _collider = new() { Text = "Show player collider", AutoSize = true };
+    private readonly UiToggle _paths = new() { Text = "Show compared paths in game", AutoSize = true };
+    private readonly UiToggle _follow = new() { Text = "Follow aimed volume", AutoSize = true };
+    private readonly UiToggle _latest = new() { Text = "Latest sample", AutoSize = true };
+    private readonly UiToggle _align = new() { Text = "Align starts (plot)", AutoSize = true };
+    private readonly UiSelect _projection = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 66 };
+    private readonly UiSelect _outcome = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 105 };
+    private readonly UiInput _name = new() { Width = 180, MaxLength = 80, Text = "Attempt 1" };
+    private readonly UiAction _record = UiAction("Start attempt", 130);
+    private readonly UiText _telemetry = new() { Dock = DockStyle.Fill, UseMnemonic = false };
+    private readonly UiText _status = new() { Dock = DockStyle.Fill, UseMnemonic = false, AutoEllipsis = true };
+    private readonly UiText _timeLabel = new() { AutoSize = true, Margin = new Padding(10, 6, 0, 0) };
+    private readonly UiRange _time = new() { Dock = DockStyle.Fill, Minimum = 0, Maximum = 1, TickStyle = TickStyle.None, SmallChange = 50, LargeChange = 500 };
     private readonly MotionPlot _plot = new() { Dock = DockStyle.Fill };
-    private readonly DataGridView _comparison = new();
+    private readonly UiTable _comparison = new();
     private readonly System.Windows.Forms.Timer _timer = new() { Interval = 250 };
     private readonly List<MotionAttempt> _saved;
     private MotionSnapshot? _snapshot;
@@ -38,30 +38,30 @@ internal sealed class MovementLabForm : Form
     private string _recordIdentity = "";
     private SupportPlaneForm? _surface;
 
-    public MovementLabForm(DevilSettings settings, string directory, Action save, Func<int> gameProcess)
+    public MovementLabForm(LabPlusSettings settings, string directory, Action save, Func<int> gameProcess)
     {
         _settings = settings; _directory = directory; _save = save; _gameProcess = gameProcess; _store = new(directory); _saved = _store.Load().ToList();
-        Text = "DEViL — Player collider & attempt comparison"; ClientSize = new Size(1220, 790); MinimumSize = new Size(1100, 720);
+        Text = "LAB Plus — Player collider & attempt comparison"; ClientSize = new Size(1220, 790); MinimumSize = new Size(1100, 720);
         StartPosition = FormStartPosition.CenterParent; ShowInTaskbar = false; AutoScaleMode = AutoScaleMode.Font;
-        BackColor = Color.FromArgb(35, 35, 35); ForeColor = Color.Gainsboro; Font = new Font("Segoe UI", 10f);
-        var layout = new TableLayoutPanel { Dock = DockStyle.Fill, Padding = new Padding(12), ColumnCount = 1, RowCount = 8 };
+        BackColor = Color.FromArgb(35, 35, 35); ForeColor = Color.Gainsboro; Font = LabPlusTheme.Ui(10f);
+        var layout = new UiGrid { Dock = DockStyle.Fill, Padding = new Padding(12), ColumnCount = 1, RowCount = 8 };
         layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
         foreach (float height in new[] { 35f, 38f, 110f }) layout.RowStyles.Add(new RowStyle(SizeType.Absolute, height));
         layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100)); layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 40));
         layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 150)); layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 32)); layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 64));
         Controls.Add(layout);
-        var switches = new FlowLayoutPanel { Dock = DockStyle.Fill, WrapContents = false, Margin = Padding.Empty };
+        var switches = new UiToolbar { Dock = DockStyle.Fill, WrapContents = false, Margin = Padding.Empty };
         _collider.Checked = settings.ShowPlayerCollider; _paths.Checked = settings.ShowMotionPaths; _follow.Checked = settings.MotionFollowTarget;
         switches.Controls.AddRange([_collider, _paths, _follow]); layout.Controls.Add(switches, 0, 0);
         _collider.CheckedChanged += (_, _) => { if (!_loading) { _settings.ShowPlayerCollider = _collider.Checked; SaveSwitches(); } };
         _paths.CheckedChanged += (_, _) => { if (!_loading) { _settings.ShowMotionPaths = _paths.Checked; SaveSwitches(); } };
         _follow.CheckedChanged += (_, _) => { if (!_loading) { _settings.MotionFollowTarget = _follow.Checked; SaveSwitches(); } };
-        var actions = new FlowLayoutPanel { Dock = DockStyle.Fill, WrapContents = false, Margin = Padding.Empty };
+        var actions = new UiToolbar { Dock = DockStyle.Fill, WrapContents = false, Margin = Padding.Empty };
         actions.Controls.Add(_name); actions.Controls.Add(_record); _record.Click += (_, _) => { if (_active is null) StartAttempt(); else StopAttempt("Attempt saved."); };
-        actions.Controls.Add(new Label { Text = "Result:", AutoSize = true, Margin = new Padding(4, 6, 0, 0) });
+        actions.Controls.Add(new UiText { Text = "Result:", AutoSize = true, Margin = new Padding(4, 6, 0, 0) });
         _outcome.Items.AddRange(Enum.GetNames<AttemptOutcome>()); _outcome.SelectedIndex = 0;
-        actions.Controls.Add(_outcome); var export = Button("Export CSV…", 125); export.Click += (_, _) => Export(); actions.Controls.Add(export);
-        var surface = Button("Surface projections…", 190);
+        actions.Controls.Add(_outcome); var export = UiAction("Export CSV…", 125); export.Click += (_, _) => Export(); actions.Controls.Add(export);
+        var surface = UiAction("Surface projections…", 190);
         surface.Click += (_, _) =>
         {
             if (_surface is null || _surface.IsDisposed) { _surface = new SupportPlaneForm(_settings, SaveSwitches); _surface.Show(this); }
@@ -77,7 +77,7 @@ internal sealed class MovementLabForm : Form
             PopulateAttempts(); UpdateComparison(); PublishOverlay(true);
         };
         layout.Controls.Add(actions, 0, 1); layout.Controls.Add(_telemetry, 0, 2);
-        var split = new SplitContainer { Dock = DockStyle.Fill, Size = new Size(1180, 300), SplitterDistance = 265, Panel1MinSize = 210, Panel2MinSize = 500 };
+        var split = new UiSplit { Dock = DockStyle.Fill, Size = new Size(1180, 300), SplitterDistance = 265, Panel1MinSize = 210, Panel2MinSize = 500 };
         _attempts.BackColor = Color.FromArgb(45, 45, 45); _attempts.ForeColor = ForeColor;
         split.Panel1.Controls.Add(_attempts); split.Panel2.Controls.Add(_plot); layout.Controls.Add(split, 0, 3);
         _attempts.SelectedIndexChanged += (_, _) =>
@@ -92,10 +92,10 @@ internal sealed class MovementLabForm : Form
             if (e.NewValue == CheckState.Checked && _attempts.CheckedItems.Count >= 6) { e.NewValue = CheckState.Unchecked; _status.Text = "Compare up to six attempts at once."; return; }
             BeginInvoke((Action)(() => { if (!IsDisposed) { UpdateComparison(); PublishOverlay(true); } }));
         };
-        var scrub = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, Margin = Padding.Empty };
+        var scrub = new UiGrid { Dock = DockStyle.Fill, ColumnCount = 2, Margin = Padding.Empty };
         scrub.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100)); scrub.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 510));
         scrub.Controls.Add(_time, 0, 0);
-        var views = new FlowLayoutPanel { Dock = DockStyle.Fill, WrapContents = false, Margin = Padding.Empty };
+        var views = new UiToolbar { Dock = DockStyle.Fill, WrapContents = false, Margin = Padding.Empty };
         _projection.Items.AddRange(["XY", "XZ", "YZ"]); _projection.SelectedIndex = 0;
         views.Controls.AddRange([_projection, _align, _latest, _timeLabel]); scrub.Controls.Add(views, 1, 0); layout.Controls.Add(scrub, 0, 4);
         _time.ValueChanged += (_, _) => UpdateComparison(); _time.Scroll += (_, _) => _latest.Checked = false;
@@ -104,14 +104,14 @@ internal sealed class MovementLabForm : Form
         _comparison.RowHeadersVisible = false; _comparison.BackgroundColor = _comparison.DefaultCellStyle.BackColor = Color.FromArgb(45, 45, 45);
         _comparison.DefaultCellStyle.ForeColor = ForeColor;
         foreach (var (label, width) in new[] { ("Attempt", 175), ("Sample t (s)", 100), ("Speed", 80), ("XY / planar", 100), ("Z", 90), ("Δ Z", 80), ("Δ position", 95), ("Δ velocity", 95), ("Support", 80), ("Slope °", 80), ("Target ID/gen", 110), ("Origin → boundary", 140), ("Skin gap", 95), ("Body W/D/H", 150), ("Shape", 70), ("Support point", 210), ("Support normal", 210) })
-            _comparison.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = label, Width = width, SortMode = DataGridViewColumnSortMode.NotSortable });
+            _comparison.Columns.Add(new UiTableColumn { HeaderText = label, Width = width, SortMode = DataGridViewColumnSortMode.NotSortable });
         _comparison.Columns[0].Frozen = _comparison.Columns[1].Frozen = true;
         layout.Controls.Add(_comparison, 0, 5); layout.Controls.Add(_status, 0, 6);
-        layout.Controls.Add(new Label { Dock = DockStyle.Fill, Font = new Font(Font.FontFamily, 9f), Text = "Check attempts to overlay. Highlight one as the reference; only matching maps/builds are compared. Time starts at the first sample; matches use the nearest sample within 75 ms.\n20 Hz target sampling; pauses, missing samples and large jumps break paths. Results are your notes. Support points/normals come from the game's ground trace, not a complete contact manifold." }, 0, 7);
+        layout.Controls.Add(new UiText { Dock = DockStyle.Fill, Font = new Font(Font.FontFamily, 9f), Text = "Check attempts to overlay. Highlight one as the reference; only matching maps/builds are compared. Time starts at the first sample; matches use the nearest sample within 75 ms.\n20 Hz target sampling; pauses, missing samples and large jumps break paths. Results are your notes. Support points/normals come from the game's ground trace, not a complete contact manifold." }, 0, 7);
         PopulateAttempts(); _timer.Tick += async (_, _) => await RefreshMotion(); Shown += async (_, _) => { _timer.Start(); await RefreshMotion(); };
         FormClosing += (_, _) => { StopAttempt("Attempt saved."); _timer.Stop(); };
     }
-    private static Button Button(string text, int width) => new() { Text = text, Size = new Size(width, 29), FlatStyle = FlatStyle.Flat,
+    private static UiAction UiAction(string text, int width) => new() { Text = text, Size = new Size(width, 29), FlatStyle = FlatStyle.Flat,
         BackColor = Color.FromArgb(65, 65, 65), ForeColor = Color.Gainsboro, Margin = new Padding(6, 0, 6, 0) };
     private void SaveSwitches() { _settings.MotionProcess = _gameProcess(); _save(); }
     private List<MotionAttempt> CheckedAttempts() => _attempts.CheckedItems.Cast<MotionAttempt>().ToList();
@@ -224,7 +224,7 @@ internal sealed class MovementLabForm : Form
     private void Export()
     {
         if (_attempts.SelectedItem is not MotionAttempt { Samples.Count: > 0 } attempt) return;
-        using var dialog = new SaveFileDialog { Filter = "CSV (*.csv)|*.csv", FileName = "devil-attempt.csv" };
+        using var dialog = new SaveFileDialog { Filter = "CSV (*.csv)|*.csv", FileName = "labplus-attempt.csv" };
         if (dialog.ShowDialog(this) != DialogResult.OK) return;
         try { MotionStore.ExportCsv(attempt, dialog.FileName); }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { _status.Text = "Export failed: " + ex.Message; }
