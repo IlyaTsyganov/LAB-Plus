@@ -1,27 +1,28 @@
+using LabPlus;
 using System.Collections;
 using System.Drawing.Imaging;
 using System.Reflection;
-using Devil.Game;
+using LabPlus.Game;
 
 internal static class GraphNavigationChecks
 {
     private const BindingFlags Private = BindingFlags.NonPublic | BindingFlags.Instance;
-    private static object Field(Control canvas, string name) => canvas.GetType().GetField(name, Private)!.GetValue(canvas)!;
-    private static float Zoom(Control canvas) => (float)Field(canvas, "_zoom");
-    private static PointF Offset(Control canvas) => (PointF)Field(canvas, "_offset");
-    private static IEnumerable<(RectangleF Bounds, string Key)> Targets(Control canvas) => ((IEnumerable)Field(canvas, "_targets")).Cast<object>()
+    private static object Field(UiNode canvas, string name) => canvas.GetType().GetField(name, Private)!.GetValue(canvas)!;
+    private static float Zoom(UiNode canvas) => (float)Field(canvas, "_zoom");
+    private static PointF Offset(UiNode canvas) => (PointF)Field(canvas, "_offset");
+    private static IEnumerable<(RectangleF Bounds, string Key)> Targets(UiNode canvas) => ((IEnumerable)Field(canvas, "_targets")).Cast<object>()
         .Select(target => ((RectangleF)target.GetType().GetProperty("Bounds")!.GetValue(target)!, (string)target.GetType().GetProperty("Key")!.GetValue(target)!));
-    private static PointF World(Control canvas, Point screen) => new((screen.X - Offset(canvas).X) / Zoom(canvas), (screen.Y - Offset(canvas).Y) / Zoom(canvas));
-    internal static Point NodePoint(Control canvas, string key)
+    private static PointF World(UiNode canvas, Point screen) => new((screen.X - Offset(canvas).X) / Zoom(canvas), (screen.Y - Offset(canvas).Y) / Zoom(canvas));
+    internal static Point NodePoint(UiNode canvas, string key)
     {
         var box = Targets(canvas).First(target => target.Key == key).Bounds;
         return Point.Round(new PointF(Offset(canvas).X + (box.X + box.Width / 2) * Zoom(canvas), Offset(canvas).Y + (box.Y + box.Height / 2) * Zoom(canvas)));
     }
-    internal static void Mouse(Control canvas, string method, MouseButtons button, Point point, int delta = 0) => canvas.GetType().GetMethod(method, Private)!
+    internal static void Mouse(UiNode canvas, string method, MouseButtons button, Point point, int delta = 0) => canvas.GetType().GetMethod(method, Private)!
         .Invoke(canvas, [new MouseEventArgs(button, 1, point.X, point.Y, delta)]);
     private static void Check(bool condition, string message) { if (!condition) throw new Exception(message); }
     private static bool Near(float a, float b) => Math.Abs(a - b) < .01f;
-    private static void AllFit(Control canvas)
+    private static void AllFit(UiNode canvas)
     {
         var view = (RectangleF)canvas.GetType().GetProperty("Viewport", Private)!.GetValue(canvas)!;
         foreach (var target in Targets(canvas))
@@ -34,10 +35,10 @@ internal static class GraphNavigationChecks
     }
     internal static void Run(string previewDirectory, string? capturePath = null)
     {
-        var type = Assembly.Load("DEViL").GetType("Devil.EntityGraphCanvas", true)!;
-        using var canvas = (Control)Activator.CreateInstance(type)!;
-        using var host = new Form { ClientSize = new Size(820, 310), Opacity = 0, ShowInTaskbar = false };
-        canvas.Dock = DockStyle.Fill; canvas.Font = new Font("Segoe UI", 10f); canvas.ForeColor = Color.Gainsboro;
+        var type = Assembly.Load("labplus").GetType("LabPlus.EntityGraphCanvas", true)!;
+        using var canvas = (UiNode)Activator.CreateInstance(type)!;
+        using var host = new LabPlusForm { ClientSize = new Size(820, 310), ShowInTaskbar = false };
+        canvas.Size=new(820,310); canvas.Dock = DockStyle.Fill; canvas.Font = LabPlusTheme.Ui(10f); canvas.ForeColor = Color.Gainsboro;
         host.Controls.Add(canvas); host.Show(); Application.DoEvents();
         const string root = "100:3";
         var nodes = new Dictionary<string, EntityGraphNode> { [root] = new(root, "arena_manager", "idEncounterManager", "") };
@@ -51,14 +52,14 @@ internal static class GraphNavigationChecks
         edges.Add(edges[0] with { Field = "anotherField" });
         var snapshot = new EntityGraphSnapshot(1234, DateTimeOffset.UtcNow, "live", "test/map", "1000:2000", 0, 0, 0, root, nodes, edges);
         void Set(EntityGraphSnapshot? graph, string? key) => type.GetMethod("SetGraph")!.Invoke(canvas, [graph, key]);
-        void Fit() => canvas.Controls.OfType<Button>().Single(button => button.Text == "Fit graph").PerformClick();
+        void Fit() => canvas.Controls.OfType<UiAction>().Single(button => button.Text == "Fit graph").PerformClick();
         Set(snapshot, root);
         Check(Targets(canvas).Count() == 29 && Targets(canvas).Select(target => target.Key).Distinct().Count() == 29,
             "Graph dropped neighbors beyond four or duplicated a neighbor with multiple fields");
         Check(Zoom(canvas) < 1, "Dense graph was not reduced to fit the field"); AllFit(canvas);
         using (var bitmap = new Bitmap(canvas.Width, canvas.Height))
         {
-            canvas.DrawToBitmap(bitmap, canvas.ClientRectangle);
+            ((UiPlot)canvas).DrawToBitmap(bitmap, canvas.ClientRectangle);
             bitmap.Save(Path.Combine(previewDirectory, "entity-graph-auto-fit.png"), ImageFormat.Png);
         }
         string? clicked = null;
@@ -90,12 +91,12 @@ internal static class GraphNavigationChecks
         offset = Offset(canvas); Set(snapshot, root);
         Check(Offset(canvas) == offset && Zoom(canvas) == before, "Periodic refresh reset manual panning");
         Fit(); AllFit(canvas);
-        before = Zoom(canvas); host.ClientSize = new(940, 500); Application.DoEvents();
+        before = Zoom(canvas); host.ClientSize = new(940, 500); canvas.Size=new(940,500); Application.DoEvents();
         Check(Zoom(canvas) > before, "Auto-fit did not respond to a larger viewport"); AllFit(canvas);
         anchor = NodePoint(canvas, root); Mouse(canvas, "OnMouseWheel", MouseButtons.None, anchor, 360);
         using (var bitmap = new Bitmap(canvas.Width, canvas.Height))
         {
-            canvas.DrawToBitmap(bitmap, canvas.ClientRectangle);
+            ((UiPlot)canvas).DrawToBitmap(bitmap, canvas.ClientRectangle);
             bitmap.Save(Path.Combine(previewDirectory, "entity-graph-zoom.png"), ImageFormat.Png);
         }
         Set(snapshot with { MapIdentity = "3000:4000" }, root); AllFit(canvas);
@@ -111,7 +112,7 @@ internal static class GraphNavigationChecks
             int outgoing = captured.Edges.Where(edge => edge.From == busiest).Select(edge => edge.To).Distinct().Count();
             Set(captured, busiest); Check(Targets(canvas).Count() == 1 + incoming + outgoing, "Captured graph lost displayed neighbors"); AllFit(canvas);
             using var bitmap = new Bitmap(canvas.Width, canvas.Height);
-            canvas.DrawToBitmap(bitmap, canvas.ClientRectangle);
+            ((UiPlot)canvas).DrawToBitmap(bitmap, canvas.ClientRectangle);
             bitmap.Save(Path.Combine(previewDirectory, "entity-graph-captured-fit.png"), ImageFormat.Png);
             Console.WriteLine($"PASS: captured graph ({captured.Nodes.Count} entities / {captured.Edges.Count} references), busy root fits {incoming} incoming / {outgoing} outgoing neighbors.");
         }

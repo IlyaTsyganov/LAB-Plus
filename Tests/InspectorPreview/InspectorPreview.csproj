@@ -8,7 +8,7 @@
     <PlatformTarget>x64</PlatformTarget>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\DEViL.csproj" />
+    <ProjectReference Include="..\..\labplus.csproj" />
     <Content Include="..\..\Assets\**\*" CopyToOutputDirectory="PreserveNewest" TargetPath="Assets\%(RecursiveDir)%(Filename)%(Extension)" />
   </ItemGroup>
 </Project>
