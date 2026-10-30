@@ -1,4 +1,4 @@
-namespace Devil.Configuration;
+namespace LabPlus.Configuration;
 
 public sealed record TriggerPathInfo(string ClassName, string Prefix);
 
@@ -7,7 +7,7 @@ public static class TriggerPathCatalog
     public static IReadOnlyList<TriggerPathInfo> Known { get; } = ReadBundled();
     private static IReadOnlyList<TriggerPathInfo> ReadBundled()
     {
-        using var stream = typeof(TriggerPathCatalog).Assembly.GetManifestResourceStream("Devil.TriggerPaths.tsv");
+        using var stream = typeof(TriggerPathCatalog).Assembly.GetManifestResourceStream("LabPlus.TriggerPaths.tsv");
         if (stream is null) return [];
         using var reader = new StreamReader(stream);
         var lines = new List<string>();
@@ -38,7 +38,7 @@ public static class TriggerPathCatalog
     }
     private static IReadOnlyList<TriggerPathInfo> Parse(IReadOnlyList<string> lines)
     {
-        if (lines.Count == 0 || lines[0] != "#DEVIL_TRIGGER_PATHS_V1") return [];
+        if (lines.Count == 0 || lines[0] != "#LABPLUS_TRIGGER_PATHS_V1") return [];
         var result = new HashSet<TriggerPathInfo>();
         foreach (string line in lines.Skip(1))
         {

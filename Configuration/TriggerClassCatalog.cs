@@ -1,4 +1,4 @@
-namespace Devil.Configuration;
+namespace LabPlus.Configuration;
 
 public sealed record TriggerClassInfo(string ClassName, string Label)
 {
