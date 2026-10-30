@@ -1,6 +1,6 @@
 using Microsoft.Win32;
 
-namespace Devil.Game;
+namespace LabPlus.Game;
 
 public static class PracticeSaveSource
 {

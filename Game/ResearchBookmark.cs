@@ -2,7 +2,7 @@ using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace Devil.Game;
+namespace LabPlus.Game;
 
 public sealed record BookmarkEntity(string Key, string Name, string Class, string State, long AimAgeMilliseconds = 0);
 public sealed record BookmarkObservation(int Process, string Token, long Captured, string Phase, string Map, string Profile,
@@ -17,7 +17,7 @@ public sealed record BookmarkObservation(int Process, string Token, long Capture
     {
         if (process <= 0 || !LevelStateSnapshot.ValidToken(token)) throw new IOException("Invalid point capture request.");
         Directory.CreateDirectory(directory); string path = Path.Combine(directory, $"research-point-{process}.request");
-        File.WriteAllText(path + ".tmp", $"#DEVIL_POINT_REQUEST_V1\t{process}\t{token}\t{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}\n"); File.Move(path + ".tmp", path, true);
+        File.WriteAllText(path + ".tmp", $"#LABPLUS_POINT_REQUEST_V1\t{process}\t{token}\t{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}\n"); File.Move(path + ".tmp", path, true);
     }
     public static BookmarkObservation? Read(string directory, int process)
     {
@@ -29,7 +29,7 @@ public sealed record BookmarkObservation(int Process, string Token, long Capture
     {
         if (lines.Length is < 1 or > 34 || lines.Any(l => l.Length > 4096)) return null;
         string[] h = lines[0].Split('\t');
-        if (h.Length != 10 || h[0] != "#DEVIL_POINT_V1" || !int.TryParse(h[1], out int process) || process <= 0 || !LevelStateSnapshot.ValidToken(h[2])
+        if (h.Length != 10 || h[0] != "#LABPLUS_POINT_V1" || !int.TryParse(h[1], out int process) || process <= 0 || !LevelStateSnapshot.ValidToken(h[2])
             || !long.TryParse(h[3], out long epoch) || epoch is <= 0 or > 253402300799999 || h[4] is not ("ready" or "loading" or "read_error" or "changed_during_capture")
             || h[5].Length > 512 || h[6].Length is 0 or > 128 || h[7].Length is 0 or > 80 || h[8] is not ("known" or "unavailable" or "read_error") || h[9].Length > 1023) return null;
         var zero = new MotionVector(0, 0, 0);
@@ -62,7 +62,7 @@ public sealed record ResearchBookmark(string Format, string Id, string Name, str
 {
     [JsonIgnore] public string Display => $"{Category} · {Name} · {Observation.Map}";
     public override string ToString() => Display;
-    public static bool Valid(ResearchBookmark? value) => value is { Format: "DEVIL_RESEARCH_POINT_V1" } && LevelStateSnapshot.ValidToken(value.Id)
+    public static bool Valid(ResearchBookmark? value) => value is { Format: "LABPLUS_RESEARCH_POINT_V1" } && LevelStateSnapshot.ValidToken(value.Id)
         && value.Name is { Length: > 0 and <= 160 } && value.Category is { Length: > 0 and <= 160 } && value.Note is { Length: <= 8192 }
         && value.SaveId is not null && (value.SaveId.Length == 0 || LevelStateSnapshot.ValidToken(value.SaveId)) && BookmarkObservation.Valid(value.Observation);
     public string PositionText() => FormattableString.Invariant($"Player body: {Observation.Body.X:R} {Observation.Body.Y:R} {Observation.Body.Z:R}\nCamera eye: {Observation.Eye.X:R} {Observation.Eye.Y:R} {Observation.Eye.Z:R}\nAim yaw/pitch: {Observation.Yaw:0.000000} {Observation.Pitch:0.000000}");

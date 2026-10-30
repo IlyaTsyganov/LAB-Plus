@@ -1,6 +1,6 @@
 using System.Diagnostics;
 
-namespace Devil.Game;
+namespace LabPlus.Game;
 
 public sealed record LivePracticeResult(int Process, string Token, long Captured, string Phase, string Account, string Slot, string Map, string Checkpoint, string Detail)
 {
@@ -8,7 +8,7 @@ public sealed record LivePracticeResult(int Process, string Token, long Captured
     {
         if (text.Length > 8192 || text.TrimEnd('\r', '\n').Contains('\n')) return null;
         string[] h = text.TrimEnd('\r', '\n').Split('\t');
-        if (h.Length != 10 || h[0] != "#DEVIL_LIVE_PRACTICE_V1" || !int.TryParse(h[1], out int process) || process <= 0 || !LevelStateSnapshot.ValidToken(h[2])
+        if (h.Length != 10 || h[0] != "#LABPLUS_LIVE_PRACTICE_V1" || !int.TryParse(h[1], out int process) || process <= 0 || !LevelStateSnapshot.ValidToken(h[2])
             || !long.TryParse(h[3], out long epoch) || epoch is <= 0 or > 253402300799999 || h[4] is not ("waiting" or "archived" or "loading" or "reloaded" or "error")
             || h[5].Length != 17 || !ulong.TryParse(h[5], out ulong account) || account <= 76561197960265728UL || account > 76561197960265728UL + uint.MaxValue
             || h[6] != "DLC1-AUTOSAVE5" || h[7].Length > 512 || h[8].Length > 1023 || h[9].Length > 2048 || h.Any(s => s.Any(char.IsControl))) return null;
@@ -28,7 +28,7 @@ public static class LivePracticeBridge
         if (process <= 0 || !LevelStateSnapshot.ValidToken(token) || operation is not ("archive" or "reload")) throw new IOException("Invalid live checkpoint request.");
         if (slot != "DLC1-AUTOSAVE5") throw new IOException("This first live experiment supports TAG1 slot 3 (DLC1-AUTOSAVE5) only.");
         if (location.Remote.Any(char.IsControl)) throw new IOException("Unsupported save-folder path.");
-        return $"#DEVIL_LIVE_PRACTICE_REQUEST_V1\t{process}\t{token}\t{now}\t{operation}\t{location.Account}\t{slot}\t{location.Remote}\n";
+        return $"#LABPLUS_LIVE_PRACTICE_REQUEST_V1\t{process}\t{token}\t{now}\t{operation}\t{location.Account}\t{slot}\t{location.Remote}\n";
     }
     public static async Task<LivePracticeResult> Execute(string directory, Func<int> gameProcess, string operation, string remote, string slot, bool cloudDisabled, Action<LivePracticeResult>? progress = null)
     {
@@ -43,7 +43,7 @@ public static class LivePracticeBridge
         var location = SteamSaveLocation.Parse(plan.Remote);
         if (location.Account != plan.Account) throw new IOException("Live restore owner mismatch. Account mixing is blocked.");
         _ = plan.Bundle(directory);
-        string request = $"#DEVIL_LIVE_PRACTICE_REQUEST_V1\t{plan.Process}\t{plan.Token}\t{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}\trestore\t{location.Account}\tDLC1-AUTOSAVE5\t{location.Remote}\n";
+        string request = $"#LABPLUS_LIVE_PRACTICE_REQUEST_V1\t{plan.Process}\t{plan.Token}\t{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}\trestore\t{location.Account}\tDLC1-AUTOSAVE5\t{location.Remote}\n";
         return await Submit(directory, gameProcess, "restore", location, "DLC1-AUTOSAVE5", plan.Process, plan.Token, request, progress);
     }
     private static async Task<LivePracticeResult> Submit(string directory, Func<int> gameProcess, string operation, SteamSaveLocation location, string slot, int process, string token, string request, Action<LivePracticeResult>? progress)
@@ -71,8 +71,8 @@ public static class LivePracticeBridge
             if (reported != result.Captured) { progress?.Invoke(result); reported = result.Captured; }
             if (result.Phase is "archived" or "reloaded") return result;
         }
-        throw new IOException(received ? operation == "restore" ? "Restore completion was not observed. Files may already be installed; original checkpoint retained at " + Path.Combine(location.AppRoot, ".devil-live-original-" + token)
+        throw new IOException(received ? operation == "restore" ? "Restore completion was not observed. Files may already be installed; original checkpoint retained at " + Path.Combine(location.AppRoot, ".labplus-live-original-" + token)
             : "Engine operation did not report completion. At 100% loading press Space in game, then pause."
-            : "No response from the live-save bridge. The updated native layer must be loaded by restarting the game once through this DEViL build.");
+            : "No response from the live-save bridge. The updated native layer must be loaded by restarting the game once through this LAB Plus build.");
     }
 }

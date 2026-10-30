@@ -1,6 +1,6 @@
 using System.Diagnostics;
 
-namespace Devil.Game;
+namespace LabPlus.Game;
 
 public sealed record ProcessSnapshot(bool GameRunning, int GameCount, bool DesruRunning, int DesruCount,
     DateTime CheckedAt)
@@ -67,7 +67,7 @@ public sealed class ProcessMonitor
     }
 
     private static bool IsViewerLibrary(string name) =>
-        name.StartsWith("DoomCollisionLayer", StringComparison.OrdinalIgnoreCase) &&
+        name.StartsWith("labplus-layer", StringComparison.OrdinalIgnoreCase) &&
         name.EndsWith(".dll", StringComparison.OrdinalIgnoreCase);
 
     internal static bool UsesExpectedViewer(IEnumerable<string> loadedModules, string expectedLibrary)

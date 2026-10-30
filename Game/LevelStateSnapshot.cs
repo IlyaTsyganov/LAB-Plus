@@ -1,7 +1,7 @@
 using System.Globalization;
 using System.Text.Json;
 
-namespace Devil.Game;
+namespace LabPlus.Game;
 
 public sealed record StateVolume(string Key, string Name, string Class, string Kind, string Status, string Geometry,
     uint? Contents, float[]? Bounds, float[]? Transform, string Shape)
@@ -26,7 +26,7 @@ public sealed record LevelStateSnapshot(int Process, string Token, long Captured
     {
         if (process <= 0 || !ValidToken(token) || role is not ("before" or "after")) throw new IOException("Invalid snapshot request");
         Directory.CreateDirectory(directory); string path = Path.Combine(directory, $"level-state-{process}.request"), temporary = path + ".tmp";
-        File.WriteAllText(temporary, $"#DEVIL_STATE_REQUEST_V1\t{process}\t{token}\t{role}\t{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}\n"); File.Move(temporary, path, true);
+        File.WriteAllText(temporary, $"#LABPLUS_STATE_REQUEST_V1\t{process}\t{token}\t{role}\t{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}\n"); File.Move(temporary, path, true);
     }
     public static LevelStateSnapshot? Read(string directory, int process, string role)
     {
@@ -38,7 +38,7 @@ public sealed record LevelStateSnapshot(int Process, string Token, long Captured
     {
         if (lines.Length is < 1 or > 45000 || lines.Any(line => line.Length > 4096)) return null;
         string[] header = lines[0].Split('\t');
-        if (header.Length != 13 || header[0] != "#DEVIL_LEVEL_STATE_V1" || !int.TryParse(header[1], out int process) || process <= 0 || !ValidToken(header[2])
+        if (header.Length != 13 || header[0] != "#LABPLUS_LEVEL_STATE_V1" || !int.TryParse(header[1], out int process) || process <= 0 || !ValidToken(header[2])
             || !long.TryParse(header[3], out long captured) || captured <= 0 || captured > 253402300799999 || header[4] is not ("ready" or "loading" or "read_error")
             || header[5].Length > 512 || header[6].Length is 0 or > 128 || header[7].Length is 0 or > 80 || header[8] is not ("known" or "unavailable" or "read_error") || header[9].Length > 1023
             || !int.TryParse(header[10], out int unavailable) || unavailable < 0 || header[11] is not ("0" or "1") || header[12].Length > 40) return null;
@@ -149,7 +149,7 @@ public sealed record LevelStatePair(string Format, string Note, LevelStateSnapsh
     }
     private static void Validate(LevelStatePair? pair)
     {
-        if (pair is null || pair.Format != "DEVIL_LEVEL_STATE_PAIR_V1" || pair.Note is not { Length: <= 1024 } || !Valid(pair.Before) || !Valid(pair.After)) throw new IOException("Invalid snapshot pair.");
+        if (pair is null || pair.Format != "LABPLUS_LEVEL_STATE_PAIR_V1" || pair.Note is not { Length: <= 1024 } || !Valid(pair.Before) || !Valid(pair.After)) throw new IOException("Invalid snapshot pair.");
         try { _ = LevelStateComparison.Compare(pair.Before, pair.After); }
         catch (InvalidOperationException ex) { throw new IOException(ex.Message, ex); }
     }

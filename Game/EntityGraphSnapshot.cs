@@ -1,7 +1,7 @@
 using System.Globalization;
 using System.Text.Json;
 
-namespace Devil.Game;
+namespace LabPlus.Game;
 
 public sealed record EntityGraphNode(string Key, string Name, string Class, string Label)
 {
@@ -26,7 +26,7 @@ public sealed record EntityGraphSnapshot(int Process, DateTimeOffset Captured, s
     }
     public void ExportJson(string path) => File.WriteAllText(path, JsonSerializer.Serialize(new
     {
-        Format = "DEVIL_GRAPH_V1", Process, Captured, Map, MapIdentity, Phase, Unavailable, Pending, Limited,
+        Format = "LABPLUS_GRAPH_V1", Process, Captured, Map, MapIdentity, Phase, Unavailable, Pending, Limited,
         Meaning = "Edges are observed entity references. They do not prove script execution or causality.",
         Nodes = Nodes.Values, Edges
     }, new JsonSerializerOptions { WriteIndented = true }));
@@ -58,7 +58,7 @@ public sealed record EntityGraphSnapshot(int Process, DateTimeOffset Captured, s
     {
         if (lines.Length is < 1 or > 49153 || lines[0].Length > 2048) return null;
         string[] header = lines[0].Split('\t');
-        if (header.Length != 10 || header[0] != "#DEVIL_GRAPH_V1" || !int.TryParse(header[1], out int process) || process <= 0
+        if (header.Length != 10 || header[0] != "#LABPLUS_GRAPH_V1" || !int.TryParse(header[1], out int process) || process <= 0
             || !long.TryParse(header[2], out long epoch) || header[4].Length > 512 || header[5].Length > 80
             || !int.TryParse(header[6], out int unavailable) || unavailable < 0 || !int.TryParse(header[7], out int pending) || pending < 0
             || !int.TryParse(header[8], out int limited) || limited < 0 || (header[9].Length != 0 && !KeyValid(header[9]))) return null;

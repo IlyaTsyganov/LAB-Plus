@@ -1,7 +1,7 @@
 using System.IO.Pipes;
 using System.Text;
 
-namespace Devil.Game;
+namespace LabPlus.Game;
 
 internal sealed class LabCommandServer : IDisposable
 {
@@ -10,7 +10,7 @@ internal sealed class LabCommandServer : IDisposable
     private readonly string _pipeName;
     private readonly Task _listener;
 
-    public LabCommandServer(Action<int, string[]> receive, string pipeName = "DEViL.Lab", string presenceName = @"Local\DEViL.Lab.Active")
+    public LabCommandServer(Action<int, string[]> receive, string pipeName = "labplus.commands", string presenceName = @"Local\labplus.commands.Active")
     {
         _pipeName = pipeName;
         _presence = new EventWaitHandle(true, EventResetMode.ManualReset, presenceName);

@@ -1,6 +1,6 @@
 using System.Globalization;
 
-namespace Devil.Game;
+namespace LabPlus.Game;
 
 public sealed record ActiveEncounter(uint Id, uint Generation, string Manager, string Label, int? ThinkFlags,
     int Enabled, int Paused, int SpawnPaused, int WaitingExit, int Script, int Commands)
@@ -38,7 +38,7 @@ public sealed record ActiveEncounterSnapshot(int Process, DateTimeOffset Capture
     {
         if (lines.Length < 2 || lines.Length > 2050) return null;
         string[] header = lines[0].Split('\t');
-        if (header.Length != 6 || header[0] != "#DEVIL_ENCOUNTERS_V1" || !int.TryParse(header[1], out int process) || process <= 0
+        if (header.Length != 6 || header[0] != "#LABPLUS_ENCOUNTERS_V1" || !int.TryParse(header[1], out int process) || process <= 0
             || !long.TryParse(header[2], out long time) || !int.TryParse(header[5], out int unreadable) || unreadable < 0) return null;
         DateTimeOffset captured;
         try { captured = DateTimeOffset.FromUnixTimeMilliseconds(time); }

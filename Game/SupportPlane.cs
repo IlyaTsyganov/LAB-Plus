@@ -1,4 +1,4 @@
-namespace Devil.Game;
+namespace LabPlus.Game;
 
 public sealed record SupportPlaneCut(string Name, float NormalA, float NormalB, float? TangentAngle, float? NormalAngle)
 {

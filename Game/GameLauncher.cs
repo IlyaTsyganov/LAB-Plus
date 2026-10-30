@@ -1,7 +1,7 @@
 using System.Diagnostics;
-using Devil.Configuration;
+using LabPlus.Configuration;
 
-namespace Devil.Game;
+namespace LabPlus.Game;
 
 public sealed class GameLauncher
 {
@@ -13,7 +13,7 @@ public sealed class GameLauncher
 
     public string RuntimeDirectory => _layerRegistration.RuntimeDirectory;
 
-    public Process Start(DevilSettings settings)
+    public Process Start(LabPlusSettings settings)
     {
         var startInfo = CreateStartInfo(settings.GameExecutablePath);
         GameFirewall.RequireBlocked(_firewall(startInfo.FileName));

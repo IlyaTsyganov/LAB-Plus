@@ -3,7 +3,7 @@ using System.Globalization;
 using System.Reflection;
 using System.Runtime.InteropServices;
 
-namespace Devil.Game;
+namespace LabPlus.Game;
 
 public sealed record GameFirewallRule(string Name, string Application, bool Enabled, int Direction, int Action, int Profiles,
     int Protocol = 256, string LocalAddresses = "*", string RemoteAddresses = "*", string InterfaceTypes = "All", string Service = "", bool LimitedInterfaces = false);
@@ -25,12 +25,12 @@ public static class GameFirewall
     public static GameFirewallResult Evaluate(string executable, GameFirewallState state)
     {
         string path = Normalize(executable);
-        if (path.Length == 0) return new(false, "Укажите полный путь к DOOMEternalx64vk.exe.");
+        if (path.Length == 0) return new(false, "Select the full path to DOOMEternalx64vk.exe.");
         int active = state.ActiveProfiles;
         if (active == 0 || (active & ~7) != 0 || (state.EnabledProfiles & active) != active)
-            return new(false, "Запуск запрещён: брандмауэр Windows выключен для активного сетевого профиля или его состояние неизвестно.");
+            return new(false, "Launch blocked: Windows Firewall is disabled for an active network profile, or its state is unknown.");
         if (state.ExcludedInterfaces || !state.LocalPolicyEffective)
-            return new(false, "Запуск запрещён: не удалось подтвердить действие блокирующего правила для всех активных сетевых интерфейсов.");
+            return new(false, "Launch blocked: an effective blocking rule could not be verified for every active network interface.");
         int covered = 0; var names = new List<string>();
         foreach (var rule in state.Rules)
         {
@@ -41,8 +41,8 @@ public static class GameFirewall
             covered |= rule.Profiles; names.Add(rule.Name);
         }
         if ((covered & active) != active)
-            return new(false, "Запуск запрещён: включите в DESRU блокировку интернета для выбранной версии DOOM Eternal. Требуется действующее исходящее правило Block для этого EXE, всех протоколов и адресов.\n\n" + path);
-        return new(true, "Доступ игры в интернет заблокирован.", string.Join(", ", names));
+            return new(false, "Launch blocked: enable internet blocking for the selected DOOM Eternal version in DESRU. An effective outbound Block rule must cover this executable, every protocol and every address.\n\n" + path);
+        return new(true, "Game internet access is blocked.", string.Join(", ", names));
     }
     private static object? Get(object value, string property, params object[] arguments) => value.GetType().InvokeMember(property,
         BindingFlags.GetProperty, null, value, arguments, CultureInfo.InvariantCulture);
@@ -81,7 +81,7 @@ public static class GameFirewall
         }
         catch (Exception ex) when (ex is COMException or TargetInvocationException or InvalidOperationException or UnauthorizedAccessException or ArgumentException or NotSupportedException or InvalidCastException or System.Security.SecurityException)
         {
-            return new(false, "Запуск запрещён: не удалось проверить брандмауэр Windows. Проверьте его службу и блокирующее правило для выбранного EXE.\n\n" + ex.GetBaseException().Message);
+            return new(false, "Launch blocked: Windows Firewall could not be inspected. Check its service and the blocking rule for the selected executable.\n\n" + ex.GetBaseException().Message);
         }
         finally { Release(rules); Release(policy); }
     }

@@ -2,7 +2,7 @@ using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace Devil.Game;
+namespace LabPlus.Game;
 
 public sealed record ResearchEvent(long Sequence, long Milliseconds, string Kind, string Map, uint Id,
     uint Generation, string Class, float? X, float? Y, float? Z, string Detail)
@@ -28,7 +28,7 @@ public sealed record ResearchLog(int Process, bool Recording, long Omitted, stri
     {
         if (lines.Length < 2) return null;
         string[] header = lines[0].Split('\t');
-        if (header.Length != 5 || header[0] != "#DEVIL_RESEARCH_V1" || !int.TryParse(header[1], out int process)
+        if (header.Length != 5 || header[0] != "#LABPLUS_RESEARCH_V1" || !int.TryParse(header[1], out int process)
             || header[2] is not ("0" or "1") || !long.TryParse(header[3], out long omitted)) return null;
         var rows = new List<ResearchEvent>();
         foreach (string line in lines.Skip(2).Take(16000))

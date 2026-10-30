@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace Devil.Game;
+namespace LabPlus.Game;
 
 public sealed record LiveRestorePlan(int Process, string Token, string ArchiveId, string ManifestHash, string Remote, string Account,
     string TargetHash, IReadOnlyList<SaveFileEntry> TargetFiles, string Description)
@@ -10,7 +10,7 @@ public sealed record LiveRestorePlan(int Process, string Token, string ArchiveId
         if (Process <= 0 || Token.Length != 32 || Token.Any(c => !(c is >= '0' and <= '9' or >= 'a' and <= 'f'))) throw new IOException("Invalid live restore scope.");
         return Path.Combine(directory, "live-practice", "restore-pending", Process.ToString(System.Globalization.CultureInfo.InvariantCulture), Token);
     }
-    public string Original => Path.Combine(SteamSaveLocation.Parse(Remote).AppRoot, ".devil-live-original-" + Token);
+    public string Original => Path.Combine(SteamSaveLocation.Parse(Remote).AppRoot, ".labplus-live-original-" + Token);
 }
 public sealed partial class PracticeSaveVault
 {
@@ -30,7 +30,7 @@ public sealed partial class PracticeSaveVault
         if (current.Count != 4 || !Health(current, location.Account).Authenticated) throw new IOException("All four current training checkpoint containers must authenticate before this live experiment.");
         string manifestHash = Hash(File.ReadAllBytes(Path.Combine(ArchivePath(id), "manifest.json"))), token = Guid.NewGuid().ToString("N");
         var files = RequiredFiles.Select(name => new SaveFileEntry(name, current[name].Length, Hash(current[name]))).ToArray();
-        string original = Path.Combine(location.AppRoot, ".devil-live-original-" + token);
+        string original = Path.Combine(location.AppRoot, ".labplus-live-original-" + token);
         return new(process, token, id, manifestHash, location.Remote, location.Account, Fingerprint(current), files,
             $"Restore {source.Save.Name} ({source.Save.Category}) into {location.SlotPath(slot)}\nSteam account: {location.Account}\nAll four primary/backup files will be written through Steam's storage API, verified in both Steam and on disk, then loaded through the engine.\nCurrent four-file checkpoint will be retained at {original}\nPROFILE and other campaign slots are not replaced. Steam updates its own slot-file metadata normally.\nPause first; keep Cloud disabled. At 100% loading, press Space in game and pause again. This restores a serialized checkpoint, not arbitrary live simulation state.");
     }
@@ -45,7 +45,7 @@ public sealed partial class PracticeSaveVault
         string bundle = plan.Bundle(directory); NoLinks(bundle);
         if (Directory.Exists(bundle) || File.Exists(bundle)) throw new IOException("Live restore staging destination already exists.");
         WriteSet(Path.Combine(bundle, "incoming"), source.Files);
-        var text = new StringBuilder($"#DEVIL_LIVE_RESTORE_PLAN_V1\t{location.Account}\tDLC1-AUTOSAVE5\t{plan.Token}\t{plan.Process}\t{plan.ArchiveId}\n");
+        var text = new StringBuilder($"#LABPLUS_LIVE_RESTORE_PLAN_V1\t{location.Account}\tDLC1-AUTOSAVE5\t{plan.Token}\t{plan.Process}\t{plan.ArchiveId}\n");
         foreach (var file in plan.TargetFiles) text.Append(file.Name).Append('\t').Append(file.Length.ToString(System.Globalization.CultureInfo.InvariantCulture)).Append('\t').Append(file.Sha256).Append('\n');
         foreach (string name in RequiredFiles) text.Append(name).Append('\t').Append(source.Files[name].Length.ToString(System.Globalization.CultureInfo.InvariantCulture)).Append('\t').Append(Hash(source.Files[name])).Append('\n');
         File.WriteAllText(Path.Combine(bundle, "plan.tsv"), text.ToString(), new UTF8Encoding(false));

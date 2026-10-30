@@ -3,7 +3,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace Devil.Game;
+namespace LabPlus.Game;
 
 public sealed record MotionVector(float X, float Y, float Z)
 {
@@ -45,7 +45,7 @@ public sealed record MotionSnapshot(int Process, long Captured, string Phase, st
     {
         if (lines.Length is < 1 or > 257 || lines.Any(line => line.Length > 4096)) return null;
         string[] header = lines[0].Split('\t');
-        if (header.Length != 7 || header[0] != "#DEVIL_MOTION_V1" || !int.TryParse(header[1], out int process) || process <= 0
+        if (header.Length != 7 || header[0] != "#LABPLUS_MOTION_V1" || !int.TryParse(header[1], out int process) || process <= 0
             || !long.TryParse(header[2], out long captured) || captured <= 0 || header[4].Length > 512 || header[5].Length > 128 || header[6].Length > 80
             || header[3] is not ("live" or "paused" or "loading" or "metadata_unavailable" or "read_error")) return null;
         var samples = new List<MotionSample>();
@@ -71,7 +71,7 @@ public sealed record MotionSnapshot(int Process, long Captured, string Phase, st
 public enum AttemptOutcome { Unmarked, Success, Failure }
 public sealed class MotionAttempt
 {
-    public string Format { get; set; } = "DEVIL_ATTEMPT_V1";
+    public string Format { get; set; } = "LABPLUS_ATTEMPT_V1";
     public string Id { get; set; } = Guid.NewGuid().ToString("N");
     public string Name { get; set; } = "Attempt";
     public AttemptOutcome Outcome { get; set; }
@@ -91,7 +91,7 @@ public sealed class MotionAttempt
         var nearest = candidates.FirstOrDefault(); return nearest is not null && Math.Abs(nearest.Epoch - epoch) <= 75 ? nearest : null;
     }
     public override string ToString() => $"{Name} · {Outcome} · {Duration / 1000f:0.0}s";
-    public bool Valid => Format == "DEVIL_ATTEMPT_V1" && Guid.TryParseExact(Id, "N", out _) && Name is { Length: > 0 and <= 80 }
+    public bool Valid => Format == "LABPLUS_ATTEMPT_V1" && Guid.TryParseExact(Id, "N", out _) && Name is { Length: > 0 and <= 80 }
         && Map is { Length: > 0 and <= 512 } && Profile is { Length: > 0 and <= 128 } && Process > 0 && Started > 0 && Enum.IsDefined(Outcome)
         && Samples is { Count: > 0 and <= 24000 } && Samples.All(sample => sample is not null && sample.Valid && sample.Epoch >= Started && sample.Epoch - Started <= 7_200_000)
         && Samples.Zip(Samples.Skip(1)).All(pair => pair.First.Epoch < pair.Second.Epoch && pair.First.Sequence < pair.Second.Sequence && pair.First.Segment <= pair.Second.Segment);
@@ -123,7 +123,7 @@ public sealed class MotionStore(string settingsDirectory)
         Directory.CreateDirectory(directory); string path = Path.Combine(directory, "motion-overlays.tsv"), temporary = path + ".tmp";
         using (var writer = new StreamWriter(temporary, false, new UTF8Encoding(false)))
         {
-            writer.WriteLine($"#DEVIL_MOTION_OVERLAY_V1\t{process}\t{snapshot?.Map}\t{snapshot?.Profile}");
+            writer.WriteLine($"#LABPLUS_MOTION_OVERLAY_V1\t{process}\t{snapshot?.Map}\t{snapshot?.Profile}");
             int index = 0;
             foreach (var attempt in attempts.Where(attempt => attempt.Compatible(snapshot)).Take(6))
             {

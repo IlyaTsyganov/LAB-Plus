@@ -5,7 +5,7 @@ using System.Text;
 using System.Text.Json;
 using Microsoft.Win32;
 
-namespace Devil.Game;
+namespace LabPlus.Game;
 
 public sealed record SteamSaveLocation(string Remote, string Account)
 {
@@ -178,7 +178,7 @@ public sealed partial class PracticeSaveVault
     private PracticeSave Store(IReadOnlyDictionary<string, byte[]> files, string account, string slot, string name, string category, string map, string build, bool recovered)
     {
         if (!Health(files, account).Authenticated) throw new IOException("All four current/backup containers must authenticate before a practice archive can be created.");
-        string id = Guid.NewGuid().ToString("N"); var value = new PracticeSave("DEVIL_PRACTICE_SAVE_V1", id, name, category, map, build,
+        string id = Guid.NewGuid().ToString("N"); var value = new PracticeSave("LABPLUS_PRACTICE_SAVE_V1", id, name, category, map, build,
             DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(), account, slot, recovered, files.Select(f => new SaveFileEntry(f.Key, f.Value.Length, Hash(f.Value))).ToArray());
         Validate(value); string path = ArchivePath(id), temporary = path + ".pending";
         WriteSet(Path.Combine(temporary, "slot"), files);
@@ -215,7 +215,7 @@ public sealed partial class PracticeSaveVault
     }
     private static void Validate(PracticeSave? value)
     {
-        if (value is not { Format: "DEVIL_PRACTICE_SAVE_V1" } || !LevelStateSnapshot.ValidToken(value.Id) || value.Name is not { Length: > 0 and <= 160 }
+        if (value is not { Format: "LABPLUS_PRACTICE_SAVE_V1" } || !LevelStateSnapshot.ValidToken(value.Id) || value.Name is not { Length: > 0 and <= 160 }
             || value.Category is not { Length: > 0 and <= 160 } || value.Map is not { Length: <= 512 } || value.Build is not { Length: <= 128 }
             || value.Captured is <= 0 or > 253402300799999 || value.Account is not { Length: 17 } || !ulong.TryParse(value.Account, NumberStyles.None, CultureInfo.InvariantCulture, out ulong account)
             || account <= 76561197960265728UL || account > 76561197960265728UL + uint.MaxValue || !ValidSlot(value.SourceSlot)
@@ -285,7 +285,7 @@ public sealed partial class PracticeSaveVault
         if (source.Save.Account != location.Account || Family(source.Save.SourceSlot) != Family(plan.Slot)
             || Hash(File.ReadAllBytes(Path.Combine(ArchivePath(plan.ArchiveId), "manifest.json"))) != plan.ManifestHash || Fingerprint(current) != plan.TargetHash)
             throw new IOException("Source or target changed after the preview. Review a new restore plan.");
-        string id = Guid.NewGuid().ToString("N"), evidence = Path.Combine(_root, "restore-evidence", id), stage = Path.Combine(location.AppRoot, ".devil-stage-" + id), original = Path.Combine(location.AppRoot, ".devil-original-" + id);
+        string id = Guid.NewGuid().ToString("N"), evidence = Path.Combine(_root, "restore-evidence", id), stage = Path.Combine(location.AppRoot, ".labplus-stage-" + id), original = Path.Combine(location.AppRoot, ".labplus-original-" + id);
         // All rename targets are direct children of the resolved app directory;
         // neither manifest content nor caller-supplied filenames choose them.
         NoLinks(location.AppRoot); NoLinks(stage); NoLinks(original);

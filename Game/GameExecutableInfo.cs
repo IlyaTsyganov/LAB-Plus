@@ -1,6 +1,6 @@
 using System.Reflection.PortableExecutable;
 
-namespace Devil.Game;
+namespace LabPlus.Game;
 
 internal sealed record GameExecutableInfo(string Version, bool NeedsLightingFix)
 {

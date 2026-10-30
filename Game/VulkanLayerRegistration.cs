@@ -1,9 +1,9 @@
 using System.Security.Cryptography;
 using System.Text.Json;
 using Microsoft.Win32;
-using Devil.Configuration;
+using LabPlus.Configuration;
 
-namespace Devil.Game;
+namespace LabPlus.Game;
 
 /// <summary>
 /// Registers the layer through the Vulkan loader's per-user override meta-layer,
@@ -11,7 +11,7 @@ namespace Devil.Game;
 /// </summary>
 public sealed class VulkanLayerRegistration
 {
-    private const string LayerName = "VK_LAYER_DOOM_collision";
+    private const string LayerName = "VK_LAYER_LABPLUS_collision";
     private const string OverrideName = "VK_LAYER_LUNARG_override";
     private const string ExplicitLayersKey = @"Software\Khronos\Vulkan\ExplicitLayers";
     private const string ImplicitLayersKey = @"Software\Khronos\Vulkan\ImplicitLayers";
@@ -25,13 +25,13 @@ public sealed class VulkanLayerRegistration
     {
         get
         {
-            string dllPath = Path.Combine(AppContext.BaseDirectory, "Native", "CollisionViewer", "bin", "DoomCollisionLayer.dll");
+            string dllPath = Path.Combine(AppContext.BaseDirectory, "Native", "CollisionViewer", "bin", "labplus-layer.dll");
             byte[] hash = SHA256.HashData(File.ReadAllBytes(dllPath));
-            return $"DoomCollisionLayer-{Convert.ToHexString(hash)[..16].ToLowerInvariant()}.dll";
+            return $"labplus-layer-{Convert.ToHexString(hash)[..16].ToLowerInvariant()}.dll";
         }
     }
-    private string LayerManifestPath => Path.Combine(RuntimeDirectory, "DoomCollisionLayer.json");
-    private string OverrideManifestPath => Path.Combine(RuntimeDirectory, "DoomCollisionOverride.json");
+    private string LayerManifestPath => Path.Combine(RuntimeDirectory, "labplus-layer.json");
+    private string OverrideManifestPath => Path.Combine(RuntimeDirectory, "labplus-override.json");
 
     public void EnableForGame(string gamePath)
     {
@@ -48,10 +48,10 @@ public sealed class VulkanLayerRegistration
                 type = "GLOBAL",
                 api_version = "1.0.0",
                 implementation_version = "1",
-                description = "DEViL enables the collision viewer only for the configured DOOM Eternal executable.",
+                description = "LAB Plus enables the collision viewer only for the configured DOOM Eternal executable.",
                 component_layers = new[] { LayerName },
                 app_keys = new[] { fullGamePath },
-                disable_environment = new Dictionary<string, string> { ["DEVIL_DISABLE_COLLISION_OVERRIDE"] = "1" }
+                disable_environment = new Dictionary<string, string> { ["LABPLUS_DISABLE_COLLISION_OVERRIDE"] = "1" }
             }
         }, new JsonSerializerOptions { WriteIndented = true }));
 
@@ -63,6 +63,7 @@ public sealed class VulkanLayerRegistration
         {
             explicitLayers.SetValue(LayerManifestPath, 0, RegistryValueKind.DWord);
             implicitLayers.SetValue(OverrideManifestPath, 0, RegistryValueKind.DWord);
+            RetirePreviousRegistration(explicitLayers, implicitLayers);
         }
         catch
         {
@@ -78,6 +79,15 @@ public sealed class VulkanLayerRegistration
         using RegistryKey? implicitLayers = Registry.CurrentUser.OpenSubKey(ImplicitLayersKey, writable: true);
         explicitLayers?.DeleteValue(LayerManifestPath, throwOnMissingValue: false);
         implicitLayers?.DeleteValue(OverrideManifestPath, throwOnMissingValue: false);
+        RetirePreviousRegistration(explicitLayers, implicitLayers);
+    }
+
+    private static void RetirePreviousRegistration(RegistryKey? explicitLayers, RegistryKey? implicitLayers)
+    {
+        if (LegacyDataMigration.OwnsPreviousManifest(LegacyDataMigration.PreviousLayerManifest, false))
+            explicitLayers?.DeleteValue(LegacyDataMigration.PreviousLayerManifest, throwOnMissingValue: false);
+        if (LegacyDataMigration.OwnsPreviousManifest(LegacyDataMigration.PreviousOverrideManifest, true))
+            implicitLayers?.DeleteValue(LegacyDataMigration.PreviousOverrideManifest, throwOnMissingValue: false);
     }
 
     private string ValidateGame(string gamePath)
@@ -94,7 +104,7 @@ public sealed class VulkanLayerRegistration
 
     private void PrepareRuntime()
     {
-        string dllPath = Path.Combine(AppContext.BaseDirectory, "Native", "CollisionViewer", "bin", "DoomCollisionLayer.dll");
+        string dllPath = Path.Combine(AppContext.BaseDirectory, "Native", "CollisionViewer", "bin", "labplus-layer.dll");
         if (!File.Exists(dllPath))
             throw new FileNotFoundException("Collision Viewer has not been built yet. Build Native\\CollisionViewer\\build-viewer.cmd.", dllPath);
 
@@ -116,8 +126,8 @@ public sealed class VulkanLayerRegistration
                 library_path = $@".\{runtimeDllName}",
                 api_version = "1.3.0",
                 implementation_version = "1",
-                description = "DEViL collision viewer for DOOM Eternal",
-                functions = new Dictionary<string, string> { ["vkNegotiateLoaderLayerInterfaceVersion"] = "DoomNegotiateLayerInterfaceVersion" }
+                description = "LAB Plus collision viewer for DOOM Eternal",
+                functions = new Dictionary<string, string> { ["vkNegotiateLoaderLayerInterfaceVersion"] = "labplus_negotiate_layer_interface_version" }
             }
         }, new JsonSerializerOptions { WriteIndented = true }));
     }
@@ -135,6 +145,7 @@ public sealed class VulkanLayerRegistration
                 if (Path.GetFullPath(manifestPath).Equals(Path.GetFullPath(OverrideManifestPath), StringComparison.OrdinalIgnoreCase))
                     continue;
                 if (!File.Exists(manifestPath)) continue;
+                if (hive == RegistryHive.CurrentUser && LegacyDataMigration.OwnsPreviousManifest(manifestPath, true)) continue;
 
                 try
                 {
@@ -142,7 +153,7 @@ public sealed class VulkanLayerRegistration
                     if (document.RootElement.TryGetProperty("layer", out JsonElement layer) &&
                         layer.TryGetProperty("name", out JsonElement name) &&
                         name.GetString()?.Equals(OverrideName, StringComparison.Ordinal) == true)
-                        throw new InvalidOperationException("Another Vulkan Override Layer registration was found. DEViL leaves it unchanged. Disable that override in Vulkan Configurator or launch the game with the DEViL button.");
+                        throw new InvalidOperationException("Another Vulkan Override Layer registration was found. LAB Plus leaves it unchanged. Disable that override in Vulkan Configurator or launch the game with the LAB Plus button.");
                 }
                 catch (JsonException)
                 {
