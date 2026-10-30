@@ -1,4 +1,4 @@
-#DEVIL_TRIGGER_PATHS_V1
+#LABPLUS_TRIGGER_PATHS_V1
 idEncounterTrigger_Commit	encounter/trigger/
 idEncounterTrigger_Exit	encounter/trigger/
 idEncounterTrigger_OverrideCombatGrouping	encounter/combat_role/
