@@ -43,7 +43,9 @@ internal static class GameLifecycleTests
             store.Update(s=>{s.GamePath=fake;return true;});
             child=Start();
             using(var monitor=new GameMonitor(store,false,DateTime.UtcNow.AddSeconds(1))){
-                WaitFor(()=>monitor.Connected&&monitor.RequiresRestart,"Preexisting game was not detected");
+                // Connected/RequiresRestart are assigned before the worker finishes
+                // publishing Status and lighting control. Wait for that publication.
+                WaitFor(()=>monitor.Connected&&monitor.RequiresRestart&&monitor.Status=="Restart game","Preexisting game was not detected");
                 check(monitor.Status=="Restart game"&&!monitor.CanApplyFeatures,"An external preexisting game cannot apply LAB features");
                 check(File.ReadAllText(Path.Combine(data,"lighting.ini")).Contains("Enabled=0"),"Restart mode keeps lighting control disabled");
                 check(!monitor.TryBeginLaunch(),"A detected game disables launch before native adapters initialize");
@@ -54,7 +56,7 @@ internal static class GameLifecycleTests
             child.Dispose();child=Start();
             GameLaunchHistory.Record(child,fake,store);
             using(var monitor=new GameMonitor(new SettingsStore(data),false,DateTime.UtcNow.AddSeconds(1))){
-                WaitFor(()=>monitor.Connected,"Recorded LAB launch was not detected");
+                WaitFor(()=>monitor.Connected&&monitor.Status=="Running unknown","Recorded LAB launch was not detected");
                 check(monitor.Status=="Running unknown"&&!monitor.RequiresRestart&&monitor.CanApplyFeatures,
                     "LAB launch identity survives a fresh settings store and LAB restart");
                 child.Kill();child.WaitForExit();
