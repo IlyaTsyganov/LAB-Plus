@@ -1,6 +1,6 @@
 # LAB Plus — контекст продолжения
 
-**2026-11-01. LAB Plus 0.8.10: local implementation and checks complete.** Remote code/release/Wiki publication is blocked by the current GitHub connection; the exact status and remaining steps are recorded at the end of this file.
+**2026-11-01. LAB Plus 0.8.10: local implementation and checks complete.** Implementation, source publication and Release 0.8.10 are complete. The verified publication results and the user's decision to manage Wiki manually are recorded at the end of this file.
 
 Repo: [IlyaTsyganov/LAB-Plus](https://github.com/IlyaTsyganov/LAB-Plus); workspace `C:\workspace\LAB-Plus`, ниже repo-relative paths. Не путать с отдельным LAB. Запрошены code push и полный ZIP в Releases после Praetor; публикацией занимается root.
 
@@ -233,10 +233,29 @@ The workspace's local Git metadata can remain on the original snapshot while sou
 
 ### Publication status
 
-**Not published remotely.** On 2026-11-01, the connected GitHub API rejected the first blob write with HTTP 403, `Resource not accessible by integration`. Its accessible-installations list was empty. Direct Git HTTPS from the execution environment also failed to connect. Main was verified still at `33df02e01a0f6d3ab6321750cab0d15d3ee66f98`; no source branch, tag, release asset or remote Wiki page was changed by this publication attempt. This is a connection capability limitation, not a request for the user to approve the same work again.
+Code is published on `IlyaTsyganov/LAB-Plus/main`:
 
-Local ZIP: `labplus-0.8.10-win-x64.zip`, SHA-256 `CC3997C1C5A5CBADBD154B840F42E2F86BFA35FE9910DDF86AA0A47B81C6EA61`. Native layer SHA-256: `92782B91FF16298A8783CA88833F78F84767B1B22BCDF0D4A2513C22E7B645A1`. Runtime package has 29 verified files; `LABPlus.exe` FileVersion is `0.8.10.0`. Full local verification is recorded in `build/qa-0.8.10/package-verification.json` (not a tracked runtime file).
+- Initial source commit: `b9c192afea093958a9989cfd1f5976d5177b8d7e`.
+- Its tree `6394ac70cde249b038ca04448cdff76b1f812732` exactly matches the independently verified local prepared source tree (357 files).
+- Release workflow fix commit: `ce77f56686f39b8e1c1db0c0c01fb62754abc93b`; it only moves runner-dependent environment initialization into a step and increments the build request revision. Native/application source is unchanged.
+- Final CI fixture-isolation correction: `f214038ee08a3fa610d83940f5beb5e5a0edcfa2`. Global data-root overrides interfered with ViewerBehaviorTests, which deliberately sets its own LOCALAPPDATA; the identical failure was reproduced locally with the override and the fixture passed without it. CI now preserves each fixture's own data isolation. No native/application source changed.
+- The earlier HTTP 403 blocker was resolved after the user installed/authorized the Codex GitHub connector. Connected GitHub Git-data writes and normal fast-forward ref updates now work. Local direct Git network escalation remains unavailable; publication uses the authorized connector.
 
-The Wiki has been refreshed locally for 0.8.10: 19 pages, including LAB and Invisible numbers. Internal links and documented command names were checked. The legacy developer page is now a short source/release pointer and is absent from the Sidebar. The user's final Wiki direction is to keep only practical user information: installation, features, commands, meaningful compatibility limits and troubleshooting. Developer details, fixture counts and implementation notes belong in this continuation context and `docs/validation`, outside the Wiki.
+The actual GitHub Wiki has been updated: 19 managed pages, default branch `master`, Wiki commit `78f794f10649f42d5b59b4a0112ac7d9ef8069a7`. The sync job verified the remote HEAD after its fast-forward push. Run `41307503533`, job `124850799546` completed successfully. Internal links (71) and documented commands were checked locally. The legacy developer page is now a short source/release pointer and is absent from the Sidebar. Keep only practical user information in Wiki; implementation, source audits and fixture details belong here or in `docs/validation`.
 
-Resume after a GitHub connection with repository contents/workflow write access becomes available: inspect the current remote main, publish the prepared source as a normal fast-forward, monitor the release workflow and Wiki sync, verify the tag/ZIP digest and actual Wiki HEAD, then update this status with observed URLs and SHAs. The built-in Actions token's ability to push the Wiki remains unverified; a denied Wiki job must not be reported as success. Do not overwrite an existing release or force-push a changed remote branch.
+**Release 0.8.10 is published and verified.**
+
+- Release: https://github.com/IlyaTsyganov/LAB-Plus/releases/tag/v0.8.10
+- Download: https://github.com/IlyaTsyganov/LAB-Plus/releases/download/v0.8.10/labplus-0.8.10-win-x64.zip
+- Published at: `2026-11-01T13:01:23Z`; Release ID `430588158`; non-draft, non-prerelease.
+- Tag `v0.8.10` points to the checked release source commit `f214038ee08a3fa610d83940f5beb5e5a0edcfa2`.
+- Successful release workflow: https://github.com/IlyaTsyganov/LAB-Plus/actions/runs/41308532075 ; job `124853863818`.
+- All 21 native fixture suites, launcher fixtures and 294 HUD checks passed in hosted CI. The package validator checked 29 runtime files, `LABPlus.exe` FileVersion `0.8.10.0`, Windows x64 PE and ZIP-root contents.
+- Assets: `labplus-0.8.10-win-x64.zip` (1,893,195 bytes) and `SHA256SUMS`; both uploaded. GitHub reports the ZIP SHA-256 as `809b4a91e058e4d8ac31fc39ad17d1059a12956c4a99ad3380f8f65067d5d28e`.
+- The source and user Wiki were published without force pushes or overwriting previous releases. A docs-only follow-up on main records these results; the immutable release source remains the tagged commit above.
+
+The early local prepared commit/bundle (`10b6a2d0b7b156cbf939a1a189d9c22335669782`) is a pre-publication checkpoint. Do not push it over current main. Remote main and this up-to-date continuation record are authoritative for future work.
+
+Local runtime ZIP: `labplus-0.8.10-win-x64.zip`, SHA-256 `CC3997C1C5A5CBADBD154B840F42E2F86BFA35FE9910DDF86AA0A47B81C6EA61`. Local native layer SHA-256: `92782B91FF16298A8783CA88833F78F84767B1B22BCDF0D4A2513C22E7B645A1`. Package: 29 files; `LABPlus.exe` FileVersion `0.8.10.0`. Local acceptance: 21 native suites, 24 isolated GPU cases, launcher/settings/protocol fixtures, 294 HUD checks and managed UI build passed. Hosted CI rebuilds the same native/application source and can produce different binary hashes; local GPU acceptance must not be represented as a GPU run of the hosted binary.
+
+Wiki ownership update: after the successful sync, the user explicitly stopped further Wiki edits and said they will correct it themselves. Do not edit or republish Wiki pages unless the user asks again. The attempted follow-up cleanup was cancelled before any edits were saved. Preserve user changes in the actual GitHub Wiki; the recorded sync commit is historical evidence, not a claim that the Wiki remains unchanged after the user edits it.
