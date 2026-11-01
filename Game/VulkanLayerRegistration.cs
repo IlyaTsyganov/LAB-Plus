@@ -102,7 +102,7 @@ public sealed class VulkanLayerRegistration
         return fullPath;
     }
 
-    private void PrepareRuntime()
+    internal void PrepareRuntime()
     {
         string dllPath = Path.Combine(AppContext.BaseDirectory, "Native", "CollisionViewer", "bin", "labplus-layer.dll");
         if (!File.Exists(dllPath))

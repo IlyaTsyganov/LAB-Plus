@@ -1,37 +1,33 @@
-# LAB Plus
+# LAB Plus 0.8.10
 
-LAB Plus is a Windows companion for researching and practising DOOM Eternal: inspect collision and volumes, record routes, compare movement attempts, explore observed entity references and manage checkpoint archives.
+LAB Plus is a Windows companion for researching and practising DOOM Eternal. Use the **LAB** tab for speedometers and gameplay display fixes, **Viewer** for collision and volumes, **Research** for observations and recordings, and **Saves** for checkpoint tools.
 
-The **Slayer Workspace** interface uses the original Eternal typefaces, a dark red gradient and the red emblem with a gold Plus. The application and this documentation are entirely in English. Technical names use `labplus`; console controls use `labplus_`.
-
-![LAB Plus Slayer Workspace](https://raw.githubusercontent.com/IlyaTsyganov/LAB-Plus/main/docs/images/workspace.png)
-
-## Start here
-
-1. Download the Windows x64 ZIP from [Releases](https://github.com/IlyaTsyganov/LAB-Plus/releases/latest).
-2. Read [Installation and first launch](Installation-and-first-launch).
-3. Check [Compatibility](Compatibility), particularly before using console controls or live checkpoint loading.
-4. Select `DOOMEternalx64vk.exe`, configure the Viewer and launch the game through LAB Plus.
+Start with [Installation and first launch](Installation-and-first-launch), then check [Compatibility](Compatibility) for your exact game executable. Download the complete Windows x64 package from [Releases](https://github.com/IlyaTsyganov/LAB-Plus/releases/latest) and run **LABPlus.exe**.
 
 ## Guides
 
-| Area | Guide |
+| What you want to do | Guide |
 | --- | --- |
-| Geometry, style and distance | [Collision viewer](Collision-viewer) |
-| Hierarchical filters, picking and history | [Trigger filters and volume inspector](Trigger-filters-and-volume-inspector) |
-| Path recording, markers and CSV | [Research timeline](Research-timeline) |
-| Attempts, collider, velocity and support angles | [Movement Lab and surface projections](Movement-Lab-and-surface-projections) |
-| Reference graphs and before/after snapshots | [Entity links and level comparison](Entity-links-and-level-comparison) |
-| Encounter manager observations and HUD | [Active encounters](Active-encounters) |
-| Named locations, notes and return data | [Research points](Research-points) |
-| Checkpoint library, archives and recovery | [Checkpoints and recovery](Checkpoints-and-recovery) |
-| Every public cvar, command and alias | [Console commands and cvars](Console-commands-and-cvars) |
-| Local storage and previous data | [Data and migration](Data-and-migration) |
-| Startup, rendering and console problems | [Troubleshooting](Troubleshooting) |
-| Source, dependencies and verification | [Building and validation](Building-and-validation) |
+| Configure speedometers, input protection, red-screen opacity or MR/cvars | [LAB](LAB) |
+| See enemy HP, cooldowns, powerups, sync timers and technique states | [Invisible numbers](Invisible-numbers) |
+| Inspect world collision, triggers and invisible walls | [Collision viewer](Collision-viewer) |
+| Filter trigger types and identify a volume under the crosshair | [Trigger filters and volume inspector](Trigger-filters-and-volume-inspector) |
+| Record a route and markers | [Research timeline](Research-timeline) |
+| Compare movement attempts, colliders and support angles | [Movement Lab and surface projections](Movement-Lab-and-surface-projections) |
+| Explore references or compare before/after level observations | [Entity links and level comparison](Entity-links-and-level-comparison) |
+| Inspect encounter managers and their HUD | [Active encounters](Active-encounters) |
+| Save annotated locations and return data | [Research points](Research-points) |
+| Manage real checkpoint archives and recovery | [Checkpoints and recovery](Checkpoints-and-recovery) |
+| Find exact command names and ranges | [Console commands and cvars](Console-commands-and-cvars) |
+| Locate preferences, recordings and logs | [Data and migration](Data-and-migration) |
+| Diagnose a problem | [Troubleshooting](Troubleshooting) |
 
-## Scope
+## Important distinctions
 
-LAB Plus is an unofficial community tool, unaffiliated with id Software or Bethesda. Collision decoding reads game data without changing physics. The Vulkan layer is loaded by the Vulkan loader at game startup. Optional research HUD and console integration use engine APIs through a compatible, already-loaded meathook. The checkpoint workflow can explicitly request an engine reload.
+Collision support covers 22 recognized executable profiles; this does not mean every timer or Research feature supports all 22. Compatible meathook is required for Research observations/HUD and its console commands, and is not bundled.
 
-Automated profile fixtures are not equivalent to testing every feature in a live game. Read the compatibility and validation pages for the exact boundaries. Source is GPL-3.0; bundled third-party components and game assets retain their own notices and ownership.
+On game 1.1, the supported Praetor Suit Point pickup has a **Player lock** timer until control returns. Other supported interactions show **current-clip** timers.
+
+Restart the game completely after first enabling a native feature or updating the layer. Keep the whole extracted package together.
+
+LAB Plus is an unofficial community tool. Source is GPL-3.0; third-party components and game-derived assets retain their respective notices and ownership.

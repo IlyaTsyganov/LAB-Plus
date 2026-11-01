@@ -1,0 +1,196 @@
+name: Build and publish requested release
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/release-request.json
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: labplus-release
+  cancel-in-progress: false
+
+jobs:
+  windows-release:
+    if: github.ref == 'refs/heads/main'
+    runs-on: windows-2025
+    timeout-minutes: 60
+    permissions:
+      contents: write
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      GH_REPO: ${{ github.repository }}
+      DOTNET_CLI_TELEMETRY_OPTOUT: '1'
+      DOTNET_NOLOGO: '1'
+      DOTNET_CLI_UI_LANGUAGE: en
+      LABPLUS_DATA_DIRECTORY: ${{ runner.temp }}\labplus-release-data
+      LAB_TEST_DATA_ROOT: ${{ runner.temp }}\labplus-release-fixtures
+      LAB_LAYOUT_TEST_PATHS: ''
+    steps:
+      - name: Check out the exact requested commit
+        uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Install .NET 10 SDK x64
+        uses: actions/setup-dotnet@v6.0.0
+        with:
+          dotnet-version: '10.0.x'
+          dotnet-quality: ga
+          architecture: x64
+
+      - name: Validate the release request and select the installed .NET 10 SDK
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $request = Get-Content -LiteralPath '.github/release-request.json' -Raw | ConvertFrom-Json
+          [xml]$project = Get-Content -LiteralPath 'labplus.csproj' -Raw
+          $version = ([string]$project.Project.PropertyGroup.Version).Trim()
+          if ($version -notmatch '^\d+\.\d+\.\d+$' -or $request.version -cne $version) {
+            throw 'The requested release must match the source project version.'
+          }
+          if ($request.tag -cne "v$version" -or $request.asset -cne "labplus-$version-win-x64.zip" -or
+              $request.notes -cne "docs/releases/$version.md" -or $request.title -cne "LAB Plus $version" -or
+              $request.expectedRuntimeFiles -ne 29) {
+            throw 'Unexpected release request, asset, notes path, title or reviewed package count.'
+          }
+          if (!(Test-Path -LiteralPath $request.notes -PathType Leaf)) { throw 'Release notes are missing.' }
+          $head = (& git rev-parse HEAD).Trim()
+          if ($LASTEXITCODE -ne 0 -or $head -cne $env:GITHUB_SHA) { throw 'Checkout is not the triggering commit.' }
+          $sdks = @(& dotnet --list-sdks)
+          if ($LASTEXITCODE -ne 0) { throw 'Could not list installed SDKs.' }
+          $sdk = @($sdks | ForEach-Object { if ($_ -match '^(10\.\d+\.\d+)\s') { $Matches[1] } } |
+            Sort-Object { [version]$_ })[-1]
+          if (!$sdk) { throw 'No stable .NET 10 SDK was installed.' }
+          @{ sdk = @{ version = $sdk; rollForward = 'latestPatch'; allowPrerelease = $false } } |
+            ConvertTo-Json | Set-Content -LiteralPath 'global.json' -Encoding utf8NoBOM
+          "RELEASE_VERSION=$version" >> $env:GITHUB_ENV
+          "RELEASE_TAG=$($request.tag)" >> $env:GITHUB_ENV
+          "RELEASE_TITLE=$($request.title)" >> $env:GITHUB_ENV
+          "RELEASE_NOTES=$($request.notes)" >> $env:GITHUB_ENV
+          "RELEASE_ASSET=$($request.asset)" >> $env:GITHUB_ENV
+          & dotnet --info
+          if ($LASTEXITCODE -ne 0) { throw '.NET SDK selection failed.' }
+          Get-Command gh -ErrorAction Stop | Out-Null
+
+      - name: Build the native layer and all fixture executables
+        run: |
+          & cmd /d /c '.\Native\CollisionViewer\build-viewer.cmd'
+          if ($LASTEXITCODE -ne 0) { throw 'Native layer or fixture build failed.' }
+          & '.\Native\Lighting\build.ps1'
+          if ($LASTEXITCODE -ne 0) { throw 'Native lighting build failed.' }
+
+      - name: Run every native fixture executable
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $buildScript = Get-Content -LiteralPath 'Native/CollisionViewer/build-viewer.cmd' -Raw
+          $expected = @([regex]::Matches($buildScript, '/Fe:bin\\(\S+Tests\.exe)') |
+            ForEach-Object { $_.Groups[1].Value } | Sort-Object -Unique)
+          $tests = @(Get-ChildItem -LiteralPath 'Native/CollisionViewer/bin' -File -Filter '*Tests.exe' | Sort-Object Name)
+          if ($expected.Count -lt 21 -or $tests.Count -ne $expected.Count -or
+              @(Compare-Object $expected @($tests.Name)).Count -ne 0) {
+            throw 'The native fixture set does not match the build script.'
+          }
+          foreach ($test in $tests) {
+            Write-Host "Running $($test.Name)"
+            & $test.FullName
+            if ($LASTEXITCODE -ne 0) { throw "Native fixture failed: $($test.Name)" }
+          }
+          "Native fixture executables passed: $($tests.Count)" >> $env:GITHUB_STEP_SUMMARY
+
+      - name: Run launcher and HUD fixtures without a game installation
+        run: |
+          & dotnet run --project 'Tests/Launcher/LauncherTests.csproj' --configuration Release
+          if ($LASTEXITCODE -ne 0) { throw 'Launcher fixtures failed.' }
+          & dotnet run --project 'Tests/Hud/Hud.Tests.csproj' --configuration Release
+          if ($LASTEXITCODE -ne 0) { throw 'HUD fixtures failed.' }
+          'Launcher and HUD fixture suites passed. Live game, GUI and GPU acceptance are separate local checks.' >> $env:GITHUB_STEP_SUMMARY
+
+      - name: Publish and package the Windows x64 application
+        run: |
+          $ErrorActionPreference = 'Stop'
+          & dotnet publish 'labplus.csproj' --configuration Release --self-contained false `
+            -p:PlatformTarget=x64 -p:PublishSingleFile=false -p:DebugType=None -p:DebugSymbols=false `
+            --output 'build/release-raw'
+          if ($LASTEXITCODE -ne 0) { throw 'Framework-dependent publish failed.' }
+          & '.\package-local.ps1' -Source (Join-Path $PWD 'build/release-raw')
+          $package = (Resolve-Path -LiteralPath 'publish').Path
+          $files = @(Get-ChildItem -LiteralPath $package -Recurse -File)
+          if ($files.Count -ne 29) { throw "Expected 29 runtime files; found $($files.Count)." }
+          if ($files.Name -match '\.pdb$|\.log$|^settings\.json$|^(README|CREDITS)\.md$') {
+            throw 'Unexpected development files or runtime state in the package.'
+          }
+          $exe = Join-Path $package 'LABPlus.exe'
+          $fileVersion = [Diagnostics.FileVersionInfo]::GetVersionInfo($exe).FileVersion
+          if ($fileVersion -cne "$env:RELEASE_VERSION.0") { throw "Unexpected LABPlus.exe FileVersion: $fileVersion" }
+          $stream = [IO.File]::OpenRead($exe)
+          try {
+            $reader = [IO.BinaryReader]::new($stream)
+            if ($reader.ReadUInt16() -ne 0x5a4d) { throw 'App host is not a PE executable.' }
+            $stream.Position = 0x3c
+            $pe = $reader.ReadInt32()
+            $stream.Position = $pe
+            if ($reader.ReadUInt32() -ne 0x4550 -or $reader.ReadUInt16() -ne 0x8664) {
+              throw 'App host is not a Windows x64 executable.'
+            }
+          } finally { $stream.Dispose() }
+          New-Item -ItemType Directory -Path 'artifacts/release' -Force | Out-Null
+          $zip = Join-Path $PWD "artifacts/release/$env:RELEASE_ASSET"
+          [IO.Compression.ZipFile]::CreateFromDirectory($package, $zip, [IO.Compression.CompressionLevel]::Optimal, $false)
+          $archive = [IO.Compression.ZipFile]::OpenRead($zip)
+          try {
+            $entries = @($archive.Entries | Where-Object { $_.Name })
+            if ($entries.Count -ne 29 -or !($entries.FullName -ccontains 'LABPlus.exe')) {
+              throw 'Release ZIP does not contain the exact runtime package at its root.'
+            }
+          } finally { $archive.Dispose() }
+          $hash = (Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash  $env:RELEASE_ASSET" | Set-Content -LiteralPath 'artifacts/release/SHA256SUMS' -Encoding ascii
+          "Package: $env:RELEASE_ASSET; 29 files; LABPlus.exe $fileVersion; Windows x64." >> $env:GITHUB_STEP_SUMMARY
+          "SHA-256: $hash" >> $env:GITHUB_STEP_SUMMARY
+
+      - name: Publish a new release from this exact commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $headers = @{
+            Authorization = "Bearer $env:GH_TOKEN"
+            Accept = 'application/vnd.github+json'
+            'X-GitHub-Api-Version' = '2022-11-28'
+          }
+          foreach ($path in @("releases/tags/$env:RELEASE_TAG", "git/ref/tags/$env:RELEASE_TAG")) {
+            $response = Invoke-WebRequest -Uri "https://api.github.com/repos/$env:GH_REPO/$path" `
+              -Headers $headers -SkipHttpErrorCheck
+            if ($response.StatusCode -eq 200) { throw "Refusing to overwrite an existing release or tag: $env:RELEASE_TAG" }
+            if ($response.StatusCode -ne 404) { throw "Release preflight failed: HTTP $($response.StatusCode)" }
+          }
+          # Creating the new ref without force closes the preflight race. An
+          # existing ref causes failure; its commit and assets are never replaced.
+          & gh api "repos/$env:GH_REPO/git/refs" --method POST `
+            -f "ref=refs/tags/$env:RELEASE_TAG" -f "sha=$env:GITHUB_SHA" --silent
+          if ($LASTEXITCODE -ne 0) { throw 'Could not create a new tag at the checked commit.' }
+          & gh release create $env:RELEASE_TAG --repo $env:GH_REPO --verify-tag `
+            --target $env:GITHUB_SHA --title $env:RELEASE_TITLE --notes-file $env:RELEASE_NOTES --draft `
+            "artifacts/release/$env:RELEASE_ASSET" 'artifacts/release/SHA256SUMS'
+          if ($LASTEXITCODE -ne 0) { throw 'Release creation or asset upload failed; no overwrite will be attempted.' }
+          $releaseJson = & gh release view $env:RELEASE_TAG --repo $env:GH_REPO --json isDraft,assets,tagName,targetCommitish,url
+          if ($LASTEXITCODE -ne 0) { throw 'Could not verify the uploaded draft.' }
+          $release = $releaseJson | ConvertFrom-Json
+          $actualAssets = @($release.assets.name | Sort-Object)
+          $expectedAssets = @($env:RELEASE_ASSET, 'SHA256SUMS') | Sort-Object
+          if (!$release.isDraft -or $release.tagName -cne $env:RELEASE_TAG -or
+              $release.targetCommitish -cne $env:GITHUB_SHA -or
+              @(Compare-Object $expectedAssets $actualAssets).Count -ne 0) {
+            throw 'The draft does not match this commit and its two expected release assets.'
+          }
+          & gh release edit $env:RELEASE_TAG --repo $env:GH_REPO --draft=false --latest
+          if ($LASTEXITCODE -ne 0) { throw 'Draft publication failed.' }
+          "Published: $($release.url)" >> $env:GITHUB_STEP_SUMMARY

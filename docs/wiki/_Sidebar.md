@@ -1,17 +1,18 @@
-**LAB Plus**
+**LAB Plus 0.8.10**
 
 - [Home](Home)
 - [Installation and first launch](Installation-and-first-launch)
 - [Compatibility](Compatibility)
+- [LAB](LAB)
+- [Invisible numbers](Invisible-numbers)
 - [Collision viewer](Collision-viewer)
 - [Trigger filters and volume inspector](Trigger-filters-and-volume-inspector)
+- [Active encounters](Active-encounters)
 - [Research timeline](Research-timeline)
 - [Movement Lab and surface projections](Movement-Lab-and-surface-projections)
 - [Entity links and level comparison](Entity-links-and-level-comparison)
-- [Active encounters](Active-encounters)
 - [Research points](Research-points)
 - [Checkpoints and recovery](Checkpoints-and-recovery)
+- [Console commands and cvars](Console-commands-and-cvars)
 - [Data and migration](Data-and-migration)
 - [Troubleshooting](Troubleshooting)
-- [Building and validation](Building-and-validation)
-- [Console commands and cvars](Console-commands-and-cvars)

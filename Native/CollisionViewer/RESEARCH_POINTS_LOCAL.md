@@ -30,7 +30,7 @@ The main **Saves** window provides simple live **Save / Load** controls ([instru
 4. Select a library row and **Verify archive**, **Export folder…**, or **Import folder…**. Import and restore require the same Steam account as the selected save location. Account changes/re-signing and campaign-family mixing are blocked.
 5. **Link to research point** associates the selected verified archive with the point. The archive's checkpoint may precede the point's precise location/time. Linking does not load anything.
 
-External archives are independent of the game's three slots per campaign. To use a library entry, restore it into an already occupied slot and load that slot normally in the game. The library loads metadata for up to 10,000 entries without automatic deletion; disk space and explicit per-file limits still apply. This is not an arbitrary mid-frame RAM snapshot or a replacement game serializer.
+External archives are independent of the game's three slots per campaign. To use a library entry, restore it into an already occupied slot and load that slot normally in the game. The library loads metadata for up to 10,000 entries without automatic deletion; disk space and explicit per-file limits still apply.
 
 ## Restoring a full archive
 
@@ -38,7 +38,7 @@ Close the game and Steam. Disable DOOM Eternal's Steam Cloud setting yourself, t
 
 The operation revalidates source hashes/authentication and the target fingerprint after review. It stages the complete replacement, preserves the raw current slot, copies `PROFILE` and the Steam app's flat metadata into recovery evidence, and retains the original directory outside `remote`. It does not replace/delete `PROFILE`, `remotecache.vdf` or the numbered Steam metadata files. Failure between directory renames attempts to return the original directory immediately. A detected game/Steam start during the operation aborts and rolls back the rename when possible.
 
-After success, the window provides the original directory and evidence paths. Those copies are retained; there is no automatic cleanup. The archive still represents the game's chosen checkpoint state. Loading it can reconstruct what the normal checkpoint serializer stored, not everything that was live when a research point was captured.
+After success, the window provides the original directory and evidence paths. Those copies are retained; there is no automatic cleanup. The archive still represents the game's chosen checkpoint state. Loading uses the game’s normal checkpoint workflow.
 
 Forced process/PC termination between the two directory renames is not automatically repaired on startup. Recovery evidence contains `restore-plan.json` and **`RESTORE_PATHS.txt`** written before the rename. If the target folder is missing, leave the game/Steam closed and recover the retained original directory to the exact target path; do not merge files from different copies. Staging/original directories are direct children of the Steam app folder, outside `remote`, so they are not presented as extra game slots. Keep the evidence until the result has been checked in the game.
 
@@ -65,7 +65,7 @@ Native tests cover guarded point reads, distinct body/camera/aim, selected-entit
 
 A read-only production probe on 6.66 Rev 3/UAC Atlantica captured the current body, camera eye, aim and checkpoint `01a_inside_building_a`; the managed parser accepted it. Read-only inspection of an existing Steam slot authenticated all four real primary/backup containers. No real save was replaced, repaired or loaded during development. Actual in-game acceptance of returned positions and restored/recovered archives still requires an expendable same-account practice slot. All ten native suites, managed/UI checks and 19 isolated GPU cases passed on the combined build.
 
-True arbitrary savestates with live AI, cooldowns, pickups and all script state would require investigating and validating the engine's own serialization/restore path and its side effects. The present observed-entity snapshots cannot supply that completeness. A new hidden-stat HUD (enemy health, fast-dblade eligibility, temporary-state timers) is also separate work: each value and its meaning needs to be verified. Existing Movement lab velocity/support telemetry remains available.
+Existing Movement lab velocity/support telemetry remains available.
 
 Sources used to establish the current workflow/format:
 

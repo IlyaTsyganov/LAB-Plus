@@ -1,0 +1,216 @@
+#include "../src/vulkan_layer.cpp"
+static void check(bool ok,const char* text) { if(!ok) { fprintf(stderr,"FAIL: %s\n",text); exit(1); } }
+template<class T> static void timerPut(uintptr_t p,size_t at,T value) { memcpy(reinterpret_cast<void*>(p+at),&value,sizeof(value)); }
+static const GameTimerRow& timerRow(const GameTimerSnapshot& value,const char* key) {
+    for(const auto& item:value.rows) if(item.key==key) return item;
+    fprintf(stderr,"Missing timer %s\n",key); exit(1);
+}
+static void checkAuditedTimerProfiles(uintptr_t base,uintptr_t map,uintptr_t clock,uintptr_t flag,uintptr_t lifetimeData) {
+    struct ProfileClock {const GameProfile* profile;uint32_t caller,getter,mapGlobal,manager,flagGlobal,lifetime,lifetimeGlobal;};
+    const ProfileClock cases[]{
+        {&kProfile10,0x18db163,0xb514e0,0x6136a10,0x127eb8,0x61355e0,0x1817fd1,0x61c57b0},
+        {&kProfile11,0x192c8d3,0xb5e450,0x6128718,0x127f68,0x61272b0,0x18671f1,0x61b87c0},
+        {&kProfile51,0x1ae67a3,0xc21100,0x658a5f0,0x1257e0,0x6588fb0,0x1a0e261,0x66263e0}};
+    const unsigned char caller[]{0x48,0x8b,0x0d,0,0,0,0,0x48,0x8d,0x54,0x24,0x30,0x48,0x8b,0x9f,0x80,0,0,0,0x48,0x81,0xc1,0,0,0,0,0x41,0xb8,1,0,0,0,0xe8,0,0,0,0};
+    const unsigned char getter[]{0x48,0x8b,0x05,0,0,0,0,0x4c,0x8b,0xc9,0x83,0x78,0x08,0,0x75,0x0f,0x48,0x8b,0x41,0x10,0x48,0x8b,0x48,0x18,0x48,0x8b,0xc2,0x48,0x89,0x0a,0xc3,0x49,0x63,0xc0,0x48,0x8d,0x0c,0xc0,0x49,0x8b,0x41,0x10,0x48,0x8b,0x4c,0xc8,0x18,0x48,0x8b,0xc2,0x48,0x89,0x0a,0xc3};
+    const unsigned char lifetime[]{0x48,0x8b,0x05,0,0,0,0,0x0f,0x57,0xff,0xf3,0x0f,0x10,0x48,0x0c};
+    LevelIdentity level{map,1,"profile_fixture"};
+    for(const auto& entry:cases) {
+        const auto& profile=*entry.profile;
+        memcpy(reinterpret_cast<void*>(base+entry.caller),caller,sizeof(caller));
+        timerPut(base,entry.caller+3,int32_t(entry.mapGlobal-(entry.caller+7)));timerPut(base,entry.caller+22,entry.manager);timerPut(base,entry.caller+33,int32_t(entry.getter-(entry.caller+37)));
+        memcpy(reinterpret_cast<void*>(base+entry.getter),getter,sizeof(getter));timerPut(base,entry.getter+3,int32_t(entry.flagGlobal-(entry.getter+7)));
+        timerPut(base,entry.mapGlobal,map);timerPut(map,entry.manager+16,clock);timerPut(base,entry.flagGlobal,flag);timerPut(flag,8,int32_t(1));
+        auto value=readGameTimerClock(WallMemory{},base,profile,level,128);check(value.valid&&value.ticks==999960,"audited 1.0/1.1/5.1 clocks select scaled domain1");
+        timerPut(flag,8,int32_t(0));value=readGameTimerClock(WallMemory{},base,profile,level,128);check(value.valid&&value.ticks==1999920,"audited clocks honor disabled time scaling");timerPut(flag,8,int32_t(1));
+        check(!readGameTimerClock(WallMemory{},base,profile,level,129).valid,"reflected flame offset mismatch blocks all audited clocks");
+        timerPut(base,entry.mapGlobal,map+8);check(!readGameTimerClock(WallMemory{},base,profile,level,128).valid,"foreign map clock cannot supply countdowns");timerPut(base,entry.mapGlobal,map);
+        timerPut(base,entry.caller+28,uint8_t(2));check(!readGameTimerClock(WallMemory{},base,profile,level,128).valid,"caller selecting another time domain is rejected");timerPut(base,entry.caller+28,uint8_t(1));
+        timerPut(base,entry.getter+10,uint8_t(0x90));check(!readGameTimerClock(WallMemory{},base,profile,level,128).valid,"changed clock getter is rejected for every profile");timerPut(base,entry.getter+10,uint8_t(0x83));
+        timerPut(base,entry.getter+53,uint8_t(0x90));check(!readGameTimerClock(WallMemory{},base,profile,level,128).valid,"changed getter return sequence is rejected for every profile");timerPut(base,entry.getter+53,uint8_t(0xc3));
+        timerPut(base,entry.getter+3,int32_t(profile.imageSize+16-(entry.getter+7)));check(!readGameTimerClock(WallMemory{},base,profile,level,128).valid,"out-of-image scaling pointer is rejected");timerPut(base,entry.getter+3,int32_t(entry.flagGlobal-(entry.getter+7)));
+        auto foreign=profile;++foreign.timestamp;check(!readGameTimerClock(WallMemory{},base,foreign,level,128).valid,"timestamp mismatch cannot borrow audited code locations");
+        foreign=profile;++foreign.imageSize;check(!readGameTimerClock(WallMemory{},base,foreign,level,128).valid,"image-size mismatch cannot borrow audited code locations");
+        memcpy(reinterpret_cast<void*>(base+entry.lifetime),lifetime,sizeof(lifetime));timerPut(base,entry.lifetime+3,int32_t(entry.lifetimeGlobal-(entry.lifetime+7)));timerPut(base,entry.lifetimeGlobal,lifetimeData);
+        timerPut(lifetimeData,12,4.5f);double seconds=0;check(readPowerupLifetimeOverride(WallMemory{},base,profile,seconds)&&seconds==4.5,"audited powerup lifetime readers include 1.1");
+        timerPut(base,entry.lifetime+14,uint8_t(0x10));check(!readPowerupLifetimeOverride(WallMemory{},base,profile,seconds),"changed powerup value-field instruction is rejected");timerPut(base,entry.lifetime+14,uint8_t(0x0c));
+        timerPut(lifetimeData,12,std::numeric_limits<float>::quiet_NaN());check(!readPowerupLifetimeOverride(WallMemory{},base,profile,seconds),"nonfinite powerup lifetime is unavailable");timerPut(lifetimeData,12,0.f);
+    }
+}
+int main() {
+    double remaining=0;
+    check(timerRemaining(1999920,999960,remaining)&&remaining==1,"tick conversion");
+    check(timerRemaining(0,999960,remaining)&&remaining==0,"expired timer clamps");
+    check(!timerRemaining(-1,999960,remaining)&&!timerRemaining(INT64_MAX,999960,remaining),"sentinel and unreasonable deadlines rejected");
+    int64_t clipEnd=0;float ordinaryRate[3]{1,1,1},halfRate[3]{1,1,.5f};
+    check(timerLeafEnd(121,60,999960,ordinaryRate,1,clipEnd)&&clipEnd==2999880,"clip duration counts frame intervals");
+    check(timerLeafEnd(121,60,999960,halfRate,1,clipEnd)&&clipEnd==4999800,"clip rate scales change actual end time");
+    check(!timerLeafEnd(121,0,0,ordinaryRate,1,clipEnd)&&!timerLeafEnd(121,60,0,ordinaryRate,0,clipEnd),"invalid and stopped clip clocks rejected");
+    auto charges=stickyChargeTimers(.6f,.2f,1.f,.08f,749970,0);
+    check(charges.valid&&charges.capacity==5&&charges.available==2&&fabs(charges.nextCharge-3.25)<.00001&&charges.fullReload==0,"partial sticky use regenerates next individual charge");
+    charges=stickyChargeTimers(1.f,.2f,1.f,.08f,0,1999920);
+    check(charges.valid&&charges.available==0&&charges.fullReload==2&&charges.nextCharge==0,"empty sticky magazine has separate all-charge reload");
+    charges=stickyChargeTimers(0,.2f,1.f,.08f,0,0);check(charges.valid&&charges.available==5&&!charges.nextCharge&&!charges.fullReload,"finished sticky reload restores every charge");
+    check(!stickyChargeTimers(.5f,0,1,.08f,0,0).valid&&!stickyChargeTimers(.5f,.3f,1,.08f,0,0).valid,"unsupported sticky capacity cannot invent available charges");
+    check(stickyReloadMaximum(2.5,1,{-1,2})==2,"sticky reload maximum uses secondary heating mode even after primary mode resumes");
+    check(stickyReloadMaximum(2.5,2,{-1,2})<0&&stickyReloadMaximum(2.5,2,{2,2})==2,"both-mode reload maximum requires consistent known settings");
+    charges=stickyChargeTimers(.6f,.2f,1.f,.08f,749970,0);auto chargeQueue=stickyChargeQueue(charges,.2f,.08f,.75,2);
+    check(chargeQueue.size()==3&&chargeQueue[0].group=="sticky_charges"&&chargeQueue[2].key=="sticky_charge_3","only missing sticky charges have ordered queue rows");
+    check(fabs(chargeQueue[0].remaining-3.25)<.00001&&fabs(chargeQueue[1].remaining-5.75)<.00001&&fabs(chargeQueue[2].remaining-8.25)<.00001,"sequential sticky countdowns have distinct completion times");
+    check(fabs(chargeQueue[2].maximum-8.25)<.00001,"queue maximum includes one cooling delay and sequential recharge intervals");
+    charges=stickyChargeTimers(1.f,.2f,1.f,.08f,0,1999920);chargeQueue=stickyChargeQueue(charges,.2f,.08f,.75,2);
+    check(chargeQueue.size()==5&&std::all_of(chargeQueue.begin(),chargeQueue.end(),[](const auto& row){return row.remaining==2&&row.maximum==2&&row.detail.find("Shared full reload")!=std::string::npos;}),"empty magazine shares one full-reload deadline across all charges");
+    charges=stickyChargeTimers(0,.2f,1.f,.08f,0,0);check(stickyChargeQueue(charges,.2f,.08f,.75,2).empty(),"ready charges do not create invented timers");
+    charges=stickyChargeTimers(.6f,.2f,1.f,.08f,0,0);chargeQueue=stickyChargeQueue(charges,.2f,.08f,-1,-1);check(chargeQueue.size()==3&&chargeQueue[0].maximum<0,"unknown configured maximum does not hide real countdowns or invent totals");
+    GameTimerRow maximumCheck;maximumCheck.remaining=3;timerSetMaximum(maximumCheck,2);check(maximumCheck.maximum<0,"remaining greater than configured maximum stays unknown");timerSetMaximum(maximumCheck,4);check(maximumCheck.maximum==4,"verified maximum retained beside remaining");
+    std::unordered_map<std::string,GraphType> types;
+    const std::string time="idTypesafeTime < long long , gameTimeUnique_t , 999960 >";
+    auto schema=[&](const char* type,uint32_t size,std::initializer_list<GraphField> fields) { types[type]={size,"",fields,true}; };
+    schema("idPlayer",2048,{{"flameBelchNextUseTime",time,"",128,8},{"equipmentInfo","idPlayer::equipmentInfo_t","",256,216},
+        {"bodyAnimInfo","idPlayer::playerBodyAnimInfo_t","",600,64},{"playerMechanicLedgeGrab","idPlayerMechanicLedgeGrab","",700,32},
+        {"syncMaster","idManagedClassPtr < idSyncEntity >","",1000,32},{"syncMelee","idSyncAttack","",1100,64},{"playerMechanicSync","idPlayerMechanicSync","",1200,64},
+        {"playerProps","idDeclPlayerProps","*",1400,8},{"lastUsedInteractable","idManagedClassPtr < idInteractable >","",1440,32}});
+    schema("idPlayer::equipmentInfo_t",216,{{"equipmentItems","idArray < idPlayer::equipmentInfo_t::itemData_t , 4 >","",40,160}});
+    schema("idPlayer::equipmentInfo_t::itemData_t",40,{{"equipmentRechargeTime",time,"",16,8},{"equipmentReuseTime",time,"",24,8},{"equipmentUsesAvailable","int","",32,4},{"equipmentRechargeDuration",time,"",8,8}});
+    schema("milliToGameTime_t",16,{{"gameTime",time,"",0,8},{"milliseconds","idTypesafeTime < int , millisecondUnique_t , 1000 >","",8,4}});
+    schema("idActor",2048,{{"statusEffectComponent","idStatusEffectComponent","",800,136},{"inventory","idInventoryCollection","",1300,24}});
+    schema("idInventoryCollection",24,{{"inventory","idList < idManagedClassPtr < idInventoryItem > , TAG_IDLIST , false >","",0,24}});
+    schema("idList < idManagedClassPtr < idInventoryItem > , TAG_IDLIST , false >",24,{{"list","idManagedClassPtr < idInventoryItem >","*",0,8},{"num","int","",8,4}});
+    schema("idManagedClassPtr < idInventoryItem >",32,{{"ptr","idInventoryItem","*",8,8},{"spawnId","idSpawnId","",0,4}});
+    schema("idManagedClassPtr < idEntity >",32,{{"ptr","idEntity","*",8,8},{"spawnId","idSpawnId","",0,4}});
+    schema("idManagedClassPtr < idInteractable >",32,{{"ptr","idInteractable","*",8,8},{"spawnId","idSpawnId","",0,4}});
+    schema("idManagedClassPtr < idAnimatedEntity >",32,{{"ptr","idAnimatedEntity","*",8,8},{"spawnId","idSpawnId","",0,4}});
+    schema("idInteractable",512,{{"interaction","idInteractionComponent","",256,128}});
+    schema("idInteractionComponent",128,{{"activeSyncEntity","idManagedClassPtr < idSyncEntity >","",0,32},
+        {"playerActivator","idManagedClassPtr < idEntity >","",32,32},{"ownerEntity","idManagedClassPtr < idAnimatedEntity >","",64,32}});
+    schema("idInventoryItem",272,{{"decl","idDeclInventory","*",56,8},{"count","int","",64,4},{"mapUseAllowed","bool","",71,1},{"owner","idManagedClassPtr < idEntity >","",168,32}});
+    schema("idDeclPlayerProps",64,{{"validEquipmentList","idList < idDeclPlayerProps::validEquipmentEntry_t , TAG_IDLIST , false >","",0,24}});
+    schema("idList < idDeclPlayerProps::validEquipmentEntry_t , TAG_IDLIST , false >",24,{{"list","idDeclPlayerProps::validEquipmentEntry_t","*",0,8},{"num","int","",8,4}});
+    schema("idDeclPlayerProps::validEquipmentEntry_t",16,{{"item","idDeclInventory","*",0,8},{"type","equipmentType_t","",12,4}});
+    schema("idWeapon",2048,{{"upgradeComponent","idInventoryItemUpgrade","",1500,48}});
+    schema("idInventoryItemUpgrade",48,{});types["idInventoryItemUpgrade"].parent="idUpgradeComponent";
+    schema("idUpgradeComponent",40,{{"activeUpgrades","idList < idUpgradeComponent::activeUpgradeInfo_t , TAG_IDLIST , false >","",8,24}});
+    schema("idList < idUpgradeComponent::activeUpgradeInfo_t , TAG_IDLIST , false >",24,{{"list","idUpgradeComponent::activeUpgradeInfo_t","*",0,8},{"num","int","",8,4}});
+    schema("idUpgradeComponent::activeUpgradeInfo_t",16,{{"upgradeDecl","idDeclUpgrade","*",0,8},{"upgradeCount","int","",8,4},{"cheatCount","int","",12,4}});
+    schema("idDeclUpgrade",64,{{"modifiersWeapon","idList < idUpgradeMod_Weapon , TAG_IDLIST , false >","",0,24}});
+    schema("idList < idUpgradeMod_Weapon , TAG_IDLIST , false >",24,{{"list","idUpgradeMod_Weapon","*",0,8},{"num","int","",8,4}});
+    schema("idUpgradeMod_Weapon",152,{{"type","idUpgradeMod_Weapon::weaponModType_t","",8,4},{"data","upgradeDataValue_t","",16,120},{"fireMode","weaponFireMode_t","",144,4}});
+    schema("upgradeDataValue_t",120,{{"valueDecl","idGameDeclTypeInfo","*",32,8}});
+    schema("idStatusEffectComponent",136,{{"activeStatusEffects","idStaticList < idStatusEffect * , 10 , false , TAG_IDLIST >","",32,104}});
+    schema("idList < idStatusEffect * , TAG_IDLIST , false >",24,{{"list","idStatusEffect","**",0,8},{"num","int","",8,4}});
+    schema("idStatusEffect",160,{{"timeLeft",time,"",96,8},{"decl","idDeclStatusEffect","*",112,8},{"inActive","bool","",120,1},{"isPaused","bool","",121,1},{"overrides","idStatusEffect::upgradeOverride_t","",128,16}});
+    schema("idStatusEffect::upgradeOverride_t",16,{{"lifeTime",time,"",0,8}});
+    schema("idDeclStatusEffect",32,{{"isPowerUp","bool","",24,1},{"lifeTimeMS","idTypesafeTime < int , millisecondUnique_t , 1000 >","",16,4}});
+    schema("idResource",32,{{"name","idAtomicString","",8,8}});
+    schema("idAtomicString",8,{{"str","char","*",0,8}});
+    schema("idPlayer::playerBodyAnimInfo_t",64,{{"ledgeGrabAnimPlaying","bool","",0,1},{"interactAnimIsPlaying","bool","",1,1}});
+    schema("idPlayerMechanicLedgeGrab",32,{{"grabEndTime",time,"",8,8},{"grabStartTime",time,"",0,8}});
+    schema("idManagedClassPtr < idSyncEntity >",32,{{"ptr","idSyncEntity","*",8,8},{"spawnId","idSpawnId","",0,4}});
+    schema("idManagedClassPtr < idPlayer >",32,{{"ptr","idPlayer","*",8,8},{"spawnId","idSpawnId","",0,4}});
+    schema("idSyncAttack",64,{{"currentSyncEntity","idManagedClassPtr < idSyncEntity >","",0,32}});
+    schema("idPlayerMechanicSync",64,{{"syncAnimEntities","idList < idManagedClassPtr < idSyncEntity > , TAG_IDLIST , false >","",40,24}});
+    schema("idList < idManagedClassPtr < idSyncEntity > , TAG_IDLIST , false >",24,{{"list","idManagedClassPtr < idSyncEntity >","*",0,8},{"num","int","",8,4}});
+    schema("idSyncEntity",512,{{"isCurrentlyWorking","bool","",180,1},{"isInteractableSync","bool","",181,1},{"syncPlayer","idManagedClassPtr < idPlayer >","",200,32},{"currentSyncEntityAnim","idMD6Anim","*",240,8}});
+    schema("idAnimatedEntity",512,{{"animStack","idAnimStack","",256,128}});
+    schema("idAnimStack",128,{{"tree","idMD6Node","*",0,8},{"useClientLocalTime","bool","",8,1},{"pauseTime",time,"",16,8}});
+    schema("idMD6Node",16,{{"type","unsigned char","",12,1}});
+    schema("idMD6Branch",80,{{"left","idMD6Node","*",16,8},{"right","idMD6Node","*",24,8},{"leftTimeOverride",time,"",40,8},{"rightTimeOverride",time,"",48,8}});
+    schema("idMD6Leaf",40,{{"anim","idMD6Anim","*",16,8},{"wrapMode","unsigned char","",29,1},{"lastTotalWeight","float","",24,4}});
+    schema("idMD6LeafPlay",96,{{"startTime",time,"",40,8},{"gameRateScales","idArray < float , 3 >","",48,12},{"rateScale","float","",64,4}});
+    schema("idMD6Anim",112,{{"animData","idMD6AnimData","*",96,8}});
+    schema("idMD6AnimData",144,{{"numFrames","unsigned short","",16,2},{"frameRate","unsigned short","",18,2}});
+    GraphType missing; GraphLookup lookup=[&](const std::string& name)->const GraphType& {auto found=types.find(name);return found==types.end()?missing:found->second;};
+    std::array<unsigned char,16> durationDefinition{};timerPut(reinterpret_cast<uintptr_t>(durationDefinition.data()),0,int64_t(-1));timerPut(reinterpret_cast<uintptr_t>(durationDefinition.data()),8,int32_t(750));
+    GraphField durationSetting{"coolingDelayMS","milliToGameTime_t","",0,16};
+    check(timerConfiguredDuration(WallMemory{},reinterpret_cast<uintptr_t>(durationDefinition.data()),&durationSetting,lookup)==.75,"configured duration uses authoritative milliseconds even before game-time cache initialization");
+    auto* allocation=static_cast<unsigned char*>(VirtualAlloc(nullptr,0x7000000,MEM_RESERVE|MEM_COMMIT,PAGE_READWRITE));
+    check(allocation!=nullptr,"fixture allocation"); uintptr_t base=reinterpret_cast<uintptr_t>(allocation);
+    std::vector<unsigned char> playerBytes(2048),systemBytes(128),mapBytes(0x130000),clockBytes(200),flagBytes(16),effectBytes(160),declBytes(32),lifetimeCvarBytes(16);
+    uintptr_t player=reinterpret_cast<uintptr_t>(playerBytes.data()),system=reinterpret_cast<uintptr_t>(systemBytes.data()),map=reinterpret_cast<uintptr_t>(mapBytes.data()),
+        clock=reinterpret_cast<uintptr_t>(clockBytes.data()),flag=reinterpret_cast<uintptr_t>(flagBytes.data()),effect=reinterpret_cast<uintptr_t>(effectBytes.data()),decl=reinterpret_cast<uintptr_t>(declBytes.data());
+    const auto& profile=kProfile10;
+    timerPut(base,profile.gameSystemRva,system);timerPut(system,0x50,map);timerPut(map,profile.mapPlayerOffset,player);timerPut(player,0,base+profile.playerVtableRva);
+    std::array<std::array<unsigned char,272>,3> inventoryItems{};std::array<unsigned char,96> inventoryReferences{};std::array<unsigned char,64> propsBytes{},bindingBytes{};
+    uintptr_t props=reinterpret_cast<uintptr_t>(propsBytes.data()),bindings=reinterpret_cast<uintptr_t>(bindingBytes.data()),references=reinterpret_cast<uintptr_t>(inventoryReferences.data());
+    timerPut(player,1300,references);timerPut(player,1308,int32_t(3));timerPut(player,1400,props);timerPut(props,0,bindings);timerPut(props,8,int32_t(4));
+    for(unsigned i=0;i<3;++i){uintptr_t item=reinterpret_cast<uintptr_t>(inventoryItems[i].data()),declaration=0x111100+size_t(i)*16;
+        timerPut(references,size_t(i)*32+8,item);timerPut(item,56,declaration);timerPut(item,64,int32_t(1));timerPut(item,71,uint8_t(1));timerPut(item,176,player);
+        timerPut(bindings,size_t(i)*16,declaration);timerPut(bindings,size_t(i)*16+12,int32_t(i));}
+    timerPut(bindings,48,uintptr_t(0x333300));timerPut(bindings,60,int32_t(2));
+    auto inventorySnapshot=readTimerInventory(WallMemory{},player,lookup);check(inventorySnapshot.known&&inventorySnapshot.items.size()==3,"inventory ownership reads actual item objects");
+    auto equipmentOwned=readEquipmentOwnership(WallMemory{},player,inventorySnapshot,lookup);check(equipmentOwned[2].state=="owned","one owned flame launcher declaration is sufficient when right launcher is absent");
+    timerPut(base,0x6136a10,map);timerPut(base,0x61355e0,flag);timerPut(map,0x127eb8+16,clock);timerPut(flag,8,int32_t(1));
+    timerPut(clock,24,int64_t(1999920));timerPut(clock,96,int64_t(999960));
+    const unsigned char code[]{0x48,0x8b,0x0d,0,0,0,0,0x48,0x8d,0x54,0x24,0x30,0x48,0x8b,0x9f,0x80,0,0,0,0x48,0x81,0xc1,0xb8,0x7e,0x12,0,0x41,0xb8,1,0,0,0,0xe8,0,0,0,0};
+    memcpy(allocation+0x18db163,code,sizeof(code));timerPut(base,0x18db166,int32_t(0x6136a10-(0x18db163+7)));timerPut(base,0x18db184,int32_t(0xb514e0-(0x18db163+37)));
+    const unsigned char getter[]{0x48,0x8b,0x05,0,0,0,0,0x4c,0x8b,0xc9,0x83,0x78,0x08,0,0x75,0x0f,0x48,0x8b,0x41,0x10,0x48,0x8b,0x48,0x18,0x48,0x8b,0xc2,0x48,0x89,0x0a,0xc3,0x49,0x63,0xc0,0x48,0x8d,0x0c,0xc0,0x49,0x8b,0x41,0x10,0x48,0x8b,0x4c,0xc8,0x18,0x48,0x8b,0xc2,0x48,0x89,0x0a,0xc3};
+    memcpy(allocation+0xb514e0,getter,sizeof(getter));timerPut(base,0xb514e3,int32_t(0x61355e0-(0xb514e0+7)));
+    const unsigned char lifetimeCode[]{0x48,0x8b,0x05,0,0,0,0,0x0f,0x57,0xff,0xf3,0x0f,0x10,0x48,0x0c};
+    memcpy(allocation+0x1817fd1,lifetimeCode,sizeof(lifetimeCode));timerPut(base,0x1817fd4,int32_t(0x61c57b0-(0x1817fd1+7)));timerPut(base,0x61c57b0,reinterpret_cast<uintptr_t>(lifetimeCvarBytes.data()));
+    checkAuditedTimerProfiles(base,map,clock,flag,reinterpret_cast<uintptr_t>(lifetimeCvarBytes.data()));
+    double lifetimeOverride=0;check(readPowerupLifetimeOverride(WallMemory{},base,profile,lifetimeOverride)&&lifetimeOverride==0,"powerup maximum reads audited lifetime override source");
+    LevelIdentity level{map,1,"test"};
+    auto value=readGameTimerClock(WallMemory{},base,profile,level,128);
+    check(value.valid&&value.ticks==999960,"scaled clock domain1");
+    timerPut(flag,8,int32_t(0));value=readGameTimerClock(WallMemory{},base,profile,level,128);check(value.valid&&value.ticks==1999920,"unscaled clock domain0");timerPut(flag,8,int32_t(1));
+    allocation[0xb514e0+10]=0x90;check(!readGameTimerClock(WallMemory{},base,profile,level,128).valid,"changed getter blocks countdowns");allocation[0xb514e0+10]=0x83;
+    timerPut(player,312,int64_t(3999840));timerPut(player,304,int64_t(3999840));timerPut(player,328,int32_t(1));timerPut(player,408,int32_t(1));timerPut(player,128,int64_t(1));
+    auto snapshot=captureGameTimers(WallMemory{},base,profile,level,lookup);
+    check(timerRow(snapshot,"frag_grenade").remaining==3&&timerRow(snapshot,"frag_grenade").state=="cooldown"&&timerRow(snapshot,"frag_grenade").detail.find("1 charge")!=std::string::npos,"available charge and recharge timer coexist");
+    check(timerRow(snapshot,"frag_grenade").maximum==4,"equipment maximum uses stored recharge duration");
+    check(timerRow(snapshot,"flame_belch").state=="ready","expired flame gate ready");
+    check(timerRow(snapshot,"ice_bomb").state=="unavailable","zero charges without a recharge cannot claim ready");
+    timerPut(player,1308,int32_t(0));snapshot=captureGameTimers(WallMemory{},base,profile,level,lookup);
+    check(timerRow(snapshot,"frag_grenade").state=="not_acquired"&&timerRow(snapshot,"flame_belch").state=="not_acquired","initialized ready counts cannot create equipment absent from inventory");timerPut(player,1308,int32_t(3));
+    timerPut(reinterpret_cast<uintptr_t>(inventoryItems[2].data()),64,int32_t(0));snapshot=captureGameTimers(WallMemory{},base,profile,level,lookup);check(timerRow(snapshot,"flame_belch").state=="not_acquired","zero item count cannot own equipment despite initialized available uses");timerPut(reinterpret_cast<uintptr_t>(inventoryItems[2].data()),64,int32_t(1));
+    timerPut(reinterpret_cast<uintptr_t>(inventoryItems[2].data()),71,uint8_t(0));snapshot=captureGameTimers(WallMemory{},base,profile,level,lookup);check(timerRow(snapshot,"flame_belch").state=="unavailable","map-blocked owned equipment is not ready");timerPut(reinterpret_cast<uintptr_t>(inventoryItems[2].data()),71,uint8_t(1));
+    auto savedInventory=types["idInventoryItem"];types["idInventoryItem"].complete=false;snapshot=captureGameTimers(WallMemory{},base,profile,level,lookup);check(timerRow(snapshot,"frag_grenade").state=="unavailable","unknown inventory metadata is not unowned or ready");types["idInventoryItem"]=savedInventory;
+    std::array<unsigned char,16> upgradeEntry{};std::array<unsigned char,64> upgradeDecl{};std::array<unsigned char,152> modifier{};
+    uintptr_t upgradeAt=reinterpret_cast<uintptr_t>(upgradeEntry.data()),upgrade=reinterpret_cast<uintptr_t>(upgradeDecl.data()),mod=reinterpret_cast<uintptr_t>(modifier.data()),sticky=0x555500;
+    timerPut(player,1508,upgradeAt);timerPut(player,1516,int32_t(1));timerPut(upgradeAt,0,upgrade);timerPut(upgradeAt,8,int32_t(1));timerPut(upgrade,0,mod);timerPut(upgrade,8,int32_t(1));timerPut(mod,8,int32_t(40));timerPut(mod,144,int32_t(1));timerPut(mod,48,sticky);
+    check(readWeaponModGrant(WallMemory{},player,sticky,lookup).state=="owned","matching active weapon-declaration grant proves selected mod acquisition");
+    timerPut(mod,144,int32_t(0));check(readWeaponModGrant(WallMemory{},player,sticky,lookup).state=="owned","declaration ownership does not guess inherited fire-mode application");timerPut(mod,144,int32_t(1));
+    timerPut(upgradeAt,8,int32_t(0));check(readWeaponModGrant(WallMemory{},player,sticky,lookup).state=="unavailable","cached declaration without active unlock does not prove ownership");timerPut(upgradeAt,12,int32_t(1));check(readWeaponModGrant(WallMemory{},player,sticky,lookup).state=="owned","active cheat grant is valid usable ownership");timerPut(mod,8,int32_t(43));check(readWeaponModGrant(WallMemory{},player,sticky,lookup).state=="unavailable","a different modifier kind cannot grant the selected mod");
+    types["idPlayer"].fields[1].size=176;types["idPlayer::equipmentInfo_t"].size=176;
+    types["idPlayer::equipmentInfo_t"].fields[0].size=120;types["idPlayer::equipmentInfo_t"].fields[0].type="idArray < idPlayer::equipmentInfo_t::itemData_t , 3 >";
+    snapshot=captureGameTimers(WallMemory{},base,profile,level,lookup);
+    check(timerRow(snapshot,"frag_grenade").remaining==3&&timerRow(snapshot,"flame_belch").state=="ready","1.0 three-element equipment array uses the same validated timers");
+    check(timerRow(snapshot,"mantle").state=="inactive"&&timerRow(snapshot,"interaction").state=="inactive","inactive animations clear");
+    timerPut(player,600,uint8_t(1));timerPut(player,700,int64_t(499980));timerPut(player,708,int64_t(2499900));snapshot=captureGameTimers(WallMemory{},base,profile,level,lookup);
+    check(timerRow(snapshot,"mantle").state=="active"&&timerRow(snapshot,"mantle").remaining==1.5,"mantle engine end time");
+    check(timerRow(snapshot,"mantle").maximum==2,"mantle maximum uses actual start and end times");
+    check(timerRow(snapshot,"sticky_bomb").state=="unavailable"&&timerRow(snapshot,"sync_animation").state=="inactive","unaudited source unavailable and absent sync inactive");
+    std::vector<unsigned char> syncBytes(512),leafBytes(96),animBytes(112),dataBytes(144);
+    uintptr_t sync=reinterpret_cast<uintptr_t>(syncBytes.data()),leaf=reinterpret_cast<uintptr_t>(leafBytes.data()),animation=reinterpret_cast<uintptr_t>(animBytes.data()),data=reinterpret_cast<uintptr_t>(dataBytes.data());
+    timerPut(player,1008,sync);timerPut(player,1108,sync);timerPut(sync,180,uint8_t(1));timerPut(sync,208,player);timerPut(sync,240,animation);timerPut(sync,256,leaf);timerPut(sync,272,int64_t(-1));
+    timerPut(leaf,12,uint8_t(2));timerPut(leaf,16,animation);timerPut(leaf,24,1.f);timerPut(leaf,40,int64_t(0));
+    for(unsigned i=0;i<3;++i)timerPut(leaf,48+i*4,1.f);timerPut(leaf,64,1.f);timerPut(animation,96,data);timerPut(data,16,uint16_t(121));timerPut(data,18,uint16_t(60));
+    snapshot=captureGameTimers(WallMemory{},base,profile,level,lookup);
+    check(timerRow(snapshot,"sync_animation").state=="active"&&timerRow(snapshot,"sync_animation").remaining==1,"exact current sync clip end countdown");
+    check(timerRow(snapshot,"sync_animation").maximum==2,"current clip maximum respects its actual playback rate");
+    timerPut(player,1008,uintptr_t(0));timerPut(player,1108,sync);snapshot=captureGameTimers(WallMemory{},base,profile,level,lookup);
+    check(timerRow(snapshot,"sync_animation").state=="active","melee currentSyncEntity works when legacy syncMaster is empty");
+    std::array<unsigned char,32> interactionRef{};timerPut(reinterpret_cast<uintptr_t>(interactionRef.data()),8,sync);timerPut(player,1108,uintptr_t(0));timerPut(player,1240,reinterpret_cast<uintptr_t>(interactionRef.data()));timerPut(player,1248,int32_t(1));
+    timerPut(sync,181,uint8_t(1));snapshot=captureGameTimers(WallMemory{},base,profile,level,lookup);check(timerRow(snapshot,"interaction").state=="active","current interaction reference list can own its own sync clip");
+    timerPut(player,1240,uintptr_t(0));timerPut(player,1248,int32_t(0));timerPut(player,1008,sync);timerPut(player,1108,sync);timerPut(sync,181,uint8_t(0));
+    auto savedAttack=types["idSyncAttack"];types.erase("idSyncAttack");snapshot=captureGameTimers(WallMemory{},base,profile,level,lookup);
+    check(timerRow(snapshot,"sync_animation").state=="unavailable","unknown relevant sync source cannot claim inactive");types["idSyncAttack"]=savedAttack;
+    timerPut(player,601,uint8_t(1));snapshot=captureGameTimers(WallMemory{},base,profile,level,lookup);
+    check(timerRow(snapshot,"interaction").state!="active"&&timerRow(snapshot,"sync_animation").state=="active","a body interaction flag does not copy the glory-kill countdown into a different interaction");timerPut(player,601,uint8_t(0));
+    timerPut(leaf,29,uint8_t(1));snapshot=captureGameTimers(WallMemory{},base,profile,level,lookup);check(timerRow(snapshot,"sync_animation").state=="unavailable","looped sync clip cannot claim final countdown");timerPut(leaf,29,uint8_t(0));
+    timerPut(sync,264,uint8_t(1));snapshot=captureGameTimers(WallMemory{},base,profile,level,lookup);check(timerRow(snapshot,"sync_animation").state=="unavailable","unknown local clock rejected");timerPut(sync,264,uint8_t(0));
+    std::vector<unsigned char> branchBytes(80);uintptr_t branch=reinterpret_cast<uintptr_t>(branchBytes.data());timerPut(branch,16,leaf);timerPut(branch,40,int64_t(-1));timerPut(branch,48,int64_t(-1));timerPut(sync,256,branch);
+    snapshot=captureGameTimers(WallMemory{},base,profile,level,lookup);check(timerRow(snapshot,"sync_animation").state=="active","ordinary branch reaches current clip");
+    timerPut(branch,40,int64_t(0));snapshot=captureGameTimers(WallMemory{},base,profile,level,lookup);check(timerRow(snapshot,"sync_animation").state=="unavailable","branch time override cannot use the global clock");
+    const char* name="status_effect/powerup/quad_damage";
+    timerPut(player,832,reinterpret_cast<uintptr_t>(&effect));timerPut(player,840,int32_t(1));timerPut(effect,96,int64_t(1499940));timerPut(effect,112,decl);timerPut(effect,128,int64_t(-1));timerPut(decl,8,reinterpret_cast<uintptr_t>(name));timerPut(decl,16,int32_t(4000));timerPut(decl,24,uint8_t(1));
+    snapshot=captureGameTimers(WallMemory{},base,profile,level,lookup);
+    check(timerRow(snapshot,"powerup_0").label=="Quad damage"&&timerRow(snapshot,"powerup_0").remaining==1.5,"powerup direct remaining duration");
+    check(timerRow(snapshot,"powerup_0").maximum==4,"powerup configured lifetime maximum");
+    timerPut(effect,128,int64_t(2999880));snapshot=captureGameTimers(WallMemory{},base,profile,level,lookup);check(timerRow(snapshot,"powerup_0").maximum==3,"powerup per-instance lifetime override wins over declaration");
+    timerPut(reinterpret_cast<uintptr_t>(lifetimeCvarBytes.data()),12,8.f);snapshot=captureGameTimers(WallMemory{},base,profile,level,lookup);check(timerRow(snapshot,"powerup_0").maximum==8,"global powerup lifetime override has the game's precedence");timerPut(reinterpret_cast<uintptr_t>(lifetimeCvarBytes.data()),12,0.f);
+    timerPut(effect,121,uint8_t(1));snapshot=captureGameTimers(WallMemory{},base,profile,level,lookup);check(timerRow(snapshot,"powerup_0").detail.find("paused")!=std::string::npos,"paused powerup retains engine time");
+    timerPut(player,840,int32_t(11));snapshot=captureGameTimers(WallMemory{},base,profile,level,lookup);check(timerRow(snapshot,"powerups").state=="unavailable","corrupt powerup list cannot claim inactive");
+    timerPut(map,profile.mapPlayerOffset,uintptr_t(0));snapshot=captureGameTimers(WallMemory{},base,profile,level,lookup);check(snapshot.phase=="loading"&&snapshot.rows.empty(),"map transition clears all rows");
+    VirtualFree(allocation,0,MEM_RELEASE);puts("Game timer tests passed");
+}

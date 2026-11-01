@@ -1,1 +1,1 @@
-[Source](https://github.com/IlyaTsyganov/LAB-Plus) · [Releases](https://github.com/IlyaTsyganov/LAB-Plus/releases) · [Report an issue](https://github.com/IlyaTsyganov/LAB-Plus/issues)
+[Source](https://github.com/IlyaTsyganov/LAB-Plus) · [Releases](https://github.com/IlyaTsyganov/LAB-Plus/releases) · [Compatibility](Compatibility) · [Report an issue](https://github.com/IlyaTsyganov/LAB-Plus/issues)

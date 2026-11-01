@@ -84,10 +84,12 @@ int main() {
     expect(fabsf(motionCutAngle({1,0,0},0,2)-90)<1e-4f&&!std::isfinite(motionCutAngle({1,0,0},1,2)),"vertical support has a vertical XZ cut and coincident YZ plane");
     MeathookHudApi hudApi{}; hudApi.executeCommand=surfaceCommand; hudApi.addText=surfaceText; hudApi.removeText=surfaceRemove;
     SupportPlaneHud hud; surfaceRows[280]="Inspector"; valid.tick=1000; hud.update(hudApi,&valid,true,1000);
-    expect(surfaceRequests==1&&surfaceRows[351].find("no unique")!=std::string::npos&&surfaceRows[368].find("0.00")!=std::string::npos,"surface HUD distinguishes plane cuts from normal angles within visible HUD coordinates");
+    expect(surfaceRequests==1&&surfaceRows[56].find("no unique")!=std::string::npos&&surfaceRows[72].find("0.00")!=std::string::npos,"surface HUD distinguishes plane cuts from normal angles at the common sixteen-unit row spacing");
     hud.update(hudApi,&valid,true,1050); expect(surfaceRequests==1,"surface HUD does not spam visibility commands");
     auto airborne=valid; airborne.contact=false; airborne.tick=1200; hud.update(hudApi,&airborne,true,1200);
-    expect(surfaceRows[317].find("No current")!=std::string::npos&&surfaceRows.count(351)==0,"airborne HUD clears old angle values");
+    expect(surfaceRows.size()==7&&surfaceRows[24].find("No current")!=std::string::npos&&surfaceRows[40]=="Slope: -"&&
+        surfaceRows[56]=="XY tangent: -"&&surfaceRows[72]=="XZ tangent: -"&&surfaceRows[88]=="YZ tangent: -",
+        "airborne HUD clears stale angle values while preserving all six labelled rows and unrelated inspector text");
     hud.update(hudApi,nullptr,false,1400); expect(surfaceRows.size()==1&&surfaceRows[280]=="Inspector","surface HUD hides only its own rows");
     Mesh target{}; target.entity={1,1,1,12,3,"idTrigger"}; auto geometry=std::make_shared<Geometry>(); geometry->triangles={{8,18,32.8f},{12,18,32.8f},{10,22,32.8f}}; target.geometry=geometry;
     measureMotionTarget(valid,target); expect(fabsf(valid.originDistance-2.8f)<1e-4f&&fabsf(valid.skinGap-1)<1e-4f,"origin distance and rounded-skin gap are distinct surface measurements");

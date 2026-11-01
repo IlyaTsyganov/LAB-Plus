@@ -7,3 +7,11 @@ build/
 vendor/
 publish/
 artifacts/
+
+.tools/
+logs/
+Tests/output/
+Native/Lighting/*.dll
+Native/Lighting/*.exp
+Native/Lighting/*.lib
+Tests/Tests/

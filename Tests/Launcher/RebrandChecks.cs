@@ -25,6 +25,7 @@ internal static class RebrandChecks
         var settings = new LabPlusSettings();
         if (!LabCommands.Apply(settings, ["labplus_viewer", "1"], 1234, 1) || !settings.CollisionViewerEnabled) throw new Exception("New command prefix does not work.");
         if (LabCommands.Apply(settings, ["lab_viewer", "0"], 1234, 2) || LabCommands.Apply(settings, ["devil_viewer", "0"], 1234, 2)) throw new Exception("Old command namespaces are still active.");
+        DebugHudScaleChecks.Run(root);
         Console.WriteLine("PASS: labplus command namespace, non-destructive preference/archive migration, byte-exact containers, no stale runtime requests and idempotence.");
     }
 }

@@ -235,28 +235,28 @@ class SupportPlaneHud {
     bool visible=false,requested=false;
     ULONGLONG lastFormat=0;
     std::array<std::string,6> previous;
-    // Keep the compact block above y=480: the old y=500 anchor could be clipped
-    // by the debug HUD's coordinate area. Place it beside the inspector.
-    static constexpr unsigned x=360,y=300,height=17;
+    DebugHudStack localLayout;
+    DebugHudStack* layout;
     std::atomic<uint64_t> callbacks{0},submitted{0},visibilityRequests{0};
     std::atomic<unsigned> state{0};
     ULONGLONG reportAt=0;
 public:
+    explicit SupportPlaneHud(DebugHudStack* stack=nullptr):layout(stack?stack:&localLayout) {}
     void update(const MeathookHudApi& api,const PlayerMotion* player,bool wanted,ULONGLONG now) {
         ++callbacks;
         if(!api.executeCommand||!api.addText||!api.removeText) return;
-        if(!wanted) {
+        if(!wanted||!player||!player->valid||now-player->tick>=250) {
             state=0;
-            if(visible) for(unsigned i=0;i<previous.size();++i) api.removeText(x,y+i*height);
+            layout->clear(DebugHudBlock::SupportPlane);
             visible=requested=false; previous={}; return;
         }
         if(visible&&now-lastFormat<100) return;
         lastFormat=now;
         if(!requested) { api.executeCommand("com_debugHUD 1"); requested=true; ++visibilityRequests; }
         state=1;
-        std::array<std::string,6> lines{}; lines[0]="LAB Plus | Support plane";
-        if(!player||!player->valid||now-player->tick>=250) lines[1]="Waiting for current support data";
-        else if(!player->contact) lines[1]="No current ground-trace contact";
+        std::array<std::string,6> lines{"LAB Plus | Support plane","n: No current ground-trace contact",
+            "Slope: -","XY tangent: -","XZ tangent: -","YZ tangent: -"};
+        if(!player->contact) state=1;
         else {
             state=2;
             char text[160]; sprintf_s(text,"n: %+.2f %+.2f %+.2f",player->normal.x,player->normal.y,player->normal.z); lines[1]=text;
@@ -272,20 +272,18 @@ public:
                 lines[3+i]=text;
             }
         }
-        for(unsigned i=0;i<lines.size();++i) if(!visible||previous[i]!=lines[i]) {
-            if(lines[i].empty()) api.removeText(x,y+i*height);
-            else { api.addText(x,y+i*height,i?0xffeeeeeeu:0xffffc040u,.7f,"%s",lines[i].c_str()); ++submitted; }
-        }
+        layout->publish(DebugHudBlock::SupportPlane,&api,lines,17,.7f,0xffffc040u);
+        for(size_t i=0;i<lines.size();++i) if(!lines[i].empty()&&(!visible||lines[i]!=previous[i])) ++submitted;
         previous=std::move(lines); visible=true;
     }
     void report() {
         if(GetTickCount64()<reportAt) return; reportAt=GetTickCount64()+5000;
-        char text[260]; sprintf_s(text,"Support plane HUD: callbacks=%llu submitted=%llu visibilityRequests=%llu anchor=(%u,%u) state=%s; companion/gameplay/console gates apply.",
-            callbacks.load(),submitted.load(),visibilityRequests.load(),x,y,state.load()==2?"angles":state.load()==1?"waiting/no support":"hidden");
+        char text[260]; sprintf_s(text,"Support plane HUD: callbacks=%llu submitted=%llu visibilityRequests=%llu stacked-top-left state=%s; companion/gameplay/console gates apply.",
+            callbacks.load(),submitted.load(),visibilityRequests.load(),state.load()==2?"angles":state.load()==1?"waiting/no support":"hidden");
         note(text);
     }
 };
-static SupportPlaneHud& supportPlaneHud() { static auto* hud=new SupportPlaneHud; return *hud; }
+static SupportPlaneHud& supportPlaneHud() { static auto* hud=new SupportPlaneHud(&debugHudStack()); return *hud; }
 static void updateSupportPlaneHud(const MeathookHudApi& api,const GameProfile* profile) {
     bool wanted=showSupportHud.load()&&profile&&labAppAvailable();
     auto base=reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr));

@@ -1,5 +1,6 @@
 #pragma once
 #include "meathook_api.h"
+#include "debug_hud_stack.h"
 
 struct InspectorField { uint32_t offset=~0u,size=0; std::string type; explicit operator bool() const { return offset!=~0u; } };
 // meathook exposes classTypeInfo_t through findClass. Only inspect its public
@@ -140,11 +141,12 @@ class MeathookHud {
     std::atomic<Phase> phase{Phase::Waiting};
     std::atomic<uint64_t> callbacks{0},activeFrames{0},submittedRows{0},visibilityRequests{0};
     std::array<std::string,10> previous;
-    static constexpr unsigned x=24,y=280,lineHeight=20;
+    DebugHudStack localLayout;
+    DebugHudStack* layout;
     void clear() {
         hudRequested=false;
         if(!visible) return;
-        for(unsigned i=0;i<previous.size();++i) api->removeText(x,y+i*lineHeight);
+        layout->clear(DebugHudBlock::Inspector);
         previous={}; visible=false;
     }
     static void frameCallback(void* user) { static_cast<MeathookHud*>(user)->onGameFrame(); }
@@ -170,10 +172,11 @@ class MeathookHud {
             ++visibilityRequests;
             hudRequested=true;
         }
-        std::array<std::string,10> lines;
-        lines[0]="LAB Plus | Volume inspector";
-        if(!current.entity) lines[1]="Aim at a trigger or invisible wall";
-        else {
+        // This block has a fixed schema. Keep its labels visible while no
+        // volume is selected, so lower blocks do not jump as the aim moves.
+        std::array<std::string,10> lines{"LAB Plus | Volume inspector","Name: -","Class: -","ID: -",
+            "State: Aim at a trigger or invisible wall","Role: -","Encounter: -","Manager: -","Ray distance: -","Geometry: -"};
+        if(current.entity) {
             const auto& ref=current.entity;
             EntityStatus status=readEntityStatus(WallMemory{},ref,current.base,*current.profile);
             // Validate the map slot before calling meathook with an entity.
@@ -187,7 +190,7 @@ class MeathookHud {
             lines[5]=std::string("Role: ")+volumeRole(ref.className);
             if(status==EntityStatus::Enabled||status==EntityStatus::Disabled) {
                 auto encounter=inspectorEncounter(*api,current,name);
-                lines[6]=encounter.label;
+                if(!encounter.label.empty()) lines[6]=encounter.label.rfind("Encounter: ",0)==0?encounter.label:"Encounter: "+encounter.label;
                 if(!encounter.technical.empty()) lines[7]="Manager: "+encounter.technical;
             }
             char distance[80]; sprintf_s(distance,"Ray distance: %.2f game units",current.distance); lines[8]=distance;
@@ -196,18 +199,12 @@ class MeathookHud {
                 char snapshot[150]; sprintf_s(snapshot,"Geometry: last snapshot, %.1fs old (%s)",age/1000.0,entityStatusText(current.geometryState)); lines[9]=snapshot;
             } else if(current.geometryAt) lines[9]="Geometry: current sample";
         }
-        for(unsigned i=0;i<lines.size();++i) {
-            if(lines[i]==previous[i]&&visible) continue;
-            if(lines[i].empty()) api->removeText(x,y+i*lineHeight);
-            else {
-                api->addText(x,y+i*lineHeight,i?0xffeeeeeeu:0xffffd040u,0.8f,"%s",lines[i].c_str());
-                ++submittedRows;
-            }
-        }
+        layout->publish(DebugHudBlock::Inspector,api,lines,20,.8f,0xffffd040u);
+        for(size_t i=0;i<lines.size();++i) if(!lines[i].empty()&&(!visible||lines[i]!=previous[i])) ++submittedRows;
         previous=std::move(lines); visible=true;
     }
 public:
-    explicit MeathookHud(const MeathookHudApi* backend=nullptr):api(backend) {}
+    explicit MeathookHud(const MeathookHudApi* backend=nullptr,DebugHudStack* stack=nullptr):api(backend),layout(stack?stack:&localLayout) {}
     void onGameFrame() { frame(); }
     // Bind only an already-loaded meathook, never install/load a DLL for the user.
     bool connect() {
@@ -230,7 +227,7 @@ public:
            !GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS|GET_MODULE_HANDLE_EX_FLAG_PIN,
              reinterpret_cast<LPCWSTR>(getApi),&pinned)) return false;
         api=candidate;
-        api->registerPreFrame(&frameCallback,this);
+        layout->connect(api,DebugHudProducer::Inspector,&frameCallback,this);
         registered=true;
         note("Inspector HUD: meathook API connected; game-frame callback registered, awaiting HUD activation.");
         return true;
@@ -254,4 +251,4 @@ public:
 };
 // Intentionally process-lifetime: meathook retains its callback without an
 // unregister API. Do not destroy a mutex while the engine can still call it.
-static MeathookHud& inspectorHud() { static auto* hud=new MeathookHud; return *hud; }
+static MeathookHud& inspectorHud() { static auto* hud=new MeathookHud(nullptr,&debugHudStack()); return *hud; }

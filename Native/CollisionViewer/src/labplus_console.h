@@ -5,6 +5,11 @@ struct LabCommandDefinition { const char* name; const char* usage; bool legacy=f
 static constexpr LabCommandDefinition labCommandDefinitions[]{
     {"labplus_commands_list","List LAB Plus cvars and action commands"},
     {"labplus_encounters_list","List active encounter managers with reference names"},
+    {"labplus_debughud_scale","[0.5..3] - query or set DebugHUD text scale"},
+    {"labplus_enemies","0|1 - living enemies and health HUD"},
+    {"labplus_enemy_hp_bars","0|1 - world enemy health bars"},
+    {"labplus_timers","0|1 - engine countdown HUD"},
+    {"labplus_techs","0|1 - speedrun technique states HUD"},
     {"labplus_recording_start","Start/resume research recording"}, {"labplus_recording_stop","Stop research recording"},
     {"labplus_recording_clear","Start a new research session"}, {"labplus_markers_add","<text> - add a research marker"},
     {"labplus_trigger_set","<class> 0|1 - one exact trigger class"},
@@ -36,6 +41,9 @@ static bool validLabArguments(const std::vector<std::string>& input) {
     auto args=normalizeLabArguments(input);
     if(args.empty()) return false;
     const std::string& command=args[0];
+    if(command=="labplus_debughud_scale") {
+        float value=1; return args.size()==1||(args.size()==2&&parseDebugHudScale(args[1],value));
+    }
     if(command=="labplus_help"||command=="labplus_clear") return args.size()==1;
     if(command=="labplus_encounters") return args.size()==1||(args.size()==2&&(args[1]=="0"||args[1]=="1"));
     if(command=="labplus_mark") return args.size()>1;
@@ -46,8 +54,15 @@ static bool validLabArguments(const std::vector<std::string>& input) {
         int value=atoi(args[1].c_str()); return value>=20&&value<=200;
     }
     if(args[1]!="0"&&args[1]!="1") return false;
+    if(command=="labplus_enemies"||command=="labplus_enemy_hp_bars"||command=="labplus_timers"||command=="labplus_techs") return true;
     for(const auto& definition:labCommandDefinitions) if(definition.legacy&&command==definition.name) return true;
     return false;
+}
+static bool printDebugHudScaleQuery(const MeathookHudApi& api,const std::vector<std::string>& args) {
+    if(args.size()!=1||args[0]!="labplus_debughud_scale") return false;
+    std::ostringstream text; text.imbue(std::locale::classic());
+    text<<"labplus_debughud_scale is "<<debugHudScale.load()<<" (0.5..3)\n";
+    api.consolePrint("%s",text.str().c_str()); return true;
 }
 static bool labAppAvailable(const wchar_t* name=L"Local\\labplus.commands.Active") {
     HANDLE presence=OpenEventW(SYNCHRONIZE,FALSE,name);
@@ -118,7 +133,8 @@ class LabConsole {
         }
         if(!validLabArguments(args)) { self->api->consolePrint("%s","labplus_: invalid arguments. Use labplus_commands_list.\n"); return; }
         args=normalizeLabArguments(args);
-        if(args[0]=="labplus_encounters"&&args.size()==1) { printActiveEncounters(*self->api); }
+        if(printDebugHudScaleQuery(*self->api,args)) {}
+        else if(args[0]=="labplus_encounters"&&args.size()==1) { printActiveEncounters(*self->api); }
         else if(args[0]=="labplus_help") {
             for(const auto& definition:labCvarDefinitions) self->api->consolePrint("%s : %d..%d\n",definition.name,definition.minimum,definition.maximum);
             for(const auto& definition:labCommandDefinitions) if(!definition.legacy) self->api->consolePrint("%s : %s\n",definition.name,definition.usage);

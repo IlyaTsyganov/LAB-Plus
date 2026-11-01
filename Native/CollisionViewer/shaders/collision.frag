@@ -1,8 +1,10 @@
 #version 450
 layout(location=0) in vec4 vertexColor;
 layout(location=1) in float viewDistance;
+layout(location=2) in vec2 fontUV;
 layout(location=0) out vec4 outColor;
 layout(set=0,binding=0) uniform sampler2D screenDepth;
+layout(set=0,binding=1) uniform sampler2D fontAtlas;
 layout(push_constant) uniform Camera { vec4 row0; vec4 row1; vec4 row2; vec4 row3; vec4 options; vec4 depthParams; vec4 uvParams; vec4 debug; } camera;
 void main() {
     if(camera.debug.x>0.5) {
@@ -21,4 +23,5 @@ void main() {
         if(distanceToSurface>0.0&&viewDistance>distanceToSurface+tolerance) discard;
     }
     outColor=vertexColor;
+    if(fontUV.x>=0.0) outColor.a*=texture(fontAtlas,fontUV).r;
 }

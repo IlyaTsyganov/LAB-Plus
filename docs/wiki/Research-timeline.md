@@ -1,25 +1,36 @@
 # Research timeline
 
-The timeline records sampled route data and research observations. It is separate from named Movement Lab attempts.
+The timeline records sampled route data and observations. It is separate from Movement Lab's named attempts.
 
-## Record a session
+## Record
 
-1. Open **Research → Timeline** with the selected game process loaded into a level.
-2. Press **Start** to record. **Show path** independently controls whether the route is drawn in-game.
-3. Add named markers at points of interest.
-4. Press **Stop** when finished. Start resumes the session; **New session** starts a new journal while retaining older session files.
-5. Search/filter the visible rows and export CSV. Export includes the full journal, not just the filtered or paginated view.
+1. Open **Research → Timeline** in a loaded level.
+2. Press **Start**.
+3. Add named markers for deliberate actions or points of interest.
+4. Press **Stop** when finished.
+5. Search/filter the view and export CSV.
 
-The recording is scoped to the selected process. The journal samples physical body position at about **10 Hz**, retaining a path point after at least **0.05 game units** of movement. The visible line runs from blue to pink. Map changes clear the displayed map route while keeping the journal.
+Start resumes the current journal. **New session** starts a new journal while retaining older files. **Show path** controls in-game route drawing independently of recording.
 
-## Gaps and retention
+The route uses physical body position. Map changes clear the displayed map route while retaining the journal. Export includes the complete journal rather than only filtered/paginated rows.
 
-Menus, pauses, unreadable data, gaps over one second and jumps over 50 game units break the line. The tool does not interpolate a reliable route across such gaps. At most 12,000 points are retained for the current-map path and roughly 16,000 rows for the recent interface view. Older journal rows remain in the append-only `.full.tsv` file.
+## Gaps and interpretation
 
-The file is flushed about once per second and on Stop. An abnormal exit can lose the final buffered second. Elapsed time is wall-clock time, not the game's internal timer.
+Pause/menu states, unreadable data, large jumps and timing gaps break the route. Missing intervals are not interpolated evidence. Abnormal exit can lose the final buffered portion.
 
-## Interpreting events
+Elapsed journal time is wall-clock time, not the game's internal cooldown clock.
 
-Volume discovery and state changes are observations. They do not prove that a trigger fired, a checkpoint was written or an encounter completed. Add a marker describing your experimental action, compare before/after state, and retain exports when investigating a claim.
+Volume discovery and state changes do not prove that a trigger fired, a checkpoint was written or an encounter finished. Pair a marker for your action with [before/after comparison](Entity-links-and-level-comparison) when investigating a causal claim.
 
-Console actions are `labplus_recording_start`, `labplus_recording_stop`, `labplus_recording_clear` and `labplus_markers_add <text>`. They control this journal, not the Movement Lab attempt recorder. Basic recording/path drawing does not require meathook; invoking console actions does.
+## Commands
+
+```text
+labplus_recording_start
+labplus_markers_add before entering arena
+labplus_recording_stop
+labplus_recording_clear
+```
+
+These control this journal, not Movement Lab attempts. Basic recording/path drawing and invoking its console actions have different prerequisites; see [Compatibility](Compatibility).
+
+Storage and full-journal files are described in [Data and migration](Data-and-migration).

@@ -25,7 +25,10 @@ int main() {
         INSTANCE(GetPhysicalDeviceMemoryProperties)
         auto gdpa=reinterpret_cast<PFN_vkGetDeviceProcAddr>(gipa(instance,"vkGetDeviceProcAddr"));
         WNDCLASSW wc{}; wc.lpfnWndProc=DefWindowProcW; wc.hInstance=GetModuleHandleW(nullptr); wc.lpszClassName=L"CollisionLayerHiddenSmokeWindow";
-        RegisterClassW(&wc); HWND window=CreateWindowExW(0,wc.lpszClassName,L"Collision layer smoke test",WS_POPUP,0,0,128,128,nullptr,nullptr,wc.hInstance,nullptr);
+        RegisterClassW(&wc); wchar_t hudTest[8]{};
+        const bool fullHud=GetEnvironmentVariableW(L"LABPLUS_TEST_DEBUG_HUD",hudTest,8)&&hudTest[0]==L'1';
+        const int testWidth=fullHud?1280:128,testHeight=fullHud?720:128;
+        HWND window=CreateWindowExW(0,wc.lpszClassName,L"Collision layer smoke test",WS_POPUP,0,0,testWidth,testHeight,nullptr,nullptr,wc.hInstance,nullptr);
         if(!window) throw std::runtime_error("Create hidden test window failed");
         VkWin32SurfaceCreateInfoKHR surfaceInfo{VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR}; surfaceInfo.hinstance=wc.hInstance; surfaceInfo.hwnd=window;
         VkSurfaceKHR surface{}; check(CreateWin32SurfaceKHR(instance,&surfaceInfo,nullptr,&surface),"CreateSurface");
@@ -64,7 +67,7 @@ int main() {
         VkSurfaceCapabilitiesKHR caps{}; check(GetPhysicalDeviceSurfaceCapabilitiesKHR(physical,surface,&caps),"SurfaceCapabilities");
         check(GetPhysicalDeviceSurfaceFormatsKHR(physical,surface,&count,nullptr),"SurfaceFormats"); std::vector<VkSurfaceFormatKHR> formats(count); check(GetPhysicalDeviceSurfaceFormatsKHR(physical,surface,&count,formats.data()),"SurfaceFormats");
         VkSurfaceFormatKHR format=formats[0]; for(auto f:formats) if(f.format==VK_FORMAT_B8G8R8A8_UNORM||f.format==VK_FORMAT_R8G8B8A8_UNORM) { format=f; break; }
-        VkExtent2D extent=caps.currentExtent; if(extent.width==0xffffffffu) extent={128,128}; if(!extent.width||!extent.height) throw std::runtime_error("Zero surface extent");
+        VkExtent2D extent=caps.currentExtent; if(extent.width==0xffffffffu) extent={static_cast<uint32_t>(testWidth),static_cast<uint32_t>(testHeight)}; if(!extent.width||!extent.height) throw std::runtime_error("Zero surface extent");
         VkSwapchainCreateInfoKHR swapInfo{VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR}; swapInfo.surface=surface; swapInfo.minImageCount=caps.minImageCount; swapInfo.imageFormat=format.format; swapInfo.imageColorSpace=format.colorSpace;
         swapInfo.imageExtent=extent; swapInfo.imageArrayLayers=1; swapInfo.imageUsage=VK_IMAGE_USAGE_TRANSFER_DST_BIT|VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT|VK_IMAGE_USAGE_TRANSFER_SRC_BIT; swapInfo.imageSharingMode=VK_SHARING_MODE_EXCLUSIVE;
         uint32_t sharedFamilies[]{family,presentFamily};
@@ -105,6 +108,7 @@ int main() {
             check(ResetCommandBuffer(commands,0),"ResetCommandBuffer"); VkCommandBufferBeginInfo begin{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO}; check(BeginCommandBuffer(commands,&begin),"BeginCommandBuffer");
             wchar_t visibilityCase[32]{}; GetEnvironmentVariableW(L"LABPLUS_OCCLUSION_TEST",visibilityCase,32);
             VkClearValue depthClear{}; depthClear.depthStencil={visibilityCase[0]=='i'?0.0f:1.0f,0};
+            wchar_t healthHidden[8]{}; if(GetEnvironmentVariableW(L"LABPLUS_TEST_HEALTH_BARS_HIDDEN",healthHidden,8)&&healthHidden[0]==L'1') depthClear.depthStencil.depth=.975f;
             if(visibilityCase[0]=='r') { VkViewport reversed{0,0,static_cast<float>(extent.width),static_cast<float>(extent.height),1,0}; CmdSetViewport(commands,0,1,&reversed); }
             VkRenderPassBeginInfo depthBegin{VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO}; depthBegin.renderPass=depthPass; depthBegin.framebuffer=depthFramebuffer; depthBegin.renderArea.extent=extent; depthBegin.clearValueCount=1; depthBegin.pClearValues=&depthClear;
             CmdBeginRenderPass(commands,&depthBegin,VK_SUBPASS_CONTENTS_INLINE);

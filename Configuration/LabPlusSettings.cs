@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text;
+using System.Globalization;
 
 namespace LabPlus.Configuration;
 
@@ -10,6 +11,14 @@ public enum RenderStyle
     Filled
 }
 
+public sealed class VolumeAppearance
+{
+    public string Color { get; set; } = "#26ccff";
+    public int FillOpacity { get; set; } = 9;
+    public static bool ValidColor(string? value) => value is { Length: 7 } && value[0] == '#' && value.Skip(1).All(Uri.IsHexDigit);
+    internal void Normalize(string fallback, int opacity = 9) { if (!ValidColor(Color)) Color = fallback; FillOpacity = Math.Clamp(FillOpacity, 0, 100); }
+}
+
 public sealed class LabPlusSettings
 {
     public string GameExecutablePath { get; set; } = string.Empty;
@@ -17,10 +26,22 @@ public sealed class LabPlusSettings
     public bool ShowTriggers { get; set; } = true;
     public bool ShowWorldCollision { get; set; } = true;
     public bool ShowInvisibleWalls { get; set; } = true;
+    public VolumeAppearance WorldAppearance { get; set; } = new() { Color = "#26ccff" };
+    public VolumeAppearance TriggerAppearance { get; set; } = new() { Color = "#40f21f" };
+    public VolumeAppearance WallAppearance { get; set; } = new() { Color = "#ff730d" };
+    public VolumeAppearance InspectorAppearance { get; set; } = new() { Color = "#ffd91a", FillOpacity = 20 };
     public bool InspectVolumes { get; set; }
     public bool ShowDisabledVolumes { get; set; }
     public bool ShowVolumeHistory { get; set; }
     public bool ShowActiveEncountersHud { get; set; }
+    public bool ShowEnemyHealthHud { get; set; }
+    public bool ShowEnemyHealthBars { get; set; }
+    public bool ShowGameTimersHud { get; set; }
+    public bool ShowSpeedrunTechsHud { get; set; }
+    [JsonIgnore]
+    public bool NeedsNativeLayer => CollisionViewerEnabled || ShowEnemyHealthHud || ShowEnemyHealthBars || ShowGameTimersHud || ShowSpeedrunTechsHud || ShowSupportHud || ShowActiveEncountersHud;
+    [JsonNumberHandling(JsonNumberHandling.AllowNamedFloatingPointLiterals)]
+    public double DebugHudScale { get; set; } = 1;
     public bool ShowResearchPath { get; set; } = true;
     public bool RecordResearch { get; set; }
     public int ResearchProcess { get; set; }
@@ -61,6 +82,11 @@ public sealed class LabPlusSettings
 
     internal void NormalizeTriggerClasses()
     {
+        if (!double.IsFinite(DebugHudScale) || DebugHudScale is < 0.5 or > 3) DebugHudScale = 1;
+        WorldAppearance ??= new() { Color = "#26ccff" }; WorldAppearance.Normalize("#26ccff");
+        TriggerAppearance ??= new() { Color = "#40f21f" }; TriggerAppearance.Normalize("#40f21f");
+        WallAppearance ??= new() { Color = "#ff730d" }; WallAppearance.Normalize("#ff730d");
+        InspectorAppearance ??= new() { Color = "#ffd91a", FillOpacity = 20 }; InspectorAppearance.Normalize("#ffd91a", 20);
         HiddenTriggerClasses = (HiddenTriggerClasses ?? []).Where(TriggerClassCatalog.IsValidName).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToList();
         HiddenTriggerPaths = (HiddenTriggerPaths ?? []).Where(item => item is not null)
             .Select(item => item with { Prefix = TriggerPathCatalog.Normalize(item.Prefix ?? "") })
@@ -132,6 +158,11 @@ public sealed class SettingsStore
             $"ShowDisabledVolumes={(settings.ShowDisabledVolumes ? 1 : 0)}{Environment.NewLine}" +
             $"ShowVolumeHistory={(settings.ShowVolumeHistory ? 1 : 0)}{Environment.NewLine}" +
             $"ShowActiveEncountersHud={(settings.ShowActiveEncountersHud ? 1 : 0)}{Environment.NewLine}" +
+            $"ShowEnemyHealthHud={(settings.ShowEnemyHealthHud ? 1 : 0)}{Environment.NewLine}" +
+            $"ShowEnemyHealthBars={(settings.ShowEnemyHealthBars ? 1 : 0)}{Environment.NewLine}" +
+            $"ShowGameTimersHud={(settings.ShowGameTimersHud ? 1 : 0)}{Environment.NewLine}" +
+            $"ShowSpeedrunTechsHud={(settings.ShowSpeedrunTechsHud ? 1 : 0)}{Environment.NewLine}" +
+            $"DebugHudScale={settings.DebugHudScale.ToString("R", CultureInfo.InvariantCulture)}{Environment.NewLine}" +
             $"ShowResearchPath={(settings.ShowResearchPath ? 1 : 0)}{Environment.NewLine}" +
             $"RecordResearch={(settings.RecordResearch ? 1 : 0)}{Environment.NewLine}" +
             $"ResearchProcess={settings.ResearchProcess}{Environment.NewLine}" +
@@ -145,6 +176,8 @@ public sealed class SettingsStore
             $"MotionFollowTarget={(settings.MotionFollowTarget ? 1 : 0)}{Environment.NewLine}" +
             $"CollisionMode={(settings.Style == RenderStyle.Filled ? 1 : 0)}{Environment.NewLine}" +
             $"Distance={Math.Clamp(settings.ViewDistanceMeters, 20, 200)}{Environment.NewLine}";
+        foreach (var (key, appearance) in new[] { ("World", settings.WorldAppearance), ("Trigger", settings.TriggerAppearance), ("Wall", settings.WallAppearance), ("Inspector", settings.InspectorAppearance) })
+            viewerIni += $"{key}Color={appearance.Color}{Environment.NewLine}{key}FillOpacity={appearance.FillOpacity}{Environment.NewLine}";
         viewerIni += $"{Environment.NewLine}[TriggerClasses]{Environment.NewLine}";
         foreach (string className in settings.HiddenTriggerClasses)
             viewerIni += $"{className}=0{Environment.NewLine}";

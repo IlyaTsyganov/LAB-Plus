@@ -132,10 +132,11 @@
     });
   }
   async function ready(){const emblem=new Image();emblem.src=new URL('../labplus.png',location.href).href;await Promise.all([document.fonts.ready,emblem.decode()]);send({kind:'ready'});}
+  function focusContent(){const main=document.querySelector('.research-content,.lr-content')||document.body;main.tabIndex=-1;main.focus({preventScroll:true});}
   let firstFrame;
   function rendered(){
-    firstFrame||=(async()=>{document.body.tabIndex=-1;document.body.focus({preventScroll:true});await document.fonts.ready;await Promise.all([...document.images].map(image=>image.decode()));document.documentElement.getBoundingClientRect();})();
+    firstFrame||=(async()=>{focusContent();await document.fonts.ready;await Promise.all([...document.images].map(image=>image.decode()));document.documentElement.getBoundingClientRect();})();
     firstFrame.then(()=>send({kind:'rendered'}));
   }
-  globalThis.WorkspaceUI={send,element,text,renderControls,wireWindow,ready,rendered};
+  globalThis.WorkspaceUI={send,element,text,renderControls,wireWindow,ready,rendered,focusContent};
 })();

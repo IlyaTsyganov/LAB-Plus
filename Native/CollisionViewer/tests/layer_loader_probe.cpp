@@ -7,9 +7,26 @@
 #include <iostream>
 #include <iterator>
 #include <string>
+#include <psapi.h>
+#include <algorithm>
+#include <cwctype>
+
+static bool loadedLibrary(const wchar_t* fragment) {
+    HMODULE modules[1024]{};DWORD bytes=0;
+    if(!K32EnumProcessModules(GetCurrentProcess(),modules,sizeof(modules),&bytes))return false;
+    for(size_t i=0;i<std::min(size_t(bytes/sizeof(HMODULE)),size_t(1024));++i){
+        wchar_t file[32768]{},expanded[32768]{};
+        if(!GetModuleFileNameW(modules[i],file,32768))continue;
+        std::wstring name=GetLongPathNameW(file,expanded,32768)?expanded:file;
+        std::transform(name.begin(),name.end(),name.begin(),[](wchar_t c){return std::towlower(c);});
+        if(name.find(fragment)!=std::wstring::npos)return true;
+    }
+    return false;
+}
 
 int wmain(int argc, wchar_t** argv) {
-    if (argc != 2) {
+    bool joint=argc==3&&wcscmp(argv[2],L"--joint")==0;
+    if (argc != 2 && !joint) {
         std::wcerr << L"Usage: LayerLoaderProbe <layer-runtime-directory>\n";
         return 2;
     }
@@ -37,6 +54,7 @@ int wmain(int argc, wchar_t** argv) {
 
     VkInstance instance = VK_NULL_HANDLE;
     VkResult result = createInstance(&createInfo, nullptr, &instance);
+    bool collisionLoaded=loadedLibrary(L"labplus-layer-"),lightingLoaded=loadedLibrary(L"labplus-lighting-");
     if (instance) {
         auto destroyInstance = reinterpret_cast<PFN_vkDestroyInstance>(getInstanceProcAddr(instance, "vkDestroyInstance"));
         if (destroyInstance) destroyInstance(instance, nullptr);
@@ -45,11 +63,12 @@ int wmain(int argc, wchar_t** argv) {
     const std::filesystem::path logPath = std::filesystem::path(argv[1]) / L"VulkanViewer.log";
     std::ifstream logFile(logPath);
     std::string log((std::istreambuf_iterator<char>(logFile)), std::istreambuf_iterator<char>());
-    if (log.find("Collision Vulkan layer loaded.") == std::string::npos) {
-        std::cerr << "The Vulkan layer was not called. vkCreateInstance result=" << result << "\n";
+    if (result!=VK_SUCCESS || log.find("Collision Vulkan layer loaded.") == std::string::npos || !collisionLoaded || (joint&&!lightingLoaded)) {
+        std::cerr << "Layer loading failed. vkCreateInstance=" << result << " collision=" << collisionLoaded << " lighting=" << lightingLoaded << "\n";
         return 5;
     }
 
     std::cout << "PASS: Vulkan Loader called the LAB Plus layer. vkCreateInstance result=" << result << "\n";
+    if(joint)std::cout << "PASS: both collision and controllable lighting DLLs were loaded by the real Vulkan loader in the same process.\n";
     return 0;
 }

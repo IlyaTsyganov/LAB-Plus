@@ -115,6 +115,16 @@ int main() {
     put(info.data(),8,reinterpret_cast<uintptr_t>(empty));
     put(rows.data(),24,int32_t(124)); schema=readGraphType(WallMemory{},reinterpret_cast<uintptr_t>(info.data()),type);
     expect(schema.complete&&schema.fields.empty(),"out-of-bounds reflected fields are skipped");
+    const char* boolean="bool",*property="modChangeAnimPlaying";
+    const unsigned char getter[]{0x0f,0xb6,0x41,0x05,0xc1,0xe8,0x07,0xc3};
+    put(rows.data(),0,reinterpret_cast<uintptr_t>(boolean)); put(rows.data(),8,reinterpret_cast<uintptr_t>(empty));
+    put(rows.data(),16,reinterpret_cast<uintptr_t>(property)); put(rows.data(),24,int32_t(0)); put(rows.data(),28,int32_t(-1));
+    put(rows.data(),48,reinterpret_cast<uintptr_t>(getter));
+    schema=readGraphType(WallMemory{},reinterpret_cast<uintptr_t>(info.data()),type);
+    expect(schema.complete&&schema.fields.empty()&&schema.properties.size()==1&&schema.properties[0].name==property&&
+        schema.properties[0].getter==reinterpret_cast<uintptr_t>(getter),"boolean property descriptors are copied separately without invoking their getter");
+    put(rows.data(),48,uintptr_t(0)); schema=readGraphType(WallMemory{},reinterpret_cast<uintptr_t>(info.data()),type);
+    expect(schema.complete&&schema.properties.empty(),"missing boolean getter is not a readable property");
     expect(!readGraphType(WallMemory{},reinterpret_cast<uintptr_t>(info.data()),"wrongClass").complete,"foreign class metadata is rejected");
     printf("PASS: entity graph references, exact fields, retail root metadata, stable managed pointers, removed entities, generation reuse, map changes, publication and request expiry on %u profiles.\n",profiles);
 }

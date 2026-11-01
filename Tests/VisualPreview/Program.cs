@@ -26,10 +26,19 @@ internal static class Program
             try
             {
                 await main.Workspace!.Ready.WaitAsync(TimeSpan.FromSeconds(30));
-                await Settle(main); await Capture(main, output, "main-viewer");
+                if(args.Contains("--numbers-only"))
+                {
+                    var numberSettings = new LabPlusSettings();
+                    using var numbers = new InvisibleNumbersForm(numberSettings,data,()=>new SettingsStore(data).Save(numberSettings),()=>0);
+                    numbers.ShowInTaskbar=false; numbers.Show(main); await WaitReady(numbers); await Settle(numbers);
+                    await BrowserChecks.Run(numbers,numberSettings,output); await Capture(numbers,output,"invisible-numbers");
+                    await CheckScale(numbers,output); numbers.Close();
+                    Console.WriteLine("PASS: Invisible numbers controls, rows and DPI scaling.");exit=0;return;
+                }
+                await Settle(main); await CompactChecks.Run(main,data,output); await Capture(main, output, "main-viewer");
                 var checks = new List<object>();
                 checks.Add(await Inspect(main, "main-viewer"));
-                foreach (string page in new[] { "Research", "Saves", "Settings", "Viewer" })
+                foreach (string page in new[] { "Research", "Saves", "LAB", "Viewer" })
                 { await Script(main, $"document.querySelector('[data-screen={page}]').click()"); await Settle(main); checks.Add(await Inspect(main, "main-" + page.ToLowerInvariant())); await Capture(main, output, "main-" + page.ToLowerInvariant()); }
                 await Script(main, "document.querySelector('[data-setting=walls]').click()"); await Settle(main);
                 if (!new SettingsStore(data).Load().ShowInvisibleWalls) throw new Exception("Browser switch did not persist through the C# settings handler.");
@@ -41,6 +50,7 @@ internal static class Program
                 if(new SettingsStore(data).Load().ViewDistanceMeters!=145)throw new Exception("Disabled browser control changed settings.");
                 await Script(main,"document.querySelector('[data-setting=enabled]').click()");await Settle(main);
                 await CheckScale(main, output);
+                if(args.Contains("--main-only")){Console.WriteLine("PASS: focused main-window acceptance completed.");exit=0;return;}
                 var beforeResize=main.Bounds;
                 await Script(main,"chrome.webview.postMessage({kind:'resize',phase:'start',edge:'se',x:100,y:100})");await Task.Delay(80);
                 await Script(main,"chrome.webview.postMessage({kind:'resize',phase:'move',x:140,y:120})");await Task.Delay(80);
@@ -56,6 +66,7 @@ internal static class Program
                     () => new EntityGraphForm(data, noGame),
                     () => new LevelStateForm(data, noGame),
                     () => new ActiveEncountersForm(settings, data, save, noGame),
+                    () => new InvisibleNumbersForm(settings, data, save, noGame),
                     () => new ResearchPointsForm(data, noGame),
                     () => new SupportPlaneForm(settings, save),
                     () => new TriggerTypesForm(settings, Path.Combine(data,"trigger-classes.txt"), save),
@@ -73,7 +84,7 @@ internal static class Program
                 }
                 if(startupErrors.Count>0)throw new AggregateException(startupErrors);
                 File.WriteAllText(Path.Combine(output, "dom-checks.json"), JsonSerializer.Serialize(checks, new JsonSerializerOptions { WriteIndented = true }));
-                Console.WriteLine("PASS: browser controls persist settings; Viewer/Research/Saves/Settings and 11 child windows rendered with the shared CSS.");
+                Console.WriteLine("PASS: browser controls persist settings; Viewer/Research/Saves/LAB and 11 child windows rendered with the shared CSS.");
                 exit = 0;
             }
             catch(Exception ex) { Console.Error.WriteLine(ex); Console.Error.WriteLine("Browser stage: " + main.Workspace?.StartupStage); if(main.Workspace?.Browser.CoreWebView2 is not null)Console.Error.WriteLine(await main.Workspace.Browser.ExecuteScriptAsync("JSON.stringify({url:location.href,ready:document.readyState,visible:document.visibilityState,files:[...document.scripts].map(s=>s.src),body:document.body.innerText})")); }
@@ -109,6 +120,7 @@ internal static class Program
     { using var stream = File.Create(Path.Combine(directory, name + ".png")); await form.Workspace!.Browser.CoreWebView2.CapturePreviewAsync(CoreWebView2CapturePreviewImageFormat.Png, stream); }
     private static async Task<JsonElement> Inspect(LabPlusForm form, string name)
     {
+        if(JsonSerializer.Deserialize<bool>(await Script(form,"document.activeElement.closest('.window-actions')!==null")))throw new Exception("Window activation focused the minimize/maximize controls in "+name);
         string json = await Script(form, "JSON.stringify({width:innerWidth,height:innerHeight,scrollWidth:document.documentElement.scrollWidth,fonts:[...new Set([...document.querySelectorAll('.lr-app *')].filter(e=>e.getClientRects().length).map(e=>getComputedStyle(e).fontFamily))],gradient:getComputedStyle(document.querySelector('.lr-app')).backgroundImage,controls:document.querySelectorAll('button,input,select,textarea').length,metrics:[...document.querySelectorAll('.lr-brand,.lr-nav,.lr-heading,.lr-subtitle,.lr-panel-title,.lr-caption,.lr-toggle,.lr-range-label,.lr-range,.lr-inspector,.lr-advanced,.lr-game,.lr-statusbar')].map(e=>{const r=e.getBoundingClientRect(),s=getComputedStyle(e);return{cls:e.className,x:r.x,y:r.y,w:r.width,h:r.height,font:s.fontSize,line:s.lineHeight,fontWeight:s.fontWeight,margin:s.margin,pad:s.padding}}),panels:[...document.querySelectorAll('.lr-panel')].map(e=>({x:e.getBoundingClientRect().x,y:e.getBoundingClientRect().y,width:e.getBoundingClientRect().width,height:e.getBoundingClientRect().height}))})");
         string raw = JsonSerializer.Deserialize<string>(json)!;
         using var document = JsonDocument.Parse(raw);

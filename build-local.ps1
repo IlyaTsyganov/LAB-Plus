@@ -17,6 +17,7 @@ try {
             Get-ChildItem -LiteralPath '.\Native\CollisionViewer\bin' -Filter '*Tests.exe' | ForEach-Object { & $_.FullName; if ($LASTEXITCODE -ne 0) { throw "Native test failed: $($_.Name)" } }
         }
     }
+    & '.\Native\Lighting\build.ps1' -Compiler $NativeCompiler
     if (!$SkipTests) {
         & $dotnet run --project '.\Tests\Launcher\LauncherTests.csproj' -c Release
         if ($LASTEXITCODE -ne 0) { throw 'Launcher checks failed.' }
@@ -26,8 +27,13 @@ try {
         & $dotnet run --project '.\Tests\VisualPreview\VisualPreview.csproj' -c Release -- (Join-Path $PSScriptRoot 'build\visual-qa')
         if ($LASTEXITCODE -ne 0) { throw 'WebView interface checks failed.' }
     }
-    & $dotnet publish '.\labplus.csproj' -c Release --self-contained false -o '.\publish'
+    if (!$SkipTests) {
+        & $dotnet run --project '.\Tests\Hud\Hud.Tests.csproj' -c Release
+        if ($LASTEXITCODE -ne 0) { throw 'HUD checks failed.' }
+    }
+    & $dotnet publish '.\labplus.csproj' -c Release --self-contained false -o '.\build\raw-publish'
     if ($LASTEXITCODE -ne 0) { throw 'Publishing failed.' }
-    Write-Output 'Ready: publish\labplus.exe. Keep the entire publish folder together.'
+    & '.\package-local.ps1'
+    Write-Output 'Ready: publish\LABPlus.exe. Keep the entire publish folder together.'
 }
 finally { Pop-Location }

@@ -1,3 +1,97 @@
+# LAB Plus 0.8.10
+
+- On game 1.1, the verified Praetor Suit Point interaction now shows Player lock through the authored release event in the player's model timeline. The continuing NPC clip no longer determines this countdown.
+- Read the event's identity, frame and playback rate from current game data. The demonstrated pickup releases at about 3.133 seconds while the full NPC clip lasts 6.633 seconds; these are observations, not hardcoded durations.
+- Hide the lock countdown after the player's sync binding clears. Preserve current-clip timers for other interactions and earlier supported profiles.
+- Guard the game-time domain and bound model, leaf and animation-event scanning.
+- Add detailed continuation context and a checked Windows build/release workflow.
+
+# LAB Plus 0.8.9 (local)
+
+- Adapt the scaled game clock, timer lifetime override, BATS calculation and GK stagger source to the audited 1.1 executable.
+- Read non-melee interaction syncs from the active interactable component, alongside player/melee/mechanic references. Display separate current-clip countdowns for independent active syncs, deduplicate shared references and keep Mantle separate.
+- Stop copying a glory-kill countdown into the generic interaction row merely because the player's body interaction flag is set.
+- Keep unsupported animation clocks, loops and ambiguous clip timelines unavailable; the current-clip countdown is not presented as the duration of an entire scripted sequence.
+
+Validation: 21 native suites, 24 isolated GPU cases, managed launcher/settings/protocol checks and the managed UI build passed. A combined read-only production capture on the running 1.1 game resolved all metadata, returned three living enemies, nine timer rows and ordinary BATS inactive; the companion parser accepted the actual native snapshot. Exact 1.1 executable/process code and source layouts were audited. Active BATS, equipment cooldowns, powerups and non-melee syncs were covered by fixtures; new positive in-game demonstrations of those actions on 1.1 remain pending. The optional interaction watch recorded idle only.
+
+# LAB Plus 0.8.8 (local)
+
+- Add separate countdowns beside Sticky Bomb for each missing charge, in restoration order. During an empty-magazine full reload, all missing charges share its actual deadline.
+- Display verified maximum durations beside countdowns, including the stagger glory-kill window. Unknown total durations stay unspecified.
+- Keep checking BATS through ordinary melee using the actual previous weapon and current animation rate; a real rate reset immediately clears the active state.
+- Render the research Debug HUD across the full viewport, with one font size, wrapping and automatic columns. Remove fixed enemy/timer/encounter row truncation and preserve all Volume inspector and Support plane labels while no target/contact is available.
+- Use EternalUi2Regular for enemy HP, GK and the research Debug HUD, with an embedded antialiased glyph atlas and one quad per glyph.
+
+Validation: 20 native suites, 24 isolated GPU cases and managed launcher/settings/protocol checks passed; the managed UI build passed. GPU readback verifies full-viewport text below the former 480 boundary, hidden/console states, font-atlas HP/GK rendering and depth occlusion. A read-only 1.0 inspection confirmed Sticky maximum durations and the actual Meathook/cvar visibility ABI. Melee BATS transitions were checked with fixtures; a new live punch demonstration and visual acceptance of the combined build remain pending after a full game restart.
+
+# LAB Plus 0.8.7 (local)
+
+- Expand BATS detection using each weapon's configured normal raise speed, including its upgrade and clamp settings. Positive game demonstrations cover Ballista and Rocket Launcher in 1.0; unresolved animation resource cases stay unavailable.
+- Activate Fast DBlade at the prepared Arbalest hit, including before selecting Destroyer Blade and while another weapon is held. Ordinary mastered Arbalest recharge and a completed ordinary mod switch are excluded. Consumption and player/map/weapon identity changes clear the state.
+- Raise enemy panels, add solid green/yellow/red health fill and current/max HP numerals, and show a golden countdown during the actual stagger glory-kill window.
+- Include living AI outside active encounter lists in world HP panels while preserving exact encounter membership in the table.
+- Check real item/mod ownership before showing equipment readiness. Uncollected equipment is Not acquired; unknown ownership stays unavailable.
+
+Validation: 19 native suites, 21 isolated GPU cases and managed launcher/settings/protocol checks passed. GPU readback covers complete health-panel fill/text and scene-depth occlusion. Read-only game 1.0 demonstrations confirmed ordinary and prepared Arbalest hits, Fast DBlade consumption, Rocket Launcher BATS, collected/uncollected equipment and the actual Imp stagger deadline. The assembled new build still requires a full game restart and visual in-game acceptance; isolated rendering tests are not that acceptance.
+
+# LAB Plus 0.8.6 (local)
+
+- Add Research / Invisible numbers with living enemies grouped by active encounter, current/max HP and optional world HP bars that follow validated live enemy positions.
+- Add equipment and powerup countdowns, separate Sticky Bomb next-charge/full-reload timers, and current sync-animation clip countdowns. Unsupported sources are marked unavailable.
+- Add observed BATS and Fast DBlade states. BATS initially supports Ballista in game 1.0; Fast DBlade reads and clears with the game's actual one-shot charge override.
+- Add labplus_enemies, labplus_enemy_hp_bars, labplus_timers and labplus_techs (0/1). New HUD blocks share the existing DebugHUD text scale and only sample enabled features or an open tool window.
+
+Validation: 18 native suites, 19 isolated GPU cases, launcher/settings/protocol checks and the managed UI build passed. The actual 1.0 native snapshot was accepted by the companion parser. User demonstrations confirmed BATS activation/reset/repeat, Fast DBlade preparation/consumption, and both Sticky Bomb recharge modes. Current live enemy capture has no active encounters; combat HP-bar observation and a positive live sync-clip observation remain pending.
+
+# LAB Plus 0.8.5 (local)
+
+- Rename the launcher to `LABPlus.exe`.
+- Keep Help focused on controls and practical instructions.
+- Simplify the missing-firewall-rule message as requested.
+- Display actual noclip, notarget and god player states alongside changed cheat cvars, including argument-free engine toggles.
+- Stack Volume inspector, Support plane and Active encounters at the upper left without gaps from hidden blocks.
+- Add `labplus_debughud_scale <0.5–3>` (default 1; no argument queries the value). Text size and stacked spacing scale together and persist between runs.
+
+Validation: 310 HUD checks with player-state layouts from four real EXEs, managed firewall/scale/persistence checks, 14 native suites and 19 isolated GPU cases passed. Layout fixtures cover all visibility combinations, four scales and both callback registration orders.
+
+# LAB Plus 0.8.4 (local)
+
+- Correct 5.1 cvar filtering with a verified catalog of menu/profile/graphics-preset variables and automatic renderer state. These values remain hidden even when loaded or changed after the startup baseline. Runtime modified flags are not used to classify menu ownership.
+- Keep true debug/cheat variables, including infinite ammo, timescale and difficulty-specific damage controls, eligible for display.
+- Reduce cvar text to 75% of the indicator font size, with matching page capacity and unchanged MR/metrics sizing. Fully restart the game to load the updated native metrics adapter.
+- Read-only inspection of the user's running 5.1 process reproduced 29 false rows; the corrected backend returned zero. Regression coverage uses those actual names and flags, late preference loading and subsequent menu changes.
+
+Validation: 286 HUD checks including executed smaller-font callbacks, font restoration, all observed false names, and metadata for four real executables. The collision DLL is unchanged from the verified 0.8.3 build.
+
+# LAB Plus 0.8.3 (local)
+
+- Use the original DESRU-Enhanced cheat-cvar session display filter: exclude initial nondefault preferences, including their later changes, and retain the baseline on companion reconnection to the same running game.
+- Correct native appearance mapping: World collision uses World color/opacity, Triggers use Trigger color/opacity, and Invisible walls use Wall color/opacity. Preserve existing custom preferences.
+
+Validation: 238 HUD checks with four real executable layouts, all 13 native suites, 19 GPU cases, and focused browser checks with different colors/opacities for every category passed.
+
+# LAB Plus 0.8.2 (local)
+
+- Keep only M (Q/E + Modbot input fix) and R (red-screen opacity other than 100%) in the LAB Plus indicator.
+- Show nondefault cheat-protected cvars and current values directly below that line, using factory defaults from the game's registry. Long lists use numbered six-second pages. Monitoring is read-only and independent of cheat-session startup values.
+- Require an effective outbound block for the exact executable in both launch paths, including with all optional layers disabled; recheck immediately before starting the game. Missing rules, disabled filtering services and restricted coverage refuse launch.
+- Release the Vulkan tracking mutex before the driver's presentation wait, allowing other rendering threads to keep recording commands.
+- Cache immutable world-geometry transforms with a bounded 32 MiB cache, preserving geometry, colors and draw order. A Fortress-sized CPU fixture reduced warm preparation from approximately 2.52–2.59 ms to 2.05–2.10 ms; this is not an in-game FPS measurement.
+
+Validation: 232 HUD checks with metadata from four real executables, managed launcher/firewall fixtures, all 13 native suites across 22 profile fixtures and 19 isolated Vulkan GPU readback cases passed. The GPU tests include concurrent/exclusive queue presentation, depth occlusion and console clipping.
+
+Restart DOOM Eternal through this version after updating to load the new native layer and metrics adapter.
+
+# LAB Plus 0.8.1 (local)
+
+- Restore joint collision/lighting discovery: the child Vulkan search includes every owned manifest.
+- Lighting opts in only for audited 1.0, 1.1 and 2.0 executables on NVIDIA; AMD, Intel, unknown GPUs and other versions remain off.
+- Embed the full-color red/gold UI emblem in all seven EXE icon sizes.
+- Match the LAB folder button, add the header separator, place Types beneath its trigger switch, and start child-window focus in content.
+- Remove references to the unimplemented save-state project.
+- Cover actual Vulkan loader composition, 22 profile fixtures, 19 isolated GPU cases, HUD functions and all tool windows.
+
 # LAB Plus 0.8.0 — Slayer Workspace
 
 First LAB Plus release with the approved red/gold Plus emblem and fully English Slayer Workspace interface.
@@ -35,7 +129,7 @@ The following functionality and acceptance notes are inherited from upstream 0.8
 
 This release includes the accumulated entity graph, trigger-folder filters, Movement lab, support projections, before/after snapshots, research points, simple practice-save library and firewall launch gate described below. A separately installed compatible meathook is required for native HUD and reflection features; it is not bundled.
 
-Live checkpoint archiving and repeated early/late restoration passed in-game acceptance without game/Steam restarts on **6.66 Rev 3 / TAG1 / slot 3 / UAC Atlantica**. The user also confirmed the simplified companion starts without errors. Cloud must be off globally or for the game; mixing Steam accounts remains blocked. Archives preserve completed checkpoint files and are not arbitrary RAM savestates. Other builds/slots use the advanced offline workflow, whose closed-process guards remain intact.
+Live checkpoint archiving and repeated early/late restoration passed in-game acceptance without game/Steam restarts on **6.66 Rev 3 / TAG1 / slot 3 / UAC Atlantica**. The user also confirmed the simplified companion starts without errors. Cloud must be off globally or for the game; mixing Steam accounts remains blocked. Archives preserve completed checkpoint files. Other builds/slots use the advanced offline workflow, whose closed-process guards remain intact.
 
 Launch from LAB Plus requires DESRU's enabled outbound block for the exact selected game EXE. Existing Windows rules are only read. When upgrading from public 0.7, restart the game once through the new build to load its native layer. When upgrading from the already tested live-restore/simple-saves development build, only the companion needs restarting: the native DLL is unchanged.
 

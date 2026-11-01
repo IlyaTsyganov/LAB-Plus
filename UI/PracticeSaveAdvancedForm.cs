@@ -131,7 +131,7 @@ internal sealed class PracticeSaveAdvancedForm : LabPlusForm
         _status.Text = "Waiting for checkpoint loading. At 100% press Space in game, then pause.";
         var result = await LivePracticeBridge.Execute(_directory, _gameProcess, "reload", remote, slot, cloud, p => { if (!IsDisposed && p.Phase == "loading") _status.Text = "Loading checkpoint: at 100% press Space in game, then pause."; });
         if (IsDisposed) return; _status.Text = result.Detail;
-        _details.Text = $"{result.Detail}\r\nMap after load: {result.Map}\r\nLoaded checkpoint: {result.Checkpoint}\r\nSteam account: {result.Account} · {result.Slot}\r\nThis verifies an observed engine reload, not archive restoration or arbitrary RAM savestates.";
+        _details.Text = $"{result.Detail}\r\nMap after load: {result.Map}\r\nLoaded checkpoint: {result.Checkpoint}\r\nSteam account: {result.Account} · {result.Slot}\r\nThe engine reload was observed.";
     });
     private Task RestoreLive() => Run(async () =>
     {

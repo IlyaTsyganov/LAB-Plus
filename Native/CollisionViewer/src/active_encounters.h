@@ -130,47 +130,43 @@ static bool writeActiveEncounters(const ActiveEncounterSnapshot& snapshot,const 
 }
 class ActiveEncounterHud {
     const MeathookHudApi* api=nullptr;
-    std::array<std::string,14> previous{};
+    std::vector<std::string> previous;
     bool visible=false,requested=false;
     ULONGLONG formattedAt=0;
-    static constexpr unsigned x=24,y=32,height=16;
+    DebugHudStack localLayout;
+    DebugHudStack* layout;
 public:
-    explicit ActiveEncounterHud(const MeathookHudApi* backend=nullptr):api(backend) {}
+    explicit ActiveEncounterHud(const MeathookHudApi* backend=nullptr,DebugHudStack* stack=nullptr):api(backend),layout(stack?stack:&localLayout) {}
     void bind(const MeathookHudApi* backend) { api=backend; }
     void clear() {
-        if(visible&&api&&api->removeText) for(unsigned i=0;i<previous.size();++i) api->removeText(x,y+i*height);
+        layout->clear(DebugHudBlock::Encounters);
         previous={}; visible=false; requested=false; formattedAt=0;
     }
     void update(const ActiveEncounterSnapshot* snapshot,bool wanted,bool playing,uint64_t now) {
         if(!wanted||!playing||!api||!api->executeCommand||!api->addText||!api->removeText) { clear(); return; }
+        if(!snapshot||now>snapshot->captured+2000||snapshot->captured>now+5000) { clear(); return; }
         if(visible&&now>=formattedAt&&now-formattedAt<200) return;
         formattedAt=now;
         if(!requested) { api->executeCommand("com_debugHUD 1"); requested=true; }
-        std::array<std::string,14> lines{};
+        std::vector<std::string> lines(2);
         lines[0]="LAB Plus | Active encounters";
-        if(!snapshot||now>snapshot->captured+2000||snapshot->captured>now+5000) lines[1]="Waiting for fresh encounter data";
-        else if(snapshot->phase!="live"&&snapshot->phase!="paused") lines[1]="State: "+snapshot->phase;
+        if(snapshot->phase!="live"&&snapshot->phase!="paused") lines[1]="State: "+snapshot->phase;
         else {
             unsigned active=0,shown=0;
             for(const auto& row:snapshot->rows) if(row.active()) {
                 ++active;
-                if(shown>=5) continue;
                 std::string state=row.paused==1?" [paused]":row.spawnPaused==1?" [spawn pause]":row.waitingExit==1?" [waiting exit]":"";
-                lines[2+shown*2]=std::to_string(shown+1)+". "+(row.label.empty()?row.name:row.label)+state;
-                lines[3+shown*2]="   script "+std::to_string(row.script)+" | ID "+std::to_string(row.id)+" | "+row.name;
+                lines.push_back(std::to_string(shown+1)+". "+(row.label.empty()?row.name:row.label)+state);
+                lines.push_back("   script "+std::to_string(row.script)+" | ID "+std::to_string(row.id)+" | "+row.name);
                 ++shown;
             }
             lines[1]=std::string(snapshot->unreadable?"Known active managers: ":"Active managers: ")+std::to_string(active);
-            if(active>shown) lines[12]="+"+std::to_string(active-shown)+" more in LABPLUS / labplus_encounters_list";
-            if(snapshot->unreadable) lines[13]="Unavailable reads: "+std::to_string(snapshot->unreadable);
+            if(snapshot->unreadable) lines.push_back("Unavailable reads: "+std::to_string(snapshot->unreadable));
         }
         for(unsigned i=0;i<lines.size();++i) {
             for(char& c:lines[i]) if(c=='%'||c=='^'||static_cast<unsigned char>(c)<32) c='?';
-            if(lines[i].size()>88) lines[i]=lines[i].substr(0,85)+"...";
-            if(visible&&lines[i]==previous[i]) continue;
-            if(lines[i].empty()) api->removeText(x,y+i*height);
-            else api->addText(x,y+i*height,i?0xffeeeeeeu:0xffffd040u,.72f,"%s",lines[i].c_str());
         }
+        layout->publish(DebugHudBlock::Encounters,api,lines,16,.72f,0xffffd040u);
         previous=std::move(lines); visible=true;
     }
 };
@@ -179,7 +175,7 @@ class ActiveEncounterBridge {
     std::mutex exchange;
     EncounterFields fields;
     std::shared_ptr<const ActiveEncounterSnapshot> latest;
-    ActiveEncounterHud hud;
+    ActiveEncounterHud hud{nullptr,&debugHudStack()};
     const GameProfile* profile=nullptr;
     enum class Phase { Meathook, Callback, Metadata, Ready };
     std::atomic<Phase> phase{Phase::Meathook};
@@ -255,7 +251,7 @@ public:
         const auto* candidate=getter(); MeathookHudApi copy{};
         if(!candidate||!WallMemory{}.get(reinterpret_cast<uintptr_t>(candidate),copy)||!copy.findClass||!copy.registerPreFrame) return;
         if(!GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_PIN|GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS,reinterpret_cast<LPCWSTR>(getter),&pinned)) return;
-        api=candidate; hud.bind(api); registered=true; phase=Phase::Callback; api->registerPreFrame(callback,this);
+        api=candidate; hud.bind(api); registered=true; phase=Phase::Callback; debugHudStack().connect(api,DebugHudProducer::Observations,callback,this);
         note("Active encounters: meathook metadata callback registered; background snapshots update every 250ms.");
     }
 };

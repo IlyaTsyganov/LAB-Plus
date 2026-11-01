@@ -53,4 +53,25 @@ cl /nologo /std:c++17 /W4 /O2 /EHsc /MD /I"%VULKAN_HEADERS%" tests\retail_profil
 if errorlevel 1 exit /b %errorlevel%
 cl /nologo /std:c++17 /W4 /O2 /EHsc /MD /I"%VULKAN_HEADERS%" tests\vulkan_smoke.cpp /Fo:build\vulkan_smoke.obj /Fe:bin\VulkanSmoke.exe user32.lib /link /INCREMENTAL:NO
 if errorlevel 1 exit /b %errorlevel%
+cl /nologo /std:c++17 /W4 /O2 /EHsc /MD /I"%VULKAN_HEADERS%" tests\appearance_tests.cpp /Fo:build\appearance_tests.obj /Fe:bin\AppearanceTests.exe user32.lib /link /INCREMENTAL:NO
+if errorlevel 1 exit /b %errorlevel%
+cl /nologo /std:c++17 /W4 /O2 /EHsc /MD /I"%VULKAN_HEADERS%" tests\performance_tests.cpp /Fo:build\performance_tests.obj /Fe:bin\PerformanceTests.exe user32.lib /link /INCREMENTAL:NO
+if errorlevel 1 exit /b %errorlevel%
+cl /nologo /std:c++17 /W4 /O2 /EHsc /MD /I"%VULKAN_HEADERS%" tests\debug_hud_stack_tests.cpp /Fo:build\debug_hud_stack_tests.obj /Fe:bin\DebugHudStackTests.exe user32.lib /link /INCREMENTAL:NO
+if errorlevel 1 exit /b %errorlevel%
+cl /nologo /std:c++17 /W4 /O2 /EHsc /MD /I"%VULKAN_HEADERS%" tests\enemy_telemetry_tests.cpp /Fo:build\enemy_telemetry_tests.obj /Fe:bin\EnemyTelemetryTests.exe user32.lib /link /INCREMENTAL:NO
+if errorlevel 1 exit /b %errorlevel%
+cl /nologo /std:c++17 /W4 /O2 /EHsc /MD /I"%VULKAN_HEADERS%" tests\game_timer_tests.cpp /Fo:build\game_timer_tests.obj /Fe:bin\GameTimerTests.exe user32.lib /link /INCREMENTAL:NO
+if errorlevel 1 exit /b %errorlevel%
+cl /nologo /std:c++17 /W4 /O2 /EHsc /MD /I"%VULKAN_HEADERS%" tests\invisible_numbers_tests.cpp /Fo:build\invisible_numbers_tests.obj /Fe:bin\InvisibleNumbersTests.exe user32.lib /link /INCREMENTAL:NO
+if errorlevel 1 exit /b %errorlevel%
+cl /nologo /std:c++17 /W4 /O2 /EHsc /MD /I"%VULKAN_HEADERS%" tests\speedrun_tech_tests.cpp /Fo:build\speedrun_tech_tests.obj /Fe:bin\SpeedrunTechTests.exe user32.lib /link /INCREMENTAL:NO
+if errorlevel 1 exit /b %errorlevel%
+cl /nologo /std:c++17 /W4 /O2 /EHsc /MD /I"%VULKAN_HEADERS%" tests\health_bar_render_tests.cpp /Fo:build\health_bar_render_tests.obj /Fe:bin\HealthBarRenderTests.exe user32.lib /link /INCREMENTAL:NO
+if errorlevel 1 exit /b %errorlevel%
+cl /nologo /std:c++17 /W4 /O2 /EHsc /MD /I"%VULKAN_HEADERS%" tests\debug_hud_render_tests.cpp /Fo:build\debug_hud_render_tests.obj /Fe:bin\DebugHudRenderTests.exe user32.lib /link /INCREMENTAL:NO
+if errorlevel 1 exit /b %errorlevel%
+cl /nologo /std:c++17 /W4 /O2 /EHsc /MD /I"%VULKAN_HEADERS%" tests\sync_interaction_tests.cpp /Fo:build\sync_interaction_tests.obj /Fe:bin\SyncInteractionTests.exe user32.lib /link /INCREMENTAL:NO
+if errorlevel 1 exit /b %errorlevel%
+if errorlevel 1 exit /b %errorlevel%
 exit /b %errorlevel%

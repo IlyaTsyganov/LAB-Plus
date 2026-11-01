@@ -151,6 +151,10 @@ int main() {
     collisionMode=1; expect(collectVertices(camera,vertices)==9&&vertices.size()==15,"fill plus contours for all groups");
     for(unsigned i=0;i<9;++i) expect(vertices[i].color[3]==.09f,"equal fill opacity");
     expect(vertices[13].color[0]==1&&vertices[13].color[1]==.45f,"orange walls");
+    auto originalAppearances=volumeAppearances;
+    for(auto& appearance:volumeAppearances)appearance.opacity=0;
+    expect(collectVertices(camera,vertices)==0&&vertices.size()==6,"zero fill opacity keeps outlines without invisible fill depth writes");
+    volumeAppearances=originalAppearances;
     for(bool* toggle:{&showTriggers,&showCollision,&showWalls}) {
         *toggle=false; expect(collectVertices(camera,vertices)==6&&vertices.size()==10,"independent group toggle"); *toggle=true;
     }
@@ -229,8 +233,8 @@ int main() {
         expect(collectVertices(camera,vertices)==0&&vertices.size()==6,"removed snapshots are dashed and never filled");
         expect(volumeStyle(liveWalls.meshes[0],true,1000).filled==false,"selection never fills a removed snapshot");
         Mesh changed=inactive; changed.volumeState=EntityStatus::Enabled; changed.changedAt=1000;
-        expect(volumeStyle(changed,false,1100).line[1]==1.f,"activation change gets a short green highlight");
-        expect(volumeStyle(changed,false,3100).line[1]==.45f,"activation highlight expires");
+        expect(volumeStyle(changed,false,1100).line[3]==1.f,"activation pulse keeps the configured color and strengthens the outline");
+        expect(volumeStyle(changed,false,3100).line[3]==.9f,"activation outline pulse expires");
         showVolumeHistory=false; meshes=std::move(savedWorld); liveWalls.meshes=std::move(savedLive);
         spatialNodes=std::move(historySavedNodes); spatialOrder=std::move(historySavedOrder);
     }

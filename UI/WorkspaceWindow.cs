@@ -124,10 +124,11 @@ internal sealed class WorkspaceHost : Form
     internal bool WasPrewarmed;
     internal bool FirstRevealWasReady;
     private bool _presented;
+    private bool _initialFocusAssigned;
     internal WorkspaceHost(bool main)
     {
         FormBorderStyle=FormBorderStyle.None;BackColor=LabPlusTheme.Canvas;Controls.Add(Browser);
-        string icon=Path.Combine(AppContext.BaseDirectory,"Assets","labplus.ico");if(File.Exists(icon))Icon=new(icon);
+        string icon=Path.Combine(AppContext.BaseDirectory,"Assets","labplus.ico");if(File.Exists(icon))Icon=LabPlusTheme.ApplicationIcon();
         Text="LAB Plus";ShowInTaskbar=main;Opacity=0;Show();
     }
     internal void Bind(LabPlusForm screen,Size size,Form? owner)
@@ -138,6 +139,21 @@ internal sealed class WorkspaceHost : Form
     }
     protected override bool ShowWithoutActivation=>Opacity==0;
     internal void Reveal(Form? owner) { if(owner is not null)Owner=owner;Opacity=1;Presented();Activate(); }
+    protected override void OnActivated(EventArgs e)
+    {
+        base.OnActivated(e);
+        if (_initialFocusAssigned || Presenter?.Ready.IsCompletedSuccessfully != true) return;
+        _initialFocusAssigned = true;
+        // Activation gives WebView2 its first native focus after the hidden
+        // frame was prepared. Place it in content rather than window chrome.
+        BeginInvoke(async () =>
+        {
+            if (IsDisposed || Browser.CoreWebView2 is null) return;
+            Browser.Focus();
+            try { await Browser.CoreWebView2.ExecuteScriptAsync("WorkspaceUI.focusContent()"); }
+            catch (Exception error) when (error is InvalidOperationException or System.Runtime.InteropServices.COMException) { WorkspaceWindows.Trace(error.Message); }
+        });
+    }
     private void Presented()
     {
         if(_presented||Screen is null)return;
@@ -204,7 +220,7 @@ internal static class WorkspaceWindows
     private static Task<CoreWebView2Environment> Environment()
     {
         string data=System.Environment.GetEnvironmentVariable("LABPLUS_DATA_DIRECTORY")??Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.LocalApplicationData),"labplus");
-        var options=new CoreWebView2EnvironmentOptions();
+        var options=new CoreWebView2EnvironmentOptions { Language = "en-US" };
         if(System.Environment.GetEnvironmentVariable("LABPLUS_PREVIEW")=="1"&&int.TryParse(System.Environment.GetEnvironmentVariable("LABPLUS_WEBVIEW_DEBUG_PORT"),out int port)&&port is >=1024 and <=65535)options.AdditionalBrowserArguments="--remote-debugging-port="+port;
         return CoreWebView2Environment.CreateAsync(null,Path.Combine(data,"webview"),options);
     }

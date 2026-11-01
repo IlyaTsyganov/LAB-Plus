@@ -41,6 +41,7 @@ internal sealed partial class MainForm : LabPlusForm
     private bool _syncingDistance;
     private bool _loadingControls;
     private ActiveEncountersForm? _activeEncounters;
+    private InvisibleNumbersForm? _invisibleNumbers;
     private EntityGraphForm? _entityGraph;
     private MovementLabForm? _movementLab;
     private LevelStateForm? _levelStates;
@@ -56,8 +57,8 @@ internal sealed partial class MainForm : LabPlusForm
 
         Text = "LAB Plus";
         StartPosition = FormStartPosition.CenterScreen;
-        ClientSize = new Size(992, 840);
-        MinimumSize = new Size(820, 730);
+        ClientSize = new Size(820, 800);
+        MinimumSize = new Size(680, 580);
         FormBorderStyle = FormBorderStyle.None;
         ControlBox = false;
         MaximizeBox = false;
@@ -70,10 +71,11 @@ internal sealed partial class MainForm : LabPlusForm
         try
         {
             string icon = Path.Combine(AppContext.BaseDirectory, "Assets", "labplus.ico");
-            if (File.Exists(icon)) Icon = new Icon(icon);
+            if (File.Exists(icon)) Icon = LabPlusTheme.ApplicationIcon();
         }
         catch (IOException) { }
 
+        InitializeLabFeatures();
         BuildMainPage();
         LoadSettingsIntoControls();
         WireSettings();
@@ -150,6 +152,7 @@ internal sealed partial class MainForm : LabPlusForm
 
     private void UpdateGameSelection()
     {
+        SyncLabGamePath();
         string path = _settings.GameExecutablePath;
         bool selected = !string.IsNullOrWhiteSpace(path);
         _pathValue.Text = selected ? path : "No game executable selected";
@@ -174,12 +177,18 @@ internal sealed partial class MainForm : LabPlusForm
     {
         try
         {
-            var process = _gameLauncher.Start(_settings);
+            if (!_hudMonitor.TryBeginLaunch()) return;
+            _launchButton.Enabled = false;
+            Workspace?.Publish(true);
+            var process = _gameLauncher.Start(_settings, ConfigureLabLaunch);
+            Hud.Runtime.GameLaunchHistory.Record(process, _settings.GameExecutablePath, _hudStore);
             process.Dispose();
             RefreshProcessStatus();
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException or System.ComponentModel.Win32Exception)
         {
+            _hudMonitor.CancelLaunch();
+            RefreshProcessStatus();
             WorkspaceDialog.Show(this, ex.Message, "Unable to launch DOOM Eternal", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
     }
@@ -191,7 +200,7 @@ internal sealed partial class MainForm : LabPlusForm
         {
             _settingsStore.Save(_settings);
             if (_preview) return;
-            if (_settings.CollisionViewerEnabled && File.Exists(_settings.GameExecutablePath))
+            if (_settings.NeedsNativeLayer && File.Exists(_settings.GameExecutablePath))
                 _layerRegistration.EnableForGame(_settings.GameExecutablePath);
             else
                 _layerRegistration.Disable();
@@ -249,34 +258,23 @@ internal sealed partial class MainForm : LabPlusForm
         string? expectedViewer = null;
         try { expectedViewer = _layerRegistration.ExpectedRuntimeLibraryName; }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException) { }
-        var snapshot = _processMonitor.ReadSnapshot(expectedViewer);
+        var snapshot = _preview ? new ProcessSnapshot(false, 0, false, 0, DateTime.Now) : _processMonitor.ReadSnapshot(expectedViewer);
         SetStatus(_gameStatus, snapshot.GameRunning ? "Running" : "Not running", snapshot.GameRunning);
         SetStatus(_desruStatus, snapshot.DesruRunning ? "Running" : "Not running", snapshot.DesruRunning);
         bool viewerEnabled = _settings.CollisionViewerEnabled;
-        bool restartRequired = viewerEnabled && snapshot.GameRunning &&
+        bool restartRequired = _settings.NeedsNativeLayer && snapshot.GameRunning &&
             (snapshot.ViewerUpdateRequired || (!snapshot.ViewerVersionChecked && snapshot.GameStartedBeforeViewer));
-        string viewerStatus = !viewerEnabled ? "Disabled"
-            : restartRequired ? (snapshot.ViewerUpdateRequired ? "Update pending" : "Restart game")
+        string viewerStatus = restartRequired ? (snapshot.ViewerUpdateRequired ? "Update pending" : "Restart game")
+            : !viewerEnabled ? "Disabled"
             : snapshot.GameRunning ? "Running" : "Enabled";
         SetStatus(_viewerStatus, viewerStatus, viewerEnabled, restartRequired);
         _gamePathToolTip.SetToolTip(_viewerStatus, snapshot.ViewerUpdateRequired
             ? $"The running game has not loaded this viewer build. Expected: {expectedViewer}. Loaded: {string.Join(", ", snapshot.LoadedViewerLibraries.DefaultIfEmpty("none"))}. Fully exit the game and launch it again through LAB Plus."
             : snapshot.ViewerVersionChecked ? $"Loaded viewer: {string.Join(", ", snapshot.LoadedViewerLibraries)}" : null);
-        _launchButton.Enabled = !snapshot.GameRunning && !string.IsNullOrWhiteSpace(_settings.GameExecutablePath);
+        _launchButton.Enabled = !snapshot.GameRunning && !_hudMonitor.LaunchPending && !string.IsNullOrWhiteSpace(_settings.GameExecutablePath);
     }
 
-    private void ShowHelp()
-    {
-        WorkspaceDialog.Show(this,
-            "LAB Plus is an unofficial DOOM Eternal research companion.\n\n" +
-            "VIEWER: select DOOMEternalx64vk.exe in Settings, enable Collision Viewer, choose geometry and rendering, then launch the game here. Viewer activation requires the next full game launch. Preferences save automatically.\n\n" +
-            "LAUNCH: use DESRU to enable an effective outbound Windows Firewall block for the selected executable. LAB Plus reads firewall state without changing its rules.\n\n" +
-            "RESEARCH: movement attempts, recorded paths, entity references, before/after level comparisons, active encounters and named research points are grouped under Research. References and captured state are observations, not proof of script execution. The volume inspector and native HUD require compatible meathook.\n\n" +
-            "SAVES: pause the game, optionally enter a name and press Save. Select a checkpoint and press Load. Live loading supports 6.66 Rev 3, TAG1, slot 3 with Steam Cloud disabled. Checkpoints are completed autosaves, not RAM snapshots. Advanced tools retain the existing account, archive and recovery checks.\n\n" +
-            "CONSOLE: labplus_commands_list lists cvars and actions. Use labplus_encounters_show 1 for the encounter HUD, labplus_recording_start to record and labplus_recording_stop to stop. Keep LAB Plus open.\n\n" +
-            "Bundled DOOM Eternal typefaces and logo assets remain the property of their respective owners. LAB Plus is not affiliated with id Software or Bethesda.",
-            "LAB Plus Help", MessageBoxButtons.OK, MessageBoxIcon.Information);
-    }
+    private void ShowHelp() => _ = Workspace?.Browser.ExecuteScriptAsync("LabPlusHelp.open()");
 
     private void OpenLink(string url)
     {

@@ -36,8 +36,27 @@ internal static class LabPlusTheme
     internal static Font Ui(float size = 10f, FontStyle style = FontStyle.Regular)
     { Initialize(); return new Font(_ui!, size, _ui!.IsStyleAvailable(style) ? style : FontStyle.Regular, GraphicsUnit.Point); }
     internal static Font Battle(float size) { Initialize(); return new Font(_battle!, size, FontStyle.Bold, GraphicsUnit.Point); }
-    internal static Image Emblem()
-    { using var image = Image.FromFile(Path.Combine(AppContext.BaseDirectory, "Assets", "labplus.png")); return new Bitmap(image); }
+    private static readonly Lazy<Bitmap> LogoPixels = new(CreateLogoPixels);
+    internal static Image Emblem() => (Bitmap)LogoPixels.Value.Clone();
+    private static unsafe Bitmap CreateLogoPixels()
+    {
+        using var original=Image.FromFile(Path.Combine(AppContext.BaseDirectory,"Assets","labplus.png"));
+        var bitmap=new Bitmap(original);
+        var data=bitmap.LockBits(new Rectangle(0,0,bitmap.Width,bitmap.Height),System.Drawing.Imaging.ImageLockMode.ReadWrite,System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+        try
+        {
+            for(int y=0;y<bitmap.Height;y++)
+                for(int x=0;x<bitmap.Width;x++)
+                {
+                    byte* pixel=(byte*)data.Scan0+y*data.Stride+x*4;
+                    if(pixel[2]-pixel[1]>64){pixel[2]=127;pixel[1]=0;pixel[0]=4;}
+                }
+        }
+        finally{bitmap.UnlockBits(data);}
+        return bitmap;
+    }
+    // The resource contains the same full-color emblem as the WebView header.
+    internal static Icon ApplicationIcon(int size = 48) => new(Path.Combine(AppContext.BaseDirectory,"Assets","labplus.ico"),size,size);
     internal static void Apply(UiNode root)
     {
         if (!root.Font.Name.StartsWith("Eternal", StringComparison.Ordinal)) root.Font = Ui(root.Font.Size, root.Font.Style);

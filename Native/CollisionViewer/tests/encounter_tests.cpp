@@ -82,9 +82,9 @@ int main() {
     ActiveEncounterRow row; row.known=true; row.think=1; row.id=1930; row.name="starting_platform_encounter_manager_1"; row.label="UAC Atlantica / Combat 1 Landing Pad 1";
     snapshot.rows.push_back(row); hudRows[280]="Inspector text";
     hud.update(&snapshot,true,true,1000);
-    expect(hudVisibilityRequests==1&&hudRows[64].find("Landing Pad 1")!=std::string::npos,"native HUD enables com_debugHUD and displays the human encounter name");
+    expect(hudVisibilityRequests==1&&hudRows[40].find("Landing Pad 1")!=std::string::npos,"native HUD enables com_debugHUD and displays the human encounter name");
     hud.update(&snapshot,true,true,1300); expect(hudVisibilityRequests==1,"HUD visibility cvar is requested once per visible interval");
-    hud.update(&snapshot,true,true,4000); expect(hudRows[48].find("fresh")!=std::string::npos&&hudRows.count(64)==0,"stale encounter names are removed from the HUD");
+    hud.update(&snapshot,true,true,4000); expect(hudRows.size()==1&&hudRows[280]=="Inspector text","stale encounter block consumes no stack rows");
     hud.update(&snapshot,false,true,4100); expect(hudRows.size()==1&&hudRows[280]=="Inspector text","hiding encounters removes only their own native HUD rows");
     expect(std::size(labCvarDefinitions)==14,"state preferences including collider, surface HUD and attempt overlays are native cvars");
     std::array<unsigned char,96> variable{},data{}; const char* cvarName="labplus_encounters_show"; const char* value="1";

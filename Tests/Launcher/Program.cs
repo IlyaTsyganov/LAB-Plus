@@ -9,6 +9,13 @@ static void Check(bool condition, string message)
 }
 
 // Explicit acceptance modes. The normal fixture run never calls the game/Steam.
+if (args.Length == 2 && args[0] == "--numbers-snapshot")
+{
+    var snapshot = InvisibleNumbersSnapshot.Parse(File.ReadAllLines(args[1]));
+    Check(snapshot is { Ready: true } && snapshot.Timers.Count >= 3 && snapshot.Techs.Count == 2, "Actual numbers snapshot rejected or incomplete.");
+    Console.WriteLine($"PASS: actual native numbers protocol accepted: {snapshot!.Enemies.Count} enemy rows, {snapshot.Timers.Count} timers, {snapshot.Techs.Count} technique states; {snapshot.Map}.");
+    return 0;
+}
 if (args.Length == 2 && args[0] == "--firewall-status")
 {
     var status = GameFirewall.Inspect(args[1]);
@@ -289,6 +296,8 @@ try
         File.WriteAllBytes(path, Fixture(timestamp, size, rva));
         var info = GameExecutableInfo.Read(path) ?? throw new Exception("Game version not recognized: " + expectedVersion);
         Check(info.Version == expectedVersion, "Wrong selected game version: " + expectedVersion);
+        Check(LightingFixPolicy.CanUse(path,0x10de)==(expectedVersion is "1.0" or "1.1" or "2.0"),"Wrong NVIDIA lighting eligibility");
+        Check(!LightingFixPolicy.CanUse(path,0x1002),"AMD must never opt in to lighting");
         Check(info.NeedsLightingFix == (expectedVersion is "1.0" or "1.1" or "2.0"), "Wrong lighting policy: " + expectedVersion);
         File.WriteAllBytes(path, Fixture(timestamp, size, rva, validCode: false));
         Check(GameExecutableInfo.Read(path) is null, "Unknown build shown as supported: " + expectedVersion);
@@ -304,7 +313,8 @@ try
     foreach (var build in builds)
     {
         File.WriteAllBytes(path, Fixture(build.Timestamp, build.Size, build.Rva));
-        var start = GameLauncher.CreateStartInfo(path);
+        var start = GameLauncher.CreateStartInfo(path,0x10de);
+        foreach(uint vendor in new uint[]{0x1002,0x8086,0}) Check(GameLauncher.CreateStartInfo(path,vendor).Environment[LightingFixPolicy.EnvironmentVariable]=="0","Unsupported GPU opted into lighting");
         Check(start.Environment[LightingFixPolicy.EnvironmentVariable] == "1", "Old build not opted in");
         Check(start.Environment["SteamAppId"] == "782330", "Steam restart would drop the lighting-fix opt-in");
         Check(!start.UseShellExecute && start.FileName == path && start.WorkingDirectory == temporary, "Launch target changed");
@@ -318,7 +328,7 @@ try
     Environment.SetEnvironmentVariable(LightingFixPolicy.EnvironmentVariable, "1");
     // 2.1 is deliberately excluded even though it shares much of 2.0's layout.
     File.WriteAllBytes(path, Fixture(0x5f203d59, 0x1e1ef000, 0x304520));
-    var laterBuild = GameLauncher.CreateStartInfo(path);
+    var laterBuild = GameLauncher.CreateStartInfo(path,0x10de);
     Check(laterBuild.Environment[LightingFixPolicy.EnvironmentVariable] == "0", "2.1 inherited a stale fix opt-in");
     Check(laterBuild.Environment["SteamAppId"] == "launcher-test-parent", "Unaffected game launch environment changed");
     File.WriteAllBytes(path, [1, 2, 3]);
@@ -330,6 +340,8 @@ try
         Check(LightingFixPolicy.NeedsFix(argument[1..]) == (argument[0] == '+'), "Unexpected eligibility: " + argument[1..]);
     }
     Console.WriteLine("PASS: per-class visibility persistence/backward compatibility and all 22 selected game versions; mapped fingerprints, malformed/changed EXEs, lighting policy, Steam restart prevention and child-only launch environment. No game was launched.");
+    InvisibleNumbersChecks.Run(temporary);
+    AppearanceChecks.Run(temporary);
     LevelStateChecks.Run(temporary);
     BookmarkSaveChecks.Run(temporary);
     LivePracticeChecks.Run(temporary);

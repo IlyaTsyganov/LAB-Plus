@@ -1,4 +1,5 @@
 using LabPlus.Configuration;
+using System.Globalization;
 
 namespace LabPlus.Game;
 
@@ -15,6 +16,12 @@ public static class LabCommands
         }
         if (args[0] == "labplus_trigger" && args.Length == 3 && TriggerClassCatalog.IsValidName(args[1]) && args[2] is "0" or "1")
         { settings.SetTriggerClassVisible(args[1], args[2] == "1"); return true; }
+        if (args[0] == "labplus_debughud_scale")
+        {
+            if (args.Length != 2 || !double.TryParse(args[1], NumberStyles.Float, CultureInfo.InvariantCulture, out double scale) ||
+                !double.IsFinite(scale) || scale is < 0.5 or > 3) return false;
+            settings.DebugHudScale = scale; return true;
+        }
         if (args.Length != 2 || !int.TryParse(args[1], out int number)) return false;
         if (args[0] == "labplus_distance")
         {
@@ -33,6 +40,10 @@ public static class LabCommands
             case "labplus_disabled": settings.ShowDisabledVolumes = value; break;
             case "labplus_history": settings.ShowVolumeHistory = value; break;
             case "labplus_encounters": settings.ShowActiveEncountersHud = value; break;
+            case "labplus_enemies": settings.ShowEnemyHealthHud = value; break;
+            case "labplus_enemy_hp_bars": settings.ShowEnemyHealthBars = value; break;
+            case "labplus_timers": settings.ShowGameTimersHud = value; break;
+            case "labplus_techs": settings.ShowSpeedrunTechsHud = value; break;
             case "labplus_fill": settings.Style = value ? RenderStyle.Filled : RenderStyle.Outlines; break;
             case "labplus_path": settings.ShowResearchPath = value; break;
             case "labplus_player": settings.ShowPlayerCollider = value; settings.MotionProcess = gameProcess; break;

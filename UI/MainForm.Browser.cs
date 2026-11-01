@@ -12,6 +12,8 @@ internal sealed partial class MainForm
         gamePath = _settings.GameExecutablePath, gameVersion = _gameVersion.Text.Replace("Version: ", "", StringComparison.Ordinal),
         gameStatus = _gameStatus.Text, viewerStatus = _viewerStatus.Text, desruStatus = _desruStatus.Text,
         canLaunch = _launchButton.Enabled, preview = _preview,
+        appearances = new { world = _settings.WorldAppearance, triggers = _settings.TriggerAppearance, walls = _settings.WallAppearance, inspector = _settings.InspectorAppearance },
+        lab = _hudStore.Snapshot(), labFeatures = _hudMonitor.Features, labStatus = _hudMonitor.Status,
         saves = _practiceSaves is null ? null : projection.Snapshot(_practiceSaves.Controls.Cast<UiNode>())
     };
 
@@ -19,9 +21,19 @@ internal sealed partial class MainForm
     {
         switch (message.GetProperty("kind").GetString())
         {
+            case "window-size":
+                SetWorkspaceSize(message.GetProperty("value").GetString());
+                break;
             case "navigate":
                 string page = message.GetProperty("page").GetString() ?? "Viewer";
-                if (page is "Viewer" or "Research" or "Saves" or "Settings") ShowPage(page);
+                if (page is "Viewer" or "Research" or "Saves" or "LAB") ShowPage(page);
+                break;
+            case "lab-setting":
+                if (!_hudStore.Apply(message.GetProperty("name").GetString() ?? "", message.GetProperty("value"))) throw new ArgumentException("Invalid LAB setting.");
+                Hud.Runtime.GameLauncher.WriteLightingControl(_hudStore, _hudMonitor.CanApplyFeatures);
+                break;
+            case "appearance":
+                ApplyAppearance(message);
                 break;
             case "setting":
                 string name = message.GetProperty("name").GetString() ?? "";
@@ -43,12 +55,13 @@ internal sealed partial class MainForm
                     case "folder": OpenDataDirectory(); break;
                     case "help": ShowHelp(); break;
                     case "desru": OpenLink("https://github.com/bowsr/DESRU/releases/latest"); break;
+                    case "wiki": OpenLink("https://github.com/IlyaTsyganov/LAB-Plus/wiki"); break;
                     case "community": OpenLink("https://discord.gg/dtDa9VZ"); break;
                 }
                 break;
             case "tool":
                 string? tool = message.GetProperty("name").GetString();
-                if (tool is "Movement lab…" or "Research timeline & path…" or "Entity links…" or "Level state: before / after…" or "Active encounters…" or "Research points…") OpenResearchTool(tool);
+                if (tool is "Movement lab…" or "Research timeline & path…" or "Entity links…" or "Level state: before / after…" or "Active encounters…" or "Invisible numbers…" or "Research points…") OpenResearchTool(tool);
                 break;
         }
     }

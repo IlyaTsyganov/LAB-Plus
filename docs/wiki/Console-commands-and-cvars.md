@@ -1,81 +1,111 @@
 # Console commands and cvars
 
-## Prerequisites
+Keep LAB Plus open for the selected game and load the matching current layer at full game startup. All LAB Plus controls use **labplus_**; old lab_ prefixes are inactive.
 
-Keep LAB Plus running with the matching game executable selected. The current layer must have loaded at full game startup. Console registration uses a compatible, already-loaded meathook with validated engine callbacks. Native cvar construction/register/set is audited for **6.66 Rev 3 only** and still awaits in-game acceptance with the rebranded layer. Unsupported versions withhold creation; do not invent variables with `set`.
+Arguments in angle brackets are placeholders. Use a dot for decimal values.
 
-All active controls start with **`labplus_`**. Names from the previous product are not registered. Arguments shown in angle brackets are placeholders; replace them instead of typing brackets.
+## LAB commands
 
-## Persistent state cvars
+These work separately from Research console integration. Enter a command **without arguments** to query its current value and help.
 
-Use `name value` to set a cvar. Where native cvars are available, entering its name without a value queries the engine variable. Boolean values are 0/1. Initial values below apply to fresh settings; saved preferences are loaded on later runs. UI changes and owned cvars synchronize through the companion.
+| Command | Arguments |
+| --- | --- |
+| `labplus_speedometer_show` | `0\|1 [current\|landing\|vertical]` |
+| `labplus_speedometer_showlanding` | `0\|1` |
+| `labplus_speedometer_showvertical` | `0\|1` |
+| `labplus_speedometer_verticalsign` | `0\|1`; signed up/down or magnitude |
+| `labplus_speedometer_x_pos` | `<pixels> [current\|landing\|vertical]` |
+| `labplus_speedometer_y_pos` | `<pixels> [current\|landing\|vertical]` |
+| `labplus_speedometer_size` | `<0.1..10> [current\|landing\|vertical]` |
+| `labplus_speedometer_color` | `<R> <G> <B> [current\|landing\|vertical]`; each 0..255 |
+| `labplus_lowhptintopacity` | `<0..100>`; 100 is the original opacity |
 
-| Cvar | Meaning | Range | Initial | Short action alias |
-| --- | --- | --- | --- | --- |
-| `labplus_viewer_show` | Master viewer | 0–1 | 0 | `labplus_viewer` |
-| `labplus_triggers_show` | Trigger geometry | 0–1 | 1 | `labplus_triggers` |
-| `labplus_collision_show` | World collision | 0–1 | 1 | `labplus_collision` |
-| `labplus_walls_show` | Invisible walls | 0–1 | 1 | `labplus_walls` |
-| `labplus_inspector_show` | Crosshair inspector | 0–1 | 0 | `labplus_inspector` |
-| `labplus_disabled_volumes_show` | Disabled volume outlines | 0–1 | 0 | `labplus_disabled` |
-| `labplus_volume_history_show` | Recent volume history | 0–1 | 0 | `labplus_history` |
-| `labplus_path_show` | Research path | 0–1 | 1 | `labplus_path` |
-| `labplus_player_show` | Player collider | 0–1 | 0 | `labplus_player` |
-| `labplus_surface_show` | Support-angle HUD | 0–1 | 0 | `labplus_surface` |
-| `labplus_attempts_show` | Movement attempt overlays | 0–1 | 1 | `labplus_attempts` |
-| `labplus_encounters_show` | Active encounter HUD | 0–1 | 0 | `labplus_encounters` |
-| `labplus_viewer_distance` | View distance in metres | 20–200 | 40 | `labplus_distance` |
-| `labplus_viewer_fill` | 0 = outlines; 1 = filled | 0–1 | 1 | `labplus_fill` |
+For position, size and color, omitting the target changes all three meters. The untargeted visibility command controls the master switch. Lighting, input protection and driver-line hiding are configured on [LAB](LAB).
 
-The short aliases take an explicit value; their no-argument form is not a general cvar query. `labplus_encounters` is the special case: no argument lists managers; 0/1 toggles its HUD.
+The original game commands `noclip`, `notarget` and `god` remain unchanged; argument-free toggles are reflected in the cheat display.
 
-## Action commands
+## Research HUD actions
+
+These require the compatible loaded meathook/action bridge. The new groups are independent and start off on fresh settings.
+
+| Command | Arguments | Display |
+| --- | --- | --- |
+| `labplus_enemies` | `0\|1` | Living enemies by active encounter |
+| `labplus_enemy_hp_bars` | `0\|1` | World HP/GK panels, including standalone living AI |
+| `labplus_timers` | `0\|1` | Equipment, powerup, Sticky and supported animation timers |
+| `labplus_techs` | `0\|1` | BATS and Fast DBlade observations |
+| `labplus_debughud_scale` | `<0.5..3>` | Shared Research HUD text scale; no argument queries it |
+
+Use `com_debugHUD 1` for the game's Debug HUD visibility. See [Invisible numbers](Invisible-numbers) for state meanings and timer scope.
+
+## Viewer/Research short actions
+
+These take an explicit value even when native cvar creation is unavailable.
+
+| Action | Values |
+| --- | --- |
+| `labplus_viewer` | 0/1, viewer master |
+| `labplus_triggers`, `labplus_collision`, `labplus_walls` | 0/1, geometry groups |
+| `labplus_inspector`, `labplus_disabled`, `labplus_history` | 0/1 |
+| `labplus_path`, `labplus_player`, `labplus_surface`, `labplus_attempts` | 0/1 |
+| `labplus_encounters` | 0/1, encounter HUD; no argument lists managers |
+| `labplus_distance` | 20..200 metres |
+| `labplus_fill` | 0 outlines, 1 filled |
+
+## Persistent Research cvars
+
+These cvars are currently available for **6.66 Rev 3 only**. The other command groups above have separate prerequisites. On other builds, use the UI or an available short action; do not invent unsupported cvars with `set`.
+
+| Cvar | Range | Fresh value |
+| --- | --- | --- |
+| `labplus_viewer_show` | 0/1 | 0 |
+| `labplus_triggers_show` | 0/1 | 1 |
+| `labplus_collision_show` | 0/1 | 1 |
+| `labplus_walls_show` | 0/1 | 1 |
+| `labplus_inspector_show` | 0/1 | 0 |
+| `labplus_disabled_volumes_show` | 0/1 | 0 |
+| `labplus_volume_history_show` | 0/1 | 0 |
+| `labplus_path_show` | 0/1 | 1 |
+| `labplus_player_show` | 0/1 | 0 |
+| `labplus_surface_show` | 0/1 | 0 |
+| `labplus_attempts_show` | 0/1 | 1 |
+| `labplus_encounters_show` | 0/1 | 0 |
+| `labplus_viewer_distance` | 20..200 | 40 |
+| `labplus_viewer_fill` | 0 outlines / 1 filled | 1 |
+
+Saved preferences replace fresh values. Where native cvars are available, entering a cvar name without a value queries the engine variable.
+
+## Recording and other actions
 
 | Command | Arguments | Action |
 | --- | --- | --- |
-| `labplus_commands_list` | None | List available cvars and actions |
-| `labplus_encounters_list` | None | Print observed active encounter managers/reference names |
-| `labplus_recording_start` | None | Start/resume the research timeline journal |
-| `labplus_recording_stop` | None | Stop the research timeline journal |
-| `labplus_recording_clear` | None | Begin a new research session; older session files remain |
-| `labplus_markers_add` | `<text>` | Add a marker to the research journal |
-| `labplus_trigger_set` | `<exact-class> 0\|1` | Change one recognized exact trigger class |
+| `labplus_commands_list` | None | List available controls |
+| `labplus_encounters_list` | None | Print observed active managers |
+| `labplus_recording_start` | None | Start/resume the research journal |
+| `labplus_recording_stop` | None | Stop the research journal |
+| `labplus_recording_clear` | None | Begin a new journal; older files remain |
+| `labplus_markers_add` | `<text>` | Add a marker |
+| `labplus_trigger_set` | `<exact-class> 0\|1` | Change one recognized trigger class |
 
-Marker text is cleaned/bounded and the complete IPC request is limited to 2,000 bytes. A trigger class must be valid and recognized. Use **Trigger types** for nested folder filters; the console class action does not set path prefixes.
+Aliases: `labplus_help`, `labplus_record 1` / `labplus_record 0`, `labplus_clear`, `labplus_mark <text>` and `labplus_trigger <class> 0|1`.
 
-## Additional compatibility aliases
+Use the Types window for hierarchical path filters. Timeline commands do not start/stop Movement Lab named attempts.
 
-| Alias | Equivalent |
-| --- | --- |
-| `labplus_help` | `labplus_commands_list` |
-| `labplus_encounters` | No arguments: list; with 0/1: HUD switch |
-| `labplus_record 1` / `labplus_record 0` | Start/resume / stop timeline |
-| `labplus_clear` | `labplus_recording_clear` |
-| `labplus_mark <text>` | `labplus_markers_add <text>` |
-| `labplus_trigger <class> 0\|1` | `labplus_trigger_set <class> 0\|1` |
-
-All other short state aliases are listed alongside their cvars above. They retain the `labplus_` prefix. Timeline recording controls do not start or stop named Movement Lab attempts; use that tool's own recording controls.
-
-## Examples
+## Example
 
 ```text
 labplus_commands_list
-labplus_viewer_show 1
-labplus_collision_show 0
-labplus_triggers_show 1
-labplus_viewer_distance 60
-labplus_viewer_fill 0
-labplus_inspector_show 1
+labplus_viewer 1
+labplus_collision 0
+labplus_triggers 1
+labplus_distance 60
+labplus_inspector 1
+labplus_enemy_hp_bars 1
+labplus_timers 1
+labplus_debughud_scale 1.25
 labplus_recording_start
-labplus_markers_add route A: before entering arena
-labplus_encounters_list
+labplus_markers_add before arena entry
 labplus_recording_stop
 ```
 
-If native cvars are unavailable but the action bridge works, use short actions such as `labplus_distance 60` or change the same preference in the interface. A new/first layer enable still requires a full game restart.
-
-## Lifetime and diagnostics
-
-Requests are same-user and scoped to the selected game PID. The bridge accepts only known validated actions; it does not forward arbitrary shell/engine commands. Names can remain in completion after the companion closes, but handlers refuse companion actions and changes cannot be persisted through the absent companion. The registered module remains pinned rather than globally unregistering names from the engine.
-
-Foreign ownership or failed ABI validation blocks native cvar registration with a diagnostic instead of repeated timed registration. Look in `viewer-runtime/VulkanViewer.log`. A successful fixture or completion entry does not prove native HUD visibility or live cvar acceptance on an unsupported executable.
+Names may remain in game completion after the companion closes, but their companion handlers are inactive. Reopen LAB Plus for the matching process. See [Troubleshooting](Troubleshooting) for unknown commands or unavailable native cvars.

@@ -13,7 +13,14 @@ $flags = @('-std=c++17', '-fms-extensions', '-D_WIN32_WINNT=0x0A00', '-DNTDDI_VE
 & $Compiler @flags -shared (Join-Path $nativeDirectory 'src\vulkan_layer.cpp') -o (Join-Path $output 'labplus-layer.dll') -luser32 -lbcrypt
 if ($LASTEXITCODE -ne 0) { throw 'Native layer compilation failed.' }
 $suites = [ordered]@{
- 'practice_live_tests.cpp'='PracticeLiveTests'; 'viewer_behavior_tests.cpp'='ViewerBehaviorTests';
+ 'health_bar_render_tests.cpp'='HealthBarRenderTests';
+ 'speedrun_tech_tests.cpp'='SpeedrunTechTests';
+ 'enemy_telemetry_tests.cpp'='EnemyTelemetryTests'; 'game_timer_tests.cpp'='GameTimerTests'; 'invisible_numbers_tests.cpp'='InvisibleNumbersTests';
+ 'debug_hud_stack_tests.cpp'='DebugHudStackTests';
+ 'debug_hud_render_tests.cpp'='DebugHudRenderTests';
+ 'sync_interaction_tests.cpp'='SyncInteractionTests';
+ 'performance_tests.cpp'='PerformanceTests';
+ 'appearance_tests.cpp'='AppearanceTests'; 'practice_live_tests.cpp'='PracticeLiveTests'; 'viewer_behavior_tests.cpp'='ViewerBehaviorTests';
  'depth_tracker_tests.cpp'='DepthTrackerTests'; 'inspector_tests.cpp'='InspectorTests';
  'research_tests.cpp'='ResearchTests'; 'movement_tests.cpp'='MovementTests';
  'level_state_tests.cpp'='LevelStateTests'; 'encounter_tests.cpp'='EncounterTests';

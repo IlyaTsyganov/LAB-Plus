@@ -206,7 +206,7 @@ public:
                 token=seen=values[2]; operation=values[4]; account=values[5]; checkpoint.clear(); cloudDetail.clear(); recoveryDetail.clear(); idleSince=0;
                 remote=std::filesystem::u8path(values[7]);
             }
-            if(encounterEpochMillis()>requested+10000) { result(directory,"error","No paused, idle save state was available within ten seconds."); token.clear(); return; }
+            if(encounterEpochMillis()>requested+10000) { result(directory,"error","Checkpoint writing did not become idle while paused within ten seconds."); token.clear(); return; }
             auto state=readPracticeRuntime(memory,base,profile);
             if(!state) { result(directory,"error",state.error); token.clear(); return; }
             auto steam=readPracticeSteam();
@@ -218,7 +218,7 @@ public:
                 result(directory,"error",steam.cloudAccount<0||steam.cloudApp<0?"Steam Cloud state is unavailable; live operation blocked.":"Steam Cloud is enabled both for the account and the game. Disable Cloud before the live operation.");
                 token.clear(); return;
             }
-            if(!idleSince) { idleSince=GetTickCount64(); originalMap=state.map; result(directory,"waiting","Checking idle save state for 500 ms.",state.level); return; }
+            if(!idleSince) { idleSince=GetTickCount64(); originalMap=state.map; result(directory,"waiting","Checking that checkpoint writing stays idle for 500 ms.",state.level); return; }
             if(originalMap!=state.map) { result(directory,"error","Map changed during preparation."); token.clear(); return; }
             if(GetTickCount64()-idleSince<500) return;
             auto files=readPracticeFiles(remote/L"DLC1-AUTOSAVE5");

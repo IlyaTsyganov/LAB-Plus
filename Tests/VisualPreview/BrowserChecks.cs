@@ -72,6 +72,18 @@ internal static class BrowserChecks
             Check(Field<UiSelect>(movement, "_projection").SelectedIndex == 1 && Field<UiTable>(movement, "_comparison").RowCount == 2, "Projection/comparison controls did not update.");
             Console.WriteLine("PASS: movement checked attempts, projection and populated comparison table.");
         }
+        else if (form is InvisibleNumbersForm numbers)
+        {
+            Field<System.Windows.Forms.Timer>(numbers,"_refresh").Stop();
+            Set(numbers,"_enemyRows",new List<EnemyNumber> { new(1,1,"Arena",2,1,"idAI2","imp",125.5,200) });
+            Set(numbers,"_timerRows",new List<TimerNumber> { new("flame_belch","Equipment","Flame belch","cooldown",2.5,""), new("sync_animation","Animation","Sync animation","unavailable",null,"No validated duration") });
+            Set(numbers,"_techRows",new List<TechNumber> { new("bats","BATS","unavailable","Select a supported weapon"),new("fast_dblade","Fast DBlade","active","Next charge is accelerated") });
+            Field<UiTable>(numbers,"_enemies").RowCount=1; Field<UiTable>(numbers,"_timers").RowCount=2;Field<UiTable>(numbers,"_techs").RowCount=2;await Sync(numbers);
+            Check(JsonSerializer.Deserialize<bool>(await Script(form,"document.body.innerText.includes('125.5')&&document.body.innerText.includes('2.50 s')&&document.body.innerText.includes('No validated duration')")),"Invisible numbers lost actual rows or unavailable state.");
+            await Script(form,"document.querySelectorAll('.control-check input').forEach(input=>input.click())");await Sync(numbers);
+            Check(settings.ShowEnemyHealthHud&&settings.ShowEnemyHealthBars&&settings.ShowGameTimersHud&&settings.ShowSpeedrunTechsHud,"Invisible numbers switches did not reach native settings.");
+            Console.WriteLine("PASS: live-number table formatting and HUD/bar controls through browser events.");
+        }
         else if (form is EntityGraphForm graph) await Graph(graph);
     }
     private static async Task Graph(EntityGraphForm form)

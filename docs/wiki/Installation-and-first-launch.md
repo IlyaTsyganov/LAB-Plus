@@ -2,32 +2,44 @@
 
 ## Requirements
 
-- Windows x64 and a supported `DOOMEternalx64vk.exe`.
-- [.NET 10 Desktop Runtime x64](https://dotnet.microsoft.com/en-us/download/dotnet/10.0). Choose **Desktop Runtime**, not only the base .NET runtime.
-- [Microsoft Edge WebView2 Evergreen Runtime](https://developer.microsoft.com/en-us/microsoft-edge/webview2/). The desktop interface renders local packaged assets through WebView2.
-- A working Vulkan driver. Optional native HUD text and console integration additionally require a compatible meathook; it is not bundled.
+- Windows x64 and a [recognized DOOM Eternal executable](Compatibility).
+- [.NET 10 Desktop Runtime x64](https://dotnet.microsoft.com/en-us/download/dotnet/10.0), rather than only the base .NET runtime.
+- [Microsoft Edge WebView2 Evergreen Runtime](https://developer.microsoft.com/en-us/microsoft-edge/webview2/).
+- A working Vulkan driver.
+- For Research metadata, Research HUD and its console commands: a compatible, already-loaded meathook. It is not included in the package.
 
 ## Install
 
-1. Download `labplus-0.8.0-win-x64.zip` and `SHA256SUMS.txt` from the release.
-2. Optionally verify the ZIP with `Get-FileHash .\labplus-0.8.0-win-x64.zip -Algorithm SHA256` and compare with the checksum file.
-3. Extract **all** files to a writable folder. Keep `Assets`, `Native`, `runtimes`, licenses and the managed libraries beside `labplus.exe` in their original relative locations.
-4. Run `labplus.exe`. The release is framework dependent; it does not bundle the .NET or WebView2 runtimes.
+1. Download the Windows x64 ZIP from [Releases](https://github.com/IlyaTsyganov/LAB-Plus/releases/latest).
+2. If a checksum file is supplied, compare it with `Get-FileHash .\your-downloaded-file.zip -Algorithm SHA256`.
+3. Extract **all files** to a writable folder. Preserve the relative locations of Assets, Native, runtimes, libraries and licenses.
+4. Run **LABPlus.exe**. Do not copy the EXE out of its package folder.
 
-## Configure and launch
+The desktop interface uses packaged local assets. Rendering it does not require an internet connection.
 
-1. Open **Settings** and select the actual game executable. LAB Plus reads its PE identity and code fingerprint; a folder name is not a version check.
-2. Configure the matching outbound block in DESRU. The **Launch game** button requires an effective Windows Firewall block for this exact EXE on every active network profile. LAB Plus checks the rules; it does not create or alter them.
-3. On **Viewer**, enable Collision Viewer and choose geometry, fill style and distance.
-4. Launch the game through LAB Plus. It passes `+com_skipIntroVideo 1`.
-5. Load a level. Keep LAB Plus open to use console actions, recording and the research tools.
+## Select and launch the game
 
-Enabling the layer for the first time or updating its DLL requires a **full game restart**. Scalar options can update in a running process once the appropriate layer is already loaded. Merely returning to the main menu does not reload a DLL.
+1. On **Viewer**, use the folder button beside **Launch game** to select the actual `DOOMEternalx64vk.exe`.
+2. Enable an outbound Windows Firewall block for that exact executable, for example through DESRU.
+3. Enable the features you want. Geometry is configured on Viewer; speedometers and display fixes are on LAB; additional observations are on Research.
+4. Launch through LAB Plus and load a level. Keep the companion running.
 
-## Navigation
+The launch check applies even if Collision Viewer and all other optional layers are off. A rule for another installed version, an inbound rule or a disabled rule is insufficient. LAB Plus checks firewall state and does not create or change rules.
 
-**Viewer** contains geometry and inspector controls. **Research** opens the timeline, Movement Lab, entity links, level comparison, encounters and research points. **Saves** contains the checkpoint library. **Settings** contains executable selection, companion tools, logs and help.
+If the rule is missing, the message is:
 
-The interface uses only local HTML/CSS, fonts and images; it does not require an internet connection for rendering. Standard file and folder pickers are Windows dialogs. `labplus.exe --preview` opens an isolated interface preview without layer registration or the console-command listener.
+```text
+Launch blocked: enable firewall rule for the selected DOOM Eternal version(e.g. via DESRU).
+```
 
-See [Troubleshooting](Troubleshooting) if startup, firewall checks or rendering fail.
+The launcher also needs Windows Firewall and Base Filtering Engine services and effective coverage for the active network profiles.
+
+## Updating and restarting
+
+**Fully exit the game** before first loading a newly enabled native feature or replacing its DLL. Returning to the menu does not reload the layer. Install the complete new package, run its LABPlus.exe and relaunch the selected game.
+
+Once the correct layer is loaded, display preferences can update while the game runs. A restart/update-pending message means the running game still needs the matching layer.
+
+Lighting Fix only applies to verified 1.0, 1.1 and 2.0 on NVIDIA. It stays off on AMD, Intel, unknown hardware and other game versions; see [Compatibility](Compatibility).
+
+See [LAB](LAB), [Invisible numbers](Invisible-numbers) or [Troubleshooting](Troubleshooting) for the next step.

@@ -1,21 +1,34 @@
 # Trigger filters and volume inspector
 
-## Trigger types
+## Types
 
-Open **Viewer → Trigger types**. Filters are persistent and class scoped. A top-level switch controls an exact trigger class; nested folder switches refine instance names and entity-definition paths within that class. The bundled resource catalogue is extended by live discoveries.
+On Viewer, use **Types** beneath the trigger visibility switch to open the Trigger types window.
 
-A disabled parent overrides its descendants while preserving their individual choices. Re-enabling the parent restores those choices. Entries can remain in the catalogue when absent from the current map. Flat names do not receive invented folder levels. Matching both instance names and definitions helps retain a resource subtype after a map renames an instance.
+A top-level switch controls an exact runtime class. Nested folders refine instance names and entity-definition paths inside that class. The catalogue includes packaged entries and live discoveries.
 
-Filters apply to surfaces, outlines, history and picking. Unknown or invalid class names are rejected by the command interface. `labplus_trigger_set <class> 0|1` changes **one exact class**; use the interface for hierarchical path filters.
+A disabled parent overrides descendants while preserving their choices. Re-enable the parent to restore those choices. Entries may remain in the catalogue when absent from the current map.
+
+Filters apply to drawing, history and picking. The command `labplus_trigger_set <exact-class> 0|1` changes one recognized class; use the window for hierarchical folder filters.
 
 ## Crosshair inspector
 
-Enable **Volume inspector**, point at a recognized trigger or wall and inspect the highlighted geometry. A compatible meathook supplies native HUD text for entity identity and available fields. Geometry/picking and HUD availability have separate prerequisites; missing text is not evidence that a volume is absent.
+Enable **Volume inspector** and aim at a recognized trigger or invisible wall. The selected geometry uses its own highlight appearance, separate from the World/Trigger/Wall colors.
 
-Observed identity includes the entity ID and generation where available. A recycled ID or a different map instance must not be treated as the same live object. Use **Entity links** to explore resolved references and **Research points** to retain an annotated observation.
+The HUD shows the available identity, class, name, collision state and role. It uses the same full-viewport Research HUD font and layout as Support plane, Encounters and Invisible numbers:
 
-## Disabled volumes and history
+```text
+labplus_inspector 1
+labplus_debughud_scale 1.25
+```
 
-Advanced options can show disabled volumes as pale outlines. State changes can flash. Volume history retains labelled snapshots of removed or unreadable geometry for up to **15 seconds**.
+A compatible meathook is needed for the metadata/HUD. Picking and text availability are distinct; missing text is not evidence that the volume is absent.
 
-These are sampled observations. A vanished shape may represent an unreadable sample, a map transition or an identity change. It does not by itself prove deletion, trigger activation or execution of a script. Historical geometry is not a currently valid live entity.
+The Inspector retains its labelled rows while no target is selected. Hidden blocks do not leave fixed gaps above the other Research blocks.
+
+## History and interpretation
+
+Disabled volumes can be shown as pale outlines. Observed changes can flash, and history retains labelled removed/unreadable geometry for up to 15 seconds.
+
+A vanished shape can reflect an unreadable sample, transition or changed identity. It does not alone prove deletion or script execution. Historical geometry and recycled IDs/generations are not current live entities.
+
+Use [Entity links](Entity-links-and-level-comparison) for sampled references and [Research points](Research-points) for annotated observations. See [Collision viewer](Collision-viewer) for appearance, distance and rendering controls.

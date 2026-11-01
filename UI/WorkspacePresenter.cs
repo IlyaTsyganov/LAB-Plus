@@ -65,6 +65,12 @@ internal sealed class WorkspacePresenter : IDisposable
                 }
                 return;
             }
+            if (kind == "link")
+            {
+                string? url = message.GetProperty("name").GetString() switch { "community" => "https://discord.gg/dtDa9VZ", "wiki" => "https://github.com/IlyaTsyganov/LAB-Plus/wiki", _ => null };
+                if (url is not null) System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(url) { UseShellExecute = true });
+                return;
+            }
             if (kind == "resize") { Resize(message); return; }
             if (kind == "key") _projection.Key(message);
             else if (kind == "control") _projection.Dispatch(message);
@@ -106,7 +112,7 @@ internal sealed class WorkspacePresenter : IDisposable
     internal static string ToolTitle(LabPlusForm form) => form switch
     {
         MovementLabForm => "MOVEMENT LAB", ResearchForm => "RESEARCH TIMELINE", EntityGraphForm => "ENTITY LINKS",
-        LevelStateForm => "LEVEL COMPARISON", ActiveEncountersForm => "ACTIVE ENCOUNTERS", ResearchPointsForm => "RESEARCH POINTS",
+        LevelStateForm => "LEVEL COMPARISON", ActiveEncountersForm => "ACTIVE ENCOUNTERS", InvisibleNumbersForm => "INVISIBLE NUMBERS", ResearchPointsForm => "RESEARCH POINTS",
         SupportPlaneForm => "SURFACE PROJECTIONS", TriggerTypesForm => "TRIGGER TYPES", PracticeSaveAdvancedForm => "ARCHIVES AND RECOVERY",
         PracticeSaveForm => "CHECKPOINT LIBRARY", _ => form.Text.Replace("LAB Plus — ", "", StringComparison.Ordinal)
     };
@@ -114,7 +120,7 @@ internal sealed class WorkspacePresenter : IDisposable
     {
         MovementLabForm => "Record attempts, inspect movement and compare paths.", ResearchForm => "Record paths, mark observations and review the journal.",
         EntityGraphForm => "Explore entity references and their exact fields.", LevelStateForm => "Capture and compare observations before and after an action.",
-        ActiveEncountersForm => "Inspect live encounter managers and their observed state.", ResearchPointsForm => "Keep named observations, notes and archive links.",
+        InvisibleNumbersForm => "Living enemies, health and engine countdowns.", ActiveEncountersForm => "Inspect live encounter managers and their observed state.", ResearchPointsForm => "Keep named observations, notes and archive links.",
         SupportPlaneForm => "Inspect tangent-plane cuts and support angles.", TriggerTypesForm => "Choose classes and folders to display.",
         PracticeSaveAdvancedForm => "Validated checkpoint archives, diagnostics and recovery.", _ => ""
     };

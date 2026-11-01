@@ -30,6 +30,7 @@ extern "C" {
 #include <share.h>
 #include "game_camera.h"
 #include "shaders_spirv.h"
+#include "eternal_ui2_font.h"
 #include "depth_state.h"
 #include "lighting_fix.h"
 #include "entity_metadata.h"
@@ -54,7 +55,7 @@ static void require(VkResult result,const char* operation) { if(result!=VK_SUCCE
 template<class T> static void* key(T object) { return *reinterpret_cast<void**>(object); }
 
 struct Vec3 { float x,y,z; };
-struct Vertex { Vec3 position; float color[4]; };
+struct Vertex { Vec3 position; float color[4]; float texcoord[2]{-1,-1}; };
 struct Geometry { uint32_t kind; std::vector<Vec3> lines,triangles; };
 struct Mesh {
     uint32_t kind; float bounds[6]; std::shared_ptr<const Geometry> geometry;
@@ -97,16 +98,24 @@ static uint32_t buildSpatialNodeFor(const std::vector<Mesh>& source,std::vector<
     return index;
 }
 static uint32_t buildSpatialNode(uint32_t begin,uint32_t end) { return buildSpatialNodeFor(meshes,spatialNodes,spatialOrder,begin,end); }
+#include "volume_appearance.h"
+#include "debug_hud_stack.h"
+static bool debugHudEngineVisible(const MeathookHudApi* api);
 static bool sceneLoaded=false, showTriggers=true, showCollision=true, showWalls=true, enabled=true;
 static bool inspectVolumes=false;
 static bool showDisabledVolumes=false,showVolumeHistory=false;
 static std::atomic<bool> showActiveEncountersHud{false};
+static std::atomic<bool> showEnemyHealthHud{false},showEnemyHealthBars{false},showGameTimersHud{false},showSpeedrunTechsHud{false};
 static bool showResearchPath=false,recordResearch=false;
 static DWORD researchProcess=0;
 static ULONGLONG researchReset=0,researchMarker=0;
 static std::string researchMarkerLabel;
 static bool showPlayerCollider=false,showMotionPaths=true,motionFollowTarget=true;
 static std::atomic<bool> showSupportHud{false};
+static bool nativeOverlayNeeded() {
+    return enabled||showEnemyHealthBars.load()||showEnemyHealthHud.load()||showGameTimersHud.load()||
+        showSpeedrunTechsHud.load()||showSupportHud.load()||showActiveEncountersHud.load();
+}
 static DWORD motionProcess=0;
 static uint32_t collisionMode=1;
 static char sceneMap[64]{};
@@ -171,7 +180,7 @@ struct Instance {
  X(CreateCommandPool) X(DestroyCommandPool) X(AllocateCommandBuffers) X(ResetCommandBuffer) X(BeginCommandBuffer) X(EndCommandBuffer) \
  X(CreateBuffer) X(DestroyBuffer) X(GetBufferMemoryRequirements) X(AllocateMemory) X(FreeMemory) X(BindBufferMemory) X(MapMemory) X(UnmapMemory) \
  X(CreateSemaphore) X(DestroySemaphore) X(CreateFence) X(DestroyFence) X(WaitForFences) X(ResetFences) X(QueueSubmit) X(DeviceWaitIdle) \
- X(CmdBeginRenderPass) X(CmdEndRenderPass) X(CmdBindPipeline) X(CmdSetViewport) X(CmdSetScissor) X(CmdBindVertexBuffers) X(CmdPushConstants) X(CmdDraw) X(CmdPipelineBarrier) X(CmdCopyImageToBuffer)
+ X(CmdBeginRenderPass) X(CmdEndRenderPass) X(CmdBindPipeline) X(CmdSetViewport) X(CmdSetScissor) X(CmdBindVertexBuffers) X(CmdPushConstants) X(CmdDraw) X(CmdPipelineBarrier) X(CmdCopyImageToBuffer) X(CmdCopyBufferToImage)
 
 #define DEPTH_FUNCTIONS(X) \
  X(CreateImage) X(DestroyImage) X(GetImageMemoryRequirements) X(BindImageMemory) X(CreateDescriptorSetLayout) X(DestroyDescriptorSetLayout) X(CreateDescriptorPool) X(DestroyDescriptorPool) X(AllocateDescriptorSets) X(UpdateDescriptorSets) X(CreateSampler) X(DestroySampler) X(CmdBindDescriptorSets) \
@@ -209,18 +218,21 @@ struct Frame {
     VkCommandPool handoffPool{}; VkCommandBuffer releaseToGraphics{},acquireForPresent{};
     VkSemaphore graphicsReady{},presentReady{}; uint32_t handoffFamily=~0u;
 };
-static bool overlayDepthTestEnabled(VkPrimitiveTopology topology) { return topology==VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST; }
-static bool overlayDepthWriteEnabled(VkPrimitiveTopology topology) { return topology==VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST; }
+static bool overlayDepthTestEnabled(VkPrimitiveTopology topology,bool panel=false) { return !panel&&topology==VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST; }
+static bool overlayDepthWriteEnabled(VkPrimitiveTopology topology,bool panel=false) { return !panel&&topology==VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST; }
 struct Swapchain {
     Device* device{}; VkSwapchainKHR handle{}; VkExtent2D extent{}; VkFormat format{};
     VkFormat viewerDepthFormat=VK_FORMAT_UNDEFINED;
-    VkRenderPass pass{}; VkPipelineLayout layout{}; VkPipeline lines{},fill{}; VkCommandPool pool{};
-    std::vector<Frame> frames; bool ready=false; uint32_t family=~0u; uint64_t rendered=0;
+    VkRenderPass pass{}; VkPipelineLayout layout{}; VkPipeline lines{},fill{},healthFill{}; VkCommandPool pool{};
+    std::vector<Frame> frames; bool ready=false,failed=false; uint32_t family=~0u; uint64_t rendered=0;
     VkDescriptorSetLayout depthLayout{}; VkDescriptorPool depthPool{}; VkSampler depthSampler{};
+    VkImage fontImage{}; VkDeviceMemory fontMemory{}; VkImageView fontView{}; VkSampler fontSampler{};
+    VkBuffer fontStaging{}; VkDeviceMemory fontStagingMemory{}; bool fontUploaded=false;
     VkRenderPass probePass{}; VkPipeline probePipeline{}; VkExtent2D probeExtent{}; uint32_t lastProbe=0;
     VkSharingMode sharing=VK_SHARING_MODE_EXCLUSIVE; std::vector<uint32_t> sharingFamilies;
     VkResult submitFailure=VK_SUCCESS;
 };
+#include "vulkan_font_atlas.h"
 static bool smokeTest();
 static bool sceneTest() { static const bool value=GetEnvironmentVariableW(L"LABPLUS_SCENE_TEST",nullptr,0)>0; return value; }
 static std::unordered_map<void*,std::unique_ptr<Instance>> instances;
@@ -254,36 +266,38 @@ static void cleanup(Swapchain& swap) {
     if(swap.pool) d.DestroyCommandPool(d.handle,swap.pool,nullptr);
     if(swap.lines) d.DestroyPipeline(d.handle,swap.lines,nullptr);
     if(swap.fill) d.DestroyPipeline(d.handle,swap.fill,nullptr);
+    if(swap.healthFill) d.DestroyPipeline(d.handle,swap.healthFill,nullptr);
     if(swap.layout) d.DestroyPipelineLayout(d.handle,swap.layout,nullptr);
     if(swap.depthPool) d.DestroyDescriptorPool(d.handle,swap.depthPool,nullptr);
     if(swap.depthSampler) d.DestroySampler(d.handle,swap.depthSampler,nullptr);
+    destroyFontAtlas(swap);
     if(swap.depthLayout) d.DestroyDescriptorSetLayout(d.handle,swap.depthLayout,nullptr);
     if(swap.pass) d.DestroyRenderPass(d.handle,swap.pass,nullptr);
     if(swap.probePipeline) d.DestroyPipeline(d.handle,swap.probePipeline,nullptr);
     if(swap.probePass) d.DestroyRenderPass(d.handle,swap.probePass,nullptr);
-    swap.pool={}; swap.lines={}; swap.fill={}; swap.layout={}; swap.pass={}; swap.ready=false;
+    swap.pool={}; swap.lines={}; swap.fill={}; swap.healthFill={}; swap.layout={}; swap.pass={}; swap.ready=false;
     swap.depthPool={}; swap.depthSampler={}; swap.depthLayout={};
     swap.probePipeline={}; swap.probePass={};
 }
 
-static VkPipeline createPipeline(Swapchain& swap,VkShaderModule vertex,VkShaderModule fragment,VkPrimitiveTopology topology,bool blending=true) {
+static VkPipeline createPipeline(Swapchain& swap,VkShaderModule vertex,VkShaderModule fragment,VkPrimitiveTopology topology,bool blending=true,bool healthPanel=false) {
     Device& d=*swap.device;
     VkPipelineShaderStageCreateInfo stages[2]{};
     for(auto& stage:stages) { stage.sType=VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO; stage.pName="main"; }
     stages[0].stage=VK_SHADER_STAGE_VERTEX_BIT; stages[0].module=vertex;
     stages[1].stage=VK_SHADER_STAGE_FRAGMENT_BIT; stages[1].module=fragment;
     VkVertexInputBindingDescription binding{0,sizeof(Vertex),VK_VERTEX_INPUT_RATE_VERTEX};
-    VkVertexInputAttributeDescription attributes[2]={{0,0,VK_FORMAT_R32G32B32_SFLOAT,0},{1,0,VK_FORMAT_R32G32B32A32_SFLOAT,12}};
+    VkVertexInputAttributeDescription attributes[3]={{0,0,VK_FORMAT_R32G32B32_SFLOAT,0},{1,0,VK_FORMAT_R32G32B32A32_SFLOAT,12},{2,0,VK_FORMAT_R32G32_SFLOAT,28}};
     VkPipelineVertexInputStateCreateInfo vi{VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO};
-    vi.vertexBindingDescriptionCount=1; vi.pVertexBindingDescriptions=&binding; vi.vertexAttributeDescriptionCount=2; vi.pVertexAttributeDescriptions=attributes;
+    vi.vertexBindingDescriptionCount=1; vi.pVertexBindingDescriptions=&binding; vi.vertexAttributeDescriptionCount=3; vi.pVertexAttributeDescriptions=attributes;
     VkPipelineInputAssemblyStateCreateInfo ia{VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO}; ia.topology=topology;
     VkPipelineViewportStateCreateInfo vp{VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO}; vp.viewportCount=1; vp.scissorCount=1;
     VkPipelineRasterizationStateCreateInfo raster{VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO};
     raster.polygonMode=VK_POLYGON_MODE_FILL; raster.cullMode=VK_CULL_MODE_NONE; raster.frontFace=VK_FRONT_FACE_COUNTER_CLOCKWISE; raster.lineWidth=1.0f;
     VkPipelineMultisampleStateCreateInfo ms{VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO}; ms.rasterizationSamples=VK_SAMPLE_COUNT_1_BIT;
     VkPipelineDepthStencilStateCreateInfo depth{VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO};
-    depth.depthTestEnable=overlayDepthTestEnabled(topology)?VK_TRUE:VK_FALSE;
-    depth.depthWriteEnable=overlayDepthWriteEnabled(topology)?VK_TRUE:VK_FALSE;
+    depth.depthTestEnable=overlayDepthTestEnabled(topology,healthPanel)?VK_TRUE:VK_FALSE;
+    depth.depthWriteEnable=overlayDepthWriteEnabled(topology,healthPanel)?VK_TRUE:VK_FALSE;
     depth.depthCompareOp=topology==VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST?VK_COMPARE_OP_LESS:VK_COMPARE_OP_LESS_OR_EQUAL;
     VkPipelineColorBlendAttachmentState blend{}; blend.blendEnable=blending?VK_TRUE:VK_FALSE;
     blend.srcColorBlendFactor=VK_BLEND_FACTOR_SRC_ALPHA; blend.dstColorBlendFactor=VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA; blend.colorBlendOp=VK_BLEND_OP_ADD;
@@ -365,11 +379,11 @@ static void initialize(Swapchain& swap,uint32_t family) {
     dependency.dstAccessMask=VK_ACCESS_COLOR_ATTACHMENT_READ_BIT|VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT|VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT|VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
     VkRenderPassCreateInfo pass{VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO}; pass.attachmentCount=2; pass.pAttachments=attachments; pass.subpassCount=1; pass.pSubpasses=&subpass; pass.dependencyCount=1; pass.pDependencies=&dependency;
     require(d.CreateRenderPass(d.handle,&pass,nullptr,&swap.pass),"CreateRenderPass failed");
-    VkDescriptorSetLayoutBinding binding{0,VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,1,VK_SHADER_STAGE_FRAGMENT_BIT,nullptr};
-    VkDescriptorSetLayoutCreateInfo descriptorLayout{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO}; descriptorLayout.bindingCount=1; descriptorLayout.pBindings=&binding;
+    VkDescriptorSetLayoutBinding bindings[2]={{0,VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,1,VK_SHADER_STAGE_FRAGMENT_BIT,nullptr},{1,VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,1,VK_SHADER_STAGE_FRAGMENT_BIT,nullptr}};
+    VkDescriptorSetLayoutCreateInfo descriptorLayout{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO}; descriptorLayout.bindingCount=2; descriptorLayout.pBindings=bindings;
     require(d.CreateDescriptorSetLayout(d.handle,&descriptorLayout,nullptr,&swap.depthLayout),"Create depth descriptor layout failed");
-    VkDescriptorPoolSize poolSize{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,static_cast<uint32_t>(swap.frames.size())};
-    VkDescriptorPoolCreateInfo descriptorPool{VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO}; descriptorPool.maxSets=poolSize.descriptorCount; descriptorPool.poolSizeCount=1; descriptorPool.pPoolSizes=&poolSize;
+    VkDescriptorPoolSize poolSize{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,static_cast<uint32_t>(swap.frames.size()*2)};
+    VkDescriptorPoolCreateInfo descriptorPool{VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO}; descriptorPool.maxSets=static_cast<uint32_t>(swap.frames.size()); descriptorPool.poolSizeCount=1; descriptorPool.pPoolSizes=&poolSize;
     require(d.CreateDescriptorPool(d.handle,&descriptorPool,nullptr,&swap.depthPool),"Create depth descriptor pool failed");
     std::vector<VkDescriptorSetLayout> layouts(swap.frames.size(),swap.depthLayout);
     std::vector<VkDescriptorSet> sets(swap.frames.size());
@@ -388,17 +402,22 @@ static void initialize(Swapchain& swap,uint32_t family) {
     shader.codeSize=sizeof(kFragmentShader); shader.pCode=kFragmentShader;
     VkResult fragmentResult=d.CreateShaderModule(d.handle,&shader,nullptr,&fragment);
     if(fragmentResult!=VK_SUCCESS) { d.DestroyShaderModule(d.handle,vertex,nullptr); require(fragmentResult,"Create fragment shader failed"); }
-    try { swap.lines=createPipeline(swap,vertex,fragment,VK_PRIMITIVE_TOPOLOGY_LINE_LIST); swap.fill=createPipeline(swap,vertex,fragment,VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST); }
+    try { swap.lines=createPipeline(swap,vertex,fragment,VK_PRIMITIVE_TOPOLOGY_LINE_LIST); swap.fill=createPipeline(swap,vertex,fragment,VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST); swap.healthFill=createPipeline(swap,vertex,fragment,VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,true,true); }
     catch(...) { d.DestroyShaderModule(d.handle,vertex,nullptr); d.DestroyShaderModule(d.handle,fragment,nullptr); throw; }
     d.DestroyShaderModule(d.handle,vertex,nullptr); d.DestroyShaderModule(d.handle,fragment,nullptr);
     VkCommandPoolCreateInfo pool{VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO}; pool.flags=VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT; pool.queueFamilyIndex=family;
     require(d.CreateCommandPool(d.handle,&pool,nullptr,&swap.pool),"CreateCommandPool failed");
+    createFontAtlas(swap);
     std::vector<VkCommandBuffer> buffers(swap.frames.size());
     VkCommandBufferAllocateInfo allocate{VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO}; allocate.commandPool=swap.pool; allocate.level=VK_COMMAND_BUFFER_LEVEL_PRIMARY; allocate.commandBufferCount=static_cast<uint32_t>(buffers.size());
     require(d.AllocateCommandBuffers(d.handle,&allocate,buffers.data()),"AllocateCommandBuffers failed");
     swap.probeExtent={256,std::max(1u,static_cast<uint32_t>(256ull*swap.extent.height/swap.extent.width))};
     for(size_t i=0;i<swap.frames.size();++i) {
         Frame& frame=swap.frames[i]; frame.commands=buffers[i]; frame.depthSet=sets[i];
+        VkDescriptorImageInfo fontInfo{swap.fontSampler,swap.fontView,VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
+        VkWriteDescriptorSet fontWrite{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET}; fontWrite.dstSet=frame.depthSet; fontWrite.dstBinding=1;
+        fontWrite.descriptorCount=1; fontWrite.descriptorType=VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER; fontWrite.pImageInfo=&fontInfo;
+        d.UpdateDescriptorSets(d.handle,1,&fontWrite,0,nullptr);
         if(d.setLoaderData) require(d.setLoaderData(d.handle,frame.commands),"SetDeviceLoaderData failed");
         VkImageViewCreateInfo view{VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO}; view.image=frame.image; view.viewType=VK_IMAGE_VIEW_TYPE_2D; view.format=swap.format;
         view.subresourceRange={VK_IMAGE_ASPECT_COLOR_BIT,0,1,0,1};
@@ -427,9 +446,15 @@ static void initialize(Swapchain& swap,uint32_t family) {
         VkFenceCreateInfo fence{VK_STRUCTURE_TYPE_FENCE_CREATE_INFO}; fence.flags=VK_FENCE_CREATE_SIGNALED_BIT;
         require(d.CreateFence(d.handle,&fence,nullptr,&frame.fence),"CreateFence failed");
     }
-    swap.ready=true; if(sceneTest()) loadScene(); note("Independent Vulkan renderer initialized.");
+    swap.ready=true;
+    if(!smokeTest()&&!sceneTest()) {
+        debugHudStack().setVisibilityProbe(debugHudEngineVisible);
+    }
+    if(sceneTest()) loadScene(); note("Independent Vulkan renderer initialized.");
 }
 
+static bool healthBarHiddenSmokeTest() { static const bool active=[] { wchar_t value[8]{}; return GetEnvironmentVariableW(L"LABPLUS_TEST_HEALTH_BARS_HIDDEN",value,8)&&value[0]==L'1'; }(); return active; }
+static bool healthBarSmokeTest() { static const bool active=[] { wchar_t value[8]{}; return GetEnvironmentVariableW(L"LABPLUS_TEST_HEALTH_BARS",value,8)&&value[0]==L'1'; }(); return active; }
 static bool smokeTest() { static const bool value=GetEnvironmentVariableW(L"LABPLUS_SMOKE_TEST",nullptr,0)>0; return value; }
 static uint32_t occlusionCase() { static const uint32_t value=[] { wchar_t text[32]{}; GetEnvironmentVariableW(L"LABPLUS_OCCLUSION_TEST",text,32); return text[0]=='h'?1u:(text[0]=='p'?2u:(text[0]=='f'?3u:(text[0]=='r'?4u:(text[0]=='i'?(text[9]=='p'?6u:(text[9]=='f'?7u:5u)):0u)))); }(); return value; }
 static void updateViewerSettings() {
@@ -441,6 +466,15 @@ static void updateViewerSettings() {
     const ULONGLONG now=GetTickCount64();
     if(settingsPath.empty()||now-lastRead<250) return;
     lastRead=now;
+    readVolumeAppearances(settingsPath);
+    wchar_t scaleText[64]{};
+    GetPrivateProfileStringW(L"Viewer",L"DebugHudScale",L"1",scaleText,64,settingsPath.c_str());
+    std::wstring scaleWide=scaleText; float scale=1;
+    std::string scaleValue;
+    if(std::all_of(scaleWide.begin(),scaleWide.end(),[](wchar_t c) { return c<128; })) {
+        for(wchar_t c:scaleWide) scaleValue.push_back(static_cast<char>(c));
+        if(parseDebugHudScale(scaleValue,scale)) debugHudScale=scale;
+    }
 
     const bool oldEnabled=enabled, oldTriggers=showTriggers, oldCollision=showCollision, oldWalls=showWalls;
     const bool oldDisabled=showDisabledVolumes,oldHistory=showVolumeHistory;
@@ -459,6 +493,10 @@ static void updateViewerSettings() {
     showDisabledVolumes=GetPrivateProfileIntW(L"Viewer",L"ShowDisabledVolumes",0,settingsPath.c_str())!=0;
     showVolumeHistory=GetPrivateProfileIntW(L"Viewer",L"ShowVolumeHistory",0,settingsPath.c_str())!=0;
     showActiveEncountersHud=GetPrivateProfileIntW(L"Viewer",L"ShowActiveEncountersHud",0,settingsPath.c_str())!=0;
+    showEnemyHealthHud=GetPrivateProfileIntW(L"Viewer",L"ShowEnemyHealthHud",0,settingsPath.c_str())!=0;
+    showEnemyHealthBars=GetPrivateProfileIntW(L"Viewer",L"ShowEnemyHealthBars",0,settingsPath.c_str())!=0;
+    showGameTimersHud=GetPrivateProfileIntW(L"Viewer",L"ShowGameTimersHud",0,settingsPath.c_str())!=0;
+    showSpeedrunTechsHud=GetPrivateProfileIntW(L"Viewer",L"ShowSpeedrunTechsHud",0,settingsPath.c_str())!=0;
     showResearchPath=GetPrivateProfileIntW(L"Viewer",L"ShowResearchPath",0,settingsPath.c_str())!=0;
     recordResearch=GetPrivateProfileIntW(L"Viewer",L"RecordResearch",0,settingsPath.c_str())!=0;
     researchProcess=GetPrivateProfileIntW(L"Viewer",L"ResearchProcess",0,settingsPath.c_str());
@@ -550,14 +588,70 @@ static void sortVisibleCandidates(std::vector<Candidate>& visible) {
 #include "encounter_labels.h"
 #include "meathook_hud.h"
 #include "labplus_console.h"
+// Resolve the existing visibility cvar only on the engine callback. The
+// renderer consumes its immutable result and never calls engine functions.
+static bool debugHudEngineVisible(const MeathookHudApi* api) {
+    static uintptr_t variable=0;
+    static ULONGLONG retryAt=0;
+    int value=0; std::string text;
+    if(variable&&readLabCvarValue(WallMemory{},variable,"com_debugHUD",value,text)) return value!=0;
+    variable=0;
+    const auto now=GetTickCount64();
+    if(now<retryAt||!api||!api->executeCommand) return false;
+    retryAt=now+1000;
+    const auto* profile=currentGameProfile();
+    const auto base=reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr));
+    if(!profile) return false;
+    const auto command=resolveLabCommandSystem(WallMemory{},reinterpret_cast<uintptr_t>(api->executeCommand),base,*profile);
+    const auto system=resolveLabCvarSystem(WallMemory{},command,base,*profile);
+    if(!system) return false;
+    using Find=void* (*)(void*,const char*);
+    variable=reinterpret_cast<uintptr_t>(reinterpret_cast<Find>(system.find)(reinterpret_cast<void*>(system.object),"com_debugHUD"));
+    return variable&&readLabCvarValue(WallMemory{},variable,"com_debugHUD",value,text)&&value!=0;
+}
 #include "active_encounters.h"
 #include "entity_graph.h"
 #include "volume_inspector.h"
 #include "volume_style.h"
 #include "movement_lab.h"
 #include "level_state_bridge.h"
+#include "world_vertex_cache.h"
+#include "enemy_telemetry.h"
+#include "game_timers.h"
+#include "speedrun_techs.h"
+#include "invisible_numbers.h"
+#include "invisible_numbers_capture.h"
+#include "enemy_health_bars.h"
+#include "debug_hud_render.h"
+static bool debugHudSmokeTest() { static const bool active=[] { wchar_t value[8]{}; return GetEnvironmentVariableW(L"LABPLUS_TEST_DEBUG_HUD",value,8)&&value[0]==L'1'; }(); return active; }
+static bool debugHudHiddenSmokeTest() { static const bool active=[] { wchar_t value[8]{}; return GetEnvironmentVariableW(L"LABPLUS_TEST_DEBUG_HUD_HIDDEN",value,8)&&value[0]==L'1'; }(); return active; }
+static const std::vector<Vertex>& debugHudVertices(uint32_t width,uint32_t height,bool consoleVisible) {
+    static std::shared_ptr<const DebugHudFrame> cached;
+    static uint32_t oldWidth=0,oldHeight=0;
+    static std::vector<Vertex> vertices,empty;
+    if(consoleVisible) return empty;
+    auto current=debugHudStack().snapshot();
+    if(smokeTest()&&debugHudSmokeTest()) {
+        static const auto fixture=[] {
+            auto frame=std::make_shared<DebugHudFrame>(); frame->visible=!debugHudHiddenSmokeTest();
+            for(unsigned index=0;index<55;++index) frame->rows.push_back({"HUD "+std::to_string(index)+" | Sticky Bomb 1.25 / 2.00 s",index%10?0xffeeeeeeu:0xffffd040u,index%10==0});
+            return std::shared_ptr<const DebugHudFrame>(std::move(frame));
+        }();
+        current=fixture;
+    } else {
+        const auto now=GetTickCount64(),heartbeat=debugHudStack().lastFrameAt();
+        if(!heartbeat||now>heartbeat+500||heartbeat>now+1000||!labAppAvailable()) return empty;
+    }
+    if(!current||!current->visible||current->rows.empty()) return empty;
+    if(cached!=current||oldWidth!=width||oldHeight!=height) {
+        vertices.clear(); appendDebugHudGeometry(vertices,*current,width,height);
+        cached=std::move(current); oldWidth=width; oldHeight=height;
+    }
+    return vertices;
+}
 static uint32_t gatherVisible(const GameCamera& camera,std::vector<Candidate>& visible) {
     visible.clear();
+    if(!enabled&&!smokeTest()&&!sceneTest()&&!occlusionCase()) return 0;
     ViewFilter filter(camera);
     uint32_t examined=0;
     static const std::vector<Mesh> emptyMeshes;
@@ -593,9 +687,9 @@ static uint32_t gatherVisible(const GameCamera& camera,std::vector<Candidate>& v
     return examined;
 }
 
-static uint32_t collectVertices(const GameCamera& camera,std::vector<Vertex>& output) {
+static uint32_t collectVertices(const GameCamera& camera,std::vector<Vertex>& output,uint32_t viewportHeight=1080,uint32_t* healthTriangles=nullptr) {
     auto started=std::chrono::steady_clock::now();
-    output.clear();
+    output.clear(); if(healthTriangles) *healthTriangles=0;
     auto append=[&](Vec3 position,const std::array<float,4>& color) { Vertex vertex{}; vertex.position=position; memcpy(vertex.color,color.data(),16); output.push_back(vertex); };
     if(occlusionCase()) {
         float z=(occlusionCase()==3||occlusionCase()==7)?.5f:2.0f;
@@ -606,6 +700,19 @@ static uint32_t collectVertices(const GameCamera& camera,std::vector<Vertex>& ou
         return 6;
     }
     if(smokeTest()&&!sceneTest()) {
+        if(debugHudSmokeTest()) {
+            append({-.1f,-.1f,0},{0,0,0,1}); append({.1f,-.1f,0},{0,0,0,1}); append({0,.1f,0},{0,0,0,1}); return 3;
+        }
+        if(healthBarSmokeTest()) {
+            InvisibleNumbersSnapshot snapshot; snapshot.phase="live"; snapshot.captured=1000; snapshot.level={}; snapshot.level.map=1; snapshot.level.world=2; snapshot.level.name="health-bars-test";
+            for(unsigned index=0;index<3;++index) {
+                InvisibleEnemyRow row; row.entity={0x10000+index,1,0x20000+index*32,index,1,"idAI2"};
+                row.positionKnown=row.maximumKnown=true; row.health=index==0?200:index==1?100:25; row.maximum=200; const float centers[]{.625f,.140625f,-.6875f}; row.top={0,4,4*centers[index]-.6f};
+                row.staggerKnown=row.staggerActive=index==2; row.staggerSeconds=2.5; row.staggerDuration=999960LL*5; snapshot.barEnemies.push_back(row);
+            }
+            auto geometry=buildEnemyHealthBars(camera,snapshot,snapshot.level,1000,40,viewportHeight,[](InvisibleEnemyRow& row,Vec3& top) { top=row.top; return true; });
+            output=std::move(geometry.triangles); if(healthTriangles) *healthTriangles=static_cast<uint32_t>(output.size()); return static_cast<uint32_t>(output.size());
+        }
         append({-.6f,-.6f,0},{1,0,0,1}); append({.6f,-.6f,0},{0,1,0,1}); append({0,.6f,0},{0,0,1,1});
         append({-.8f,0,0},{1,1,1,1}); append({.8f,0,0},{1,1,1,1}); return 3;
     }
@@ -617,7 +724,7 @@ static uint32_t collectVertices(const GameCamera& camera,std::vector<Vertex>& ou
     uint32_t examined=gatherVisible(camera,visible);
     InspectorHit selected;
     const ULONGLONG now=GetTickCount64();
-    if(inspectVolumes&&!smokeTest()&&!sceneTest()&&!occlusionCase()) {
+    if(enabled&&inspectVolumes&&!smokeTest()&&!sceneTest()&&!occlusionCase()) {
         selected=pickInspectorVolume(camera,visible,radius);
         InspectorPacket packet;
         packet.level=runtimeLevel; packet.profile=currentGameProfile();
@@ -634,23 +741,48 @@ static uint32_t collectVertices(const GameCamera& camera,std::vector<Vertex>& ou
     // Prioritize geometry nearest the screen center, then nearer objects. The
     // GPU upload buffer grows on demand, so this ordering does not omit edges.
     sortVisibleCandidates(visible);
+    static WorldVertexCache worldVertices;
+    worldVertices.begin(runtimeRendering?runtimeWorld:nullptr,visible);
     uint32_t collisionTriangleVertices=0,collisionFilledMeshes=0;
     for(const Candidate& candidate:visible) {
         const Mesh* mesh=candidate.mesh;
         VolumeStyle style=volumeStyle(*mesh,mesh==selected.mesh,now);
-        if(!collisionMode||!style.filled) continue;
-        for(Vec3 point:mesh->geometry->triangles) append(mesh->world(point),style.fill);
+        if(!collisionMode||!style.filled||style.fill[3]<=0.f) continue;
+        if(const auto* positions=worldVertices.positions(*mesh)) {
+            for(size_t i=0;i<mesh->geometry->triangles.size();++i) append((*positions)[i],style.fill);
+        } else for(Vec3 point:mesh->geometry->triangles) append(mesh->world(point),style.fill);
         if(mesh->kind==1) { collisionTriangleVertices+=static_cast<uint32_t>(mesh->geometry->triangles.size()); ++collisionFilledMeshes; }
     }
     if(output.size()>std::numeric_limits<uint32_t>::max()) throw std::runtime_error("Visible collision fill exceeds Vulkan draw vertex count");
+    static EnemyHealthBarGeometry enemyBars;
+    enemyBars.triangles.clear(); enemyBars.lines.clear(); enemyBars.bars=0;
+    if(!smokeTest()&&!sceneTest()&&!occlusionCase()&&showEnemyHealthBars.load()) {
+        auto snapshot=invisibleNumbers().snapshot(); const auto* profile=currentGameProfile();
+        if(snapshot&&profile) {
+            const auto base=reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr));
+            const auto level=readLevelIdentity(WallMemory{},base,*profile);
+            const auto clock=snapshot->gameClockFlameOffset!=~0u?readGameTimerClock(WallMemory{},base,*profile,level,snapshot->gameClockFlameOffset):GameTimerClock{};
+            populateEnemyHealthBars(enemyBars,camera,*snapshot,level,encounterEpochMillis(),radius,viewportHeight,[&](InvisibleEnemyRow& row,Vec3& top) {
+                if(!refreshEnemyTelemetryTop(WallMemory{},base,*profile,row,top)) return false;
+                refreshEnemyStagger(WallMemory{},base,*profile,row,clock.valid?clock.ticks:-1);
+                return true;
+            });
+        }
+    }
+    if(healthTriangles) *healthTriangles=static_cast<uint32_t>(enemyBars.triangles.size());
+    output.insert(output.end(),enemyBars.triangles.begin(),enemyBars.triangles.end());
+    if(output.size()>std::numeric_limits<uint32_t>::max()) throw std::runtime_error("Visible fill exceeds Vulkan draw vertex count");
     uint32_t triangles=static_cast<uint32_t>(output.size());
     uint32_t drawn[3]{},segments[3]{};
     for(const Candidate& candidate:visible) {
         const Mesh* mesh=candidate.mesh;
         VolumeStyle style=volumeStyle(*mesh,mesh==selected.mesh,now);
         const auto& lines=mesh->geometry->lines;
+        const auto* positions=worldVertices.positions(*mesh);
+        const size_t firstLine=mesh->geometry->triangles.size();
         for(size_t i=0;i+1<lines.size();i+=2) {
-            Vec3 a=mesh->world(lines[i]),b=mesh->world(lines[i+1]);
+            Vec3 a=positions?(*positions)[firstLine+i]:mesh->world(lines[i]);
+            Vec3 b=positions?(*positions)[firstLine+i+1]:mesh->world(lines[i+1]);
             if(!style.dashed) { append(a,style.line); append(b,style.line); }
             else for(unsigned dash=0;dash<3;++dash) {
                 auto point=[&](float t) { return Vec3{a.x+(b.x-a.x)*t,a.y+(b.y-a.y)*t,a.z+(b.z-a.z)*t}; };
@@ -670,6 +802,7 @@ static uint32_t collectVertices(const GameCamera& camera,std::vector<Vertex>& ou
             append(a,color); append(b,color);
         }
     }
+    output.insert(output.end(),enemyBars.lines.begin(),enemyBars.lines.end());
     if(!smokeTest()&&!sceneTest()&&!occlusionCase()&&motionProcess==GetCurrentProcessId()) appendMovementVertices(camera,output);
     if(!smokeTest()&&!sceneTest()&&!occlusionCase()) {
         auto highlight=levelStates().snapshot(); if(highlight) appendStateHighlight(camera,output,*highlight,runtimeLevel,encounterEpochMillis());
@@ -701,6 +834,7 @@ static bool draw(Swapchain& swap,VkQueue queue,uint32_t imageIndex,const VkPrese
         std::ifstream input(folder/L"test-camera.bin",std::ios::binary);
         if(!input.read(reinterpret_cast<char*>(&camera),sizeof(camera))) throw std::runtime_error("Missing test camera");
     }
+    else if(smokeTest()&&healthBarSmokeTest()) { camera.matrix[0]=.75f; camera.matrix[6]=camera.matrix[9]=camera.matrix[13]=1; camera.matrix[11]=-.05f; }
     else if(smokeTest()) { camera.matrix[0]=camera.matrix[5]=camera.matrix[10]=camera.matrix[15]=1; }
     else if(!profile||!readGameCamera(WallMemory{},gameBase,*profile,camera)) {
         static ULONGLONG last=0;
@@ -717,13 +851,17 @@ static bool draw(Swapchain& swap,VkQueue queue,uint32_t imageIndex,const VkPrese
     }
     DepthImage* screenDepth=chooseDepth(swap);
     if(!screenDepth) return false;
-    if(!smokeTest()&&!sceneTest()&&!occlusionCase()&&!runtimeLevel) return false;
+    if(!smokeTest()&&!sceneTest()&&!occlusionCase()&&enabled&&!runtimeLevel) return false;
     float consoleFraction=smokeTest()||sceneTest()||occlusionCase()?0.0f:readConsoleFraction(WallMemory{},gameBase,*profile);
     if(smokeTest()) { wchar_t value[32]{}; if(GetEnvironmentVariableW(L"LABPLUS_TEST_CONSOLE_FRACTION",value,32)) consoleFraction=static_cast<float>(_wtof(value)); }
     uint32_t consoleTop=consoleClipTop(consoleFraction,swap.extent.height);
     if(consoleTop==swap.extent.height&&!smokeTest()) return false;
     static std::vector<Vertex> vertices;
-    uint32_t triangleVertices=collectVertices(camera,vertices);
+    uint32_t healthTriangleVertices=0;
+    uint32_t triangleVertices=collectVertices(camera,vertices,swap.extent.height,&healthTriangleVertices);
+    const auto& hud=debugHudVertices(swap.extent.width,swap.extent.height,consoleFraction>0);
+    const auto hudOffset=static_cast<uint32_t>(vertices.size()),hudVertices=static_cast<uint32_t>(hud.size());
+    vertices.insert(vertices.end(),hud.begin(),hud.end());
     if(vertices.empty()) return false;
     Frame& frame=swap.frames[imageIndex];
     if(d.WaitForFences(d.handle,1,&frame.fence,VK_TRUE,1000000000ull)!=VK_SUCCESS) { note("Overlay frame fence timeout; frame skipped."); return false; }
@@ -740,13 +878,14 @@ static bool draw(Swapchain& swap,VkQueue queue,uint32_t imageIndex,const VkPrese
     require(d.ResetCommandBuffer(frame.commands,0),"ResetCommandBuffer failed");
     VkCommandBufferBeginInfo begin{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO}; begin.flags=VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
     require(d.BeginCommandBuffer(frame.commands,&begin),"BeginCommandBuffer failed");
+    recordFontAtlasUpload(swap,frame.commands);
     if(ownershipHandoff) swapOwnershipBarrier(d,frame.commands,frame.image,presentFamily,swap.family,true,true);
     depthSamplingBarrier(d,frame.commands,*screenDepth,false);
     struct PushConstants { float matrix[16]; float options[4]; float depth[4]; float uv[4]; float debug[4]; } push{};
     memcpy(push.matrix,camera.matrix,64); push.options[0]=1.0e30f; // shader far plane; radius filters whole mesh bounds on CPU
     float forwardSquared=0,dot=0; for(int k=0;k<3;++k) { forwardSquared+=camera.matrix[12+k]*camera.matrix[12+k]; dot+=camera.matrix[8+k]*camera.matrix[12+k]; }
     push.options[1]=forwardSquared>0?dot/forwardSquared:1; push.options[2]=camera.matrix[11]-push.options[1]*camera.matrix[15];
-    push.options[3]=smokeTest()&&!sceneTest()&&!occlusionCase()?0.0f:1.0f;
+    push.options[3]=smokeTest()&&!sceneTest()&&!occlusionCase()&&!healthBarSmokeTest()?0.0f:1.0f;
     push.depth[0]=screenDepth->viewport.minDepth; push.depth[1]=screenDepth->viewport.maxDepth; push.depth[2]=static_cast<float>(visibilitySettings.mode); push.depth[3]=visibilitySettings.bias;
     if(occlusionCase()>=5) push.depth[2]=2;
     push.uv[0]=fabsf(screenDepth->viewport.width)/screenDepth->extent.width/swap.extent.width;
@@ -763,14 +902,22 @@ static bool draw(Swapchain& swap,VkQueue queue,uint32_t imageIndex,const VkPrese
     VkDeviceSize offset=0; d.CmdBindVertexBuffers(frame.commands,0,1,&frame.vertices,&offset);
     d.CmdPushConstants(frame.commands,swap.layout,VK_SHADER_STAGE_VERTEX_BIT|VK_SHADER_STAGE_FRAGMENT_BIT,0,sizeof(push),&push);
     d.CmdBindDescriptorSets(frame.commands,VK_PIPELINE_BIND_POINT_GRAPHICS,swap.layout,0,1,&frame.depthSet,0,nullptr);
-    if(triangleVertices) {
+    const uint32_t worldTriangleVertices=triangleVertices-healthTriangleVertices;
+    if(worldTriangleVertices) {
         auto fillPush=push; fillPush.depth[3]=fillDepthBias(push.depth[3]);
         d.CmdPushConstants(frame.commands,swap.layout,VK_SHADER_STAGE_VERTEX_BIT|VK_SHADER_STAGE_FRAGMENT_BIT,0,sizeof(fillPush),&fillPush);
-        d.CmdBindPipeline(frame.commands,VK_PIPELINE_BIND_POINT_GRAPHICS,swap.fill); d.CmdDraw(frame.commands,triangleVertices,1,0,0);
+        d.CmdBindPipeline(frame.commands,VK_PIPELINE_BIND_POINT_GRAPHICS,swap.fill); d.CmdDraw(frame.commands,worldTriangleVertices,1,0,0);
         d.CmdPushConstants(frame.commands,swap.layout,VK_SHADER_STAGE_VERTEX_BIT|VK_SHADER_STAGE_FRAGMENT_BIT,0,sizeof(push),&push);
     }
-    uint32_t lineVertices=static_cast<uint32_t>(vertices.size())-triangleVertices;
+    uint32_t lineVertices=hudOffset-triangleVertices;
     if(lineVertices) { d.CmdBindPipeline(frame.commands,VK_PIPELINE_BIND_POINT_GRAPHICS,swap.lines); d.CmdDraw(frame.commands,lineVertices,1,triangleVertices,0); }
+    // UI layers use painter order, while the fragment shader still tests the game depth.
+    if(healthTriangleVertices) { d.CmdBindPipeline(frame.commands,VK_PIPELINE_BIND_POINT_GRAPHICS,swap.healthFill); d.CmdDraw(frame.commands,healthTriangleVertices,1,worldTriangleVertices,0); }
+    if(hudVertices) {
+        PushConstants screen{}; screen.matrix[0]=screen.matrix[5]=screen.matrix[10]=screen.matrix[15]=1;
+        d.CmdPushConstants(frame.commands,swap.layout,VK_SHADER_STAGE_VERTEX_BIT|VK_SHADER_STAGE_FRAGMENT_BIT,0,sizeof(screen),&screen);
+        d.CmdBindPipeline(frame.commands,VK_PIPELINE_BIND_POINT_GRAPHICS,swap.healthFill); d.CmdDraw(frame.commands,hudVertices,1,hudOffset,0);
+    }
     d.CmdEndRenderPass(frame.commands);
     depthSamplingBarrier(d,frame.commands,*screenDepth,true);
     const VkDeviceSize readbackOffset=frame.vertexCapacity*sizeof(Vertex);
@@ -801,6 +948,7 @@ static bool draw(Swapchain& swap,VkQueue queue,uint32_t imageIndex,const VkPrese
     if(ownershipHandoff) { submit.waitSemaphoreCount=1; submit.pWaitSemaphores=&frame.graphicsReady; submit.pWaitDstStageMask=&graphicsWait; }
     VkResult result=d.QueueSubmit(queue,1,&submit,ownershipHandoff?VK_NULL_HANDLE:frame.fence);
     if(result!=VK_SUCCESS) { swap.submitFailure=result; enabled=false; note("Overlay QueueSubmit failed; overlay disabled."); return false; }
+    swap.fontUploaded=true;
     if(ownershipHandoff) {
         VkSubmitInfo handoff{VK_STRUCTURE_TYPE_SUBMIT_INFO}; handoff.waitSemaphoreCount=1; handoff.pWaitSemaphores=&frame.complete; handoff.pWaitDstStageMask=&graphicsWait;
         handoff.commandBufferCount=1; handoff.pCommandBuffers=&frame.acquireForPresent; handoff.signalSemaphoreCount=1; handoff.pSignalSemaphores=&frame.presentReady;
@@ -820,15 +968,30 @@ static bool draw(Swapchain& swap,VkQueue queue,uint32_t imageIndex,const VkPrese
             if(pixels[i*4]>10||pixels[i*4+1]>10||pixels[i*4+2]>10) { if(i/swap.extent.width<consoleTop) ++consoleLeak; else ++belowConsole; }
             if(isGreen||isCyan) { if(i%swap.extent.width<swap.extent.width/2) ++leftColored; else ++rightColored; }
         }
-        bool passed=sceneTest()?green>0:(pixel[0]>10||pixel[1]>10||pixel[2]>10);
+        uint32_t healthWhite=0,healthRed=0,hudLower=0;
+        if(healthBarSmokeTest()) for(size_t i=0;i<size_t(swap.extent.width)*swap.extent.height;++i) {
+            bool bgra=swap.format==VK_FORMAT_B8G8R8A8_UNORM||swap.format==VK_FORMAT_B8G8R8A8_SRGB;
+            auto r=pixels[i*4+(bgra?2:0)],g=pixels[i*4+1],b=pixels[i*4+(bgra?0:2)];
+            if(r>220&&g>220&&b>220) ++healthWhite;
+            if(r>220&&g<100&&b<100) ++healthRed;
+        }
+        bool passed=sceneTest()?(green>0||cyan>0):(pixel[0]>10||pixel[1]>10||pixel[2]>10);
+        if(healthBarSmokeTest()) passed=healthBarHiddenSmokeTest()?(triangleVertices>250&&belowConsole==0):(triangleVertices>250&&green>300&&healthWhite>100&&healthRed>20);
         if(occlusionCase()==1||occlusionCase()==5) passed=green==0&&cyan==0;
         if(occlusionCase()==2||occlusionCase()==6) passed=green>0&&cyan>0&&leftColored==0&&rightColored>0&&fillColors.size()==1;
         if(occlusionCase()==3||occlusionCase()==7) passed=green>0&&cyan>0&&leftColored>0&&rightColored>0&&fillColors.size()==1;
         if(occlusionCase()==4) passed=green==0&&cyan==0;
         if(consoleTop) passed=consoleLeak==0&&(consoleTop==swap.extent.height?belowConsole==0:belowConsole>0);
+        if(debugHudSmokeTest()) {
+            for(uint32_t y=481;y<swap.extent.height;++y) for(uint32_t x=0;x<swap.extent.width;++x) {
+                const auto* at=pixels+(size_t(y)*swap.extent.width+x)*4;
+                if(at[0]>100&&at[1]>100&&at[2]>100) ++hudLower;
+            }
+            passed=(debugHudHiddenSmokeTest()||consoleTop)?hudVertices==0&&belowConsole==0:hudVertices>1000&&hudLower>100&&belowConsole>1000;
+        }
         FILE* report=_wfsopen((folder/L"smoke-result.json").c_str(),L"w",_SH_DENYNO);
         if(report) { fprintf(report,"{\"rendered\":%s,\"collisionSceneTest\":%s,\"occlusionCase\":%u,\"greenPixels\":%u,\"cyanPixels\":%u,\"leftColored\":%u,\"rightColored\":%u,\"uniqueFillColors\":%zu,\"consoleTop\":%u,\"consoleLeakPixels\":%u,\"belowConsolePixels\":%u,\"pixel\":[%u,%u,%u,%u],\"triangleVertices\":%u,\"lineVertices\":%u}\n",passed?"true":"false",sceneTest()?"true":"false",occlusionCase(),green,cyan,leftColored,rightColored,fillColors.size(),consoleTop,consoleLeak,belowConsole,pixel[0],pixel[1],pixel[2],pixel[3],triangleVertices,lineVertices); fclose(report); }
-        if(sceneTest()||occlusionCase()) {
+        if(sceneTest()||occlusionCase()||healthBarSmokeTest()||debugHudSmokeTest()) {
             std::ofstream output(folder/L"collision-frame.ppm",std::ios::binary);
             output<<"P6\n"<<swap.extent.width<<" "<<swap.extent.height<<"\n255\n";
             bool bgra=swap.format==VK_FORMAT_B8G8R8A8_UNORM||swap.format==VK_FORMAT_B8G8R8A8_SRGB;
@@ -837,6 +1000,7 @@ static bool draw(Swapchain& swap,VkQueue queue,uint32_t imageIndex,const VkPrese
         note(passed?"GPU readback passed: overlay pixels are present.":"GPU readback failed: overlay pixel is black.");
     }
     ++swap.rendered;
+    if(!smokeTest()&&!sceneTest()) debugHudStack().setVulkanRendering(true);
     if(swap.rendered==1 || swap.rendered%600==0) {
         char message[240]; sprintf_s(message,"Drawn frames=%llu filled triangles=%u line segments=%u camera=(%.2f,%.2f,%.2f)",swap.rendered,triangleVertices/3,lineVertices/2,camera.position[0],camera.position[1],camera.position[2]); note(message);
     }
@@ -950,15 +1114,30 @@ EXPORT VKAPI_ATTR void VKAPI_CALL vkDestroySwapchainKHR(VkDevice device,VkSwapch
 }
 
 EXPORT VKAPI_ATTR VkResult VKAPI_CALL vkQueuePresentKHR(VkQueue queue,const VkPresentInfoKHR* present) {
-    std::lock_guard<std::recursive_mutex> lock(guard);
+    std::unique_lock<std::recursive_mutex> lock(guard);
     auto foundQueue=queues.find(queue);
     auto foundDevice=devices.find(key(queue));
     if(foundDevice==devices.end()) return VK_ERROR_DEVICE_LOST;
     Device& data=*foundDevice->second;
-    struct Boundary { DepthState& state; ~Boundary() { state.previousPresent=state.submitted; } } boundary{data.depth};
+    struct Boundary {
+        DepthState* state;
+        void finish() { if(state) { state->previousPresent=state->submitted; state=nullptr; } }
+        ~Boundary() { finish(); }
+    } boundary{&data.depth};
+    const auto driverPresent=data.QueuePresentKHR;
+    auto forwardPresent=[&](const VkPresentInfoKHR* info) {
+        // Commit only the submissions preceding this present. The driver can wait
+        // for VSync here while the game's other threads record the next frame.
+        // No tracked state is touched after unlocking. Vulkan requires the caller
+        // to keep the queue/device/swapchain alive for the duration of this call.
+        boundary.finish();
+        lock.unlock();
+        return driverPresent(queue,info);
+    };
     updateViewerSettings();
     if(!smokeTest()&&!sceneTest()&&!occlusionCase()) labConsole().connect();
     if(!smokeTest()&&!sceneTest()&&!occlusionCase()) activeEncounters().connect();
+    if(!smokeTest()&&!sceneTest()&&!occlusionCase()) invisibleNumbers().connect();
     if(!smokeTest()&&!sceneTest()&&!occlusionCase()&&showSupportHud.load()) supportPlaneHud().report();
     if(!smokeTest()&&!sceneTest()&&!occlusionCase()) entityGraph().connect();
     if(!smokeTest()&&!sceneTest()&&!occlusionCase()) levelStates().connect();
@@ -975,26 +1154,28 @@ EXPORT VKAPI_ATTR VkResult VKAPI_CALL vkQueuePresentKHR(VkQueue queue,const VkPr
         }
         else inspectorHud().report();
     }
-    if(enabled&&foundQueue!=queues.end()&&present->swapchainCount==1) {
+    if(nativeOverlayNeeded()&&foundQueue!=queues.end()&&present->swapchainCount==1) {
         auto found=swaps.find(present->pSwapchains[0]);
         uint32_t family=foundQueue->second.family;
         if(found!=swaps.end()&&family<data.families.size()) {
             Swapchain& swap=*found->second;
+            if(swap.failed) { debugHudStack().setVulkanRendering(false); return forwardPresent(present); }
             uint32_t renderFamily=~0u; VkQueue renderQueue=overlayQueue(swap,queue,family,renderFamily);
-            if(!renderQueue) { static ULONGLONG last=0; if(GetTickCount64()-last>5000) { note("Overlay withheld: no registered graphics queue can access this swapchain."); last=GetTickCount64(); } return data.QueuePresentKHR(queue,present); }
+            if(!renderQueue) { static ULONGLONG last=0; if(GetTickCount64()-last>5000) { note("Overlay withheld: no registered graphics queue can access this swapchain."); last=GetTickCount64(); } debugHudStack().setVulkanRendering(false); return forwardPresent(present); }
             try {
                 if(!swap.ready) { initialize(swap,renderFamily); char message[200]; sprintf_s(message,"Overlay queues: graphics=%u present=%u sharing=%s.",renderFamily,family,swap.sharing==VK_SHARING_MODE_EXCLUSIVE?"exclusive":"concurrent"); note(message); }
                 if(swap.family==renderFamily&&draw(swap,renderQueue,present->pImageIndices[0],*present,queue,family)) {
                     Frame& frame=swap.frames[present->pImageIndices[0]];
                     VkSemaphore* ready=family!=swap.family&&swap.sharing==VK_SHARING_MODE_EXCLUSIVE?&frame.presentReady:&frame.complete;
                     VkPresentInfoKHR modified=*present; modified.waitSemaphoreCount=1; modified.pWaitSemaphores=ready;
-                    return data.QueuePresentKHR(queue,&modified);
+                    return forwardPresent(&modified);
                 }
-                if(swap.submitFailure!=VK_SUCCESS) return swap.submitFailure;
-            } catch(const std::exception& error) { note(error.what()); enabled=false; note("Overlay disabled after error; game presentation is forwarded."); }
+                if(swap.submitFailure!=VK_SUCCESS) { debugHudStack().setVulkanRendering(false); return swap.submitFailure; }
+            } catch(const std::exception& error) { note(error.what()); enabled=false; swap.failed=true; note("Overlay disabled after error; game presentation is forwarded."); }
         }
     }
-    return data.QueuePresentKHR(queue,present);
+    debugHudStack().setVulkanRendering(false);
+    return forwardPresent(present);
 }
 
 #include "depth_hooks.h"

@@ -7,12 +7,13 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\labplus.ico</ApplicationIcon>
-    <AssemblyName>labplus</AssemblyName>
+    <AssemblyName>LABPlus</AssemblyName>
     <Product>LAB Plus</Product>
     <AssemblyTitle>LAB Plus</AssemblyTitle>
-    <Version>0.8.0</Version>
+    <Version>0.8.10</Version>
     <RootNamespace>LabPlus</RootNamespace>
     <PlatformTarget>x64</PlatformTarget>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
     <Content Include="Assets\licenses\*.txt" CopyToOutputDirectory="PreserveNewest" TargetPath="licenses\%(Filename)%(Extension)" />
@@ -21,6 +22,7 @@
     <Content Include="Native\CollisionViewer\THIRD_PARTY_NOTICES.md" CopyToOutputDirectory="PreserveNewest" TargetPath="licenses\THIRD_PARTY_NOTICES.md" />
     <Content Include="Assets\labplus.png" CopyToOutputDirectory="PreserveNewest" TargetPath="Assets\labplus.png" />
     <Compile Remove="Tests\**\*.cs" />
+    <Compile Remove="Tools\**\*.cs" />
     <EmbeddedResource Include="Assets\trigger-paths.tsv" LogicalName="LabPlus.TriggerPaths.tsv" />
     <Content Include="Assets\labplus.ico" CopyToOutputDirectory="PreserveNewest" TargetPath="Assets\labplus.ico" />
     <Content Include="Assets\fonts\*.ttf" CopyToOutputDirectory="PreserveNewest" TargetPath="Assets\fonts\%(Filename)%(Extension)" />
@@ -28,6 +30,8 @@
     <Content Include="Native\CollisionViewer\licenses\doomfix-MIT.txt" CopyToOutputDirectory="PreserveNewest" TargetPath="licenses\doomfix-MIT.txt" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="Assets\game-profiles.json" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Native\Lighting\labplus-lighting.dll" CopyToOutputDirectory="PreserveNewest" Condition="Exists('Native/Lighting/labplus-lighting.dll')" />
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.4314.35" />
   </ItemGroup>
 </Project>

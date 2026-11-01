@@ -2,7 +2,8 @@
 
 // A graph edge is a copied entity reference, never an inferred script event.
 struct GraphField { std::string name,type,ops; uint32_t offset=0,size=0; };
-struct GraphType { uint32_t size=0; std::string parent; std::vector<GraphField> fields; bool complete=false; };
+struct GraphProperty { std::string name,type,ops; uintptr_t getter=0; };
+struct GraphType { uint32_t size=0; std::string parent; std::vector<GraphField> fields; bool complete=false; std::vector<GraphProperty> properties; };
 using GraphLookup=std::function<const GraphType&(const std::string&)>;
 static std::string graphTrim(std::string value) {
     auto first=value.find_first_not_of(" \t"),last=value.find_last_not_of(" \t");
@@ -26,6 +27,15 @@ static GraphType readGraphType(const WallMemory& memory,uintptr_t info,const std
         // Public m_classvar_iterator_is_done checks the field NAME, not type.
         if(!fieldName) { result.complete=true; return result; }
         if(!memory.get(row,type)||!type||!memory.get(row+8,ops)||!memory.get(row+24,offset)||!memory.get(row+28,size)) return {};
+        if(offset>=0&&size==-1) {
+            auto reflectedType=readEntityText(memory,type,256),reflectedOps=ops?graphTrim(readEntityText(memory,ops,64)):std::string{};
+            uintptr_t getter=0;
+            if(reflectedType=="bool"&&reflectedOps.empty()&&memory.get(row+48,getter)&&getter) {
+                auto reflectedName=readEntityText(memory,fieldName,256);
+                if(!reflectedName.empty()) result.properties.push_back({std::move(reflectedName),std::move(reflectedType),std::move(reflectedOps),getter});
+            }
+            continue;
+        }
         if(offset<0||size<=0||uint64_t(offset)+size>result.size) continue;
         GraphField field{readEntityText(memory,fieldName,256),graphTrim(readEntityText(memory,type,256)),ops?graphTrim(readEntityText(memory,ops,64)):"",
             static_cast<uint32_t>(offset),static_cast<uint32_t>(size)};
