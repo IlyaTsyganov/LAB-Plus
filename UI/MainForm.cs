@@ -53,6 +53,7 @@ internal sealed partial class MainForm : LabPlusForm
         _settings = _settingsStore.Load();
         _gameLauncher = new GameLauncher(_settingsStore);
         _layerRegistration = new VulkanLayerRegistration(_settingsStore);
+        if (!_preview) _layerRegistration.Disable();
         LabPlusTheme.Initialize();
 
         Text = "LAB Plus";
@@ -200,10 +201,7 @@ internal sealed partial class MainForm : LabPlusForm
         {
             _settingsStore.Save(_settings);
             if (_preview) return;
-            if (_settings.NeedsNativeLayer && File.Exists(_settings.GameExecutablePath))
-                _layerRegistration.EnableForGame(_settings.GameExecutablePath);
-            else
-                _layerRegistration.Disable();
+            _layerRegistration.Disable();
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException or System.Security.SecurityException)
         {
@@ -222,6 +220,7 @@ internal sealed partial class MainForm : LabPlusForm
                 try
                 {
                     if (!string.Equals(process.MainModule?.FileName, _settings.GameExecutablePath, StringComparison.OrdinalIgnoreCase)) continue;
+                    if (!Hud.Runtime.GameLaunchHistory.Matches(process, _hudStore)) continue;
                     if (selected != 0) return 0;
                     selected = process.Id;
                 }
@@ -263,7 +262,7 @@ internal sealed partial class MainForm : LabPlusForm
         SetStatus(_desruStatus, snapshot.DesruRunning ? "Running" : "Not running", snapshot.DesruRunning);
         bool viewerEnabled = _settings.CollisionViewerEnabled;
         bool restartRequired = _settings.NeedsNativeLayer && snapshot.GameRunning &&
-            (snapshot.ViewerUpdateRequired || (!snapshot.ViewerVersionChecked && snapshot.GameStartedBeforeViewer));
+            (_hudMonitor.RequiresRestart || snapshot.ViewerUpdateRequired || (!snapshot.ViewerVersionChecked && snapshot.GameStartedBeforeViewer));
         string viewerStatus = restartRequired ? (snapshot.ViewerUpdateRequired ? "Update pending" : "Restart game")
             : !viewerEnabled ? "Disabled"
             : snapshot.GameRunning ? "Running" : "Enabled";

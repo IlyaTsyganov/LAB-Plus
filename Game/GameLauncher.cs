@@ -24,7 +24,11 @@ public sealed class GameLauncher
             !string.Equals(Path.GetFullPath(startInfo.FileName), target, StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException("Launch blocked: the configured process must use the verified DOOM Eternal executable directly.");
         if (settings.NeedsNativeLayer || startInfo.Environment[LightingFixPolicy.EnvironmentVariable] == "1")
-            _layerRegistration.EnableForGame(startInfo.FileName);
+            _layerRegistration.ConfigureLaunch(startInfo);
+        startInfo.Environment["LABPLUS_LAUNCHED"] = "1";
+        // Launch ownership belongs to this exact process, even when only the
+        // managed HUD is enabled. Do not let Steam replace it on startup.
+        startInfo.Environment["SteamAppId"] = "782330";
 
         // Preparation can take time. Re-read the rule immediately before launch,
         // including when the viewer and lighting correction are both disabled.

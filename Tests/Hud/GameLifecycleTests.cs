@@ -14,7 +14,7 @@ internal static class GameLifecycleTests
     internal static void Run(Action<bool,string> check)
     {
         check(GameStatus.Format(false,"5.1",true,false)=="Game not running"&&
-            GameStatus.Format(true,"5.1",false,false)=="Running 5.1"&&
+            GameStatus.Format(true,"5.1",false,false)=="Restart game"&&
             GameStatus.Format(true,"5.1",true,false)=="Restart game"&&
             GameStatus.Format(true,"5.1",true,true)=="Running 5.1",
             "Only the three capitalized game statuses are exposed");
@@ -54,6 +54,14 @@ internal static class GameLifecycleTests
                 check(!monitor.RequiresRestart&&monitor.Features is null,"Game shutdown clears restart and feature state");
             }
             child.Dispose();child=Start();
+            using(var monitor=new GameMonitor(store,false,DateTime.UtcNow.AddMinutes(-1))){
+                WaitFor(()=>monitor.Connected&&monitor.RequiresRestart&&monitor.Status=="Restart game","External game started after LAB was not gated");
+                check(!monitor.CanApplyFeatures,"An external launch after LAB cannot apply features");
+                check(File.ReadAllText(Path.Combine(data,"lighting.ini")).Contains("Enabled=0"),"External launch after LAB keeps lighting disabled");
+                GameLaunchHistory.Record(child,fake,store);
+                WaitFor(()=>monitor.CanApplyFeatures&&monitor.Status=="Running unknown","Launch record arriving after detection was not recognized");
+                check(!monitor.RequiresRestart,"The exact launch record resolves the detection/recording race");
+            }
             GameLaunchHistory.Record(child,fake,store);
             using(var monitor=new GameMonitor(new SettingsStore(data),false,DateTime.UtcNow.AddSeconds(1))){
                 WaitFor(()=>monitor.Connected&&monitor.Status=="Running unknown","Recorded LAB launch was not detected");

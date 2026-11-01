@@ -28,7 +28,7 @@ $suites = [ordered]@{
  'level_state_tests.cpp'='LevelStateTests'; 'encounter_tests.cpp'='EncounterTests';
  'entity_graph_tests.cpp'='EntityGraphTests'; 'labplus_cvar_tests.cpp'='LabCvarTests';
  'lighting_fix_tests.cpp'='LightingFixTests'; 'layer_loader_probe.cpp'='LayerLoaderProbe';
- 'retail_profile_probe.cpp'='RetailProfileProbe'; 'vulkan_smoke.cpp'='VulkanSmoke'
+ 'patch_port_tests.cpp'='RetailPatchPortProbe'; 'retail_profile_probe.cpp'='RetailProfileProbe'; 'vulkan_smoke.cpp'='VulkanSmoke'
 }
 foreach ($entry in $suites.GetEnumerator()) {
     $source = Join-Path $nativeDirectory "tests\$($entry.Key)"

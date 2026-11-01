@@ -1,18 +1,20 @@
 using System.Security.Cryptography;
 using System.Text.Json;
+using System.Diagnostics;
+using System.Runtime.InteropServices;
+using System.Text;
 using Microsoft.Win32;
 using LabPlus.Configuration;
 
 namespace LabPlus.Game;
 
 /// <summary>
-/// Registers the layer through the Vulkan loader's per-user override meta-layer,
-/// scoped to the configured game executable. No other process is opted in.
+/// Prepares explicit Vulkan layers in the launched child's environment only.
+/// Registry access is limited to retiring registrations made by older builds.
 /// </summary>
 public sealed class VulkanLayerRegistration
 {
     private const string LayerName = "VK_LAYER_LABPLUS_collision";
-    private const string OverrideName = "VK_LAYER_LUNARG_override";
     private const string ExplicitLayersKey = @"Software\Khronos\Vulkan\ExplicitLayers";
     private const string ImplicitLayersKey = @"Software\Khronos\Vulkan\ImplicitLayers";
 
@@ -33,45 +35,27 @@ public sealed class VulkanLayerRegistration
     private string LayerManifestPath => Path.Combine(RuntimeDirectory, "labplus-layer.json");
     private string OverrideManifestPath => Path.Combine(RuntimeDirectory, "labplus-override.json");
 
-    public void EnableForGame(string gamePath)
+    public void ConfigureLaunch(ProcessStartInfo start)
     {
-        string fullGamePath = ValidateGame(gamePath);
         PrepareRuntime();
-        EnsureNoOtherOverrideRegistration();
-
-        File.WriteAllText(OverrideManifestPath, JsonSerializer.Serialize(new
-        {
-            file_format_version = "1.1.1",
-            layer = new
-            {
-                name = OverrideName,
-                type = "GLOBAL",
-                api_version = "1.0.0",
-                implementation_version = "1",
-                description = "LAB Plus enables the collision viewer only for the configured DOOM Eternal executable.",
-                component_layers = new[] { LayerName },
-                app_keys = new[] { fullGamePath },
-                disable_environment = new Dictionary<string, string> { ["LABPLUS_DISABLE_COLLISION_OVERRIDE"] = "1" }
-            }
-        }, new JsonSerializerOptions { WriteIndented = true }));
-
-        using RegistryKey explicitLayers = Registry.CurrentUser.CreateSubKey(ExplicitLayersKey, writable: true)
-            ?? throw new InvalidOperationException("Could not open the Vulkan explicit layers list.");
-        using RegistryKey implicitLayers = Registry.CurrentUser.CreateSubKey(ImplicitLayersKey, writable: true)
-            ?? throw new InvalidOperationException("Could not open the Vulkan implicit layers list.");
-        try
-        {
-            explicitLayers.SetValue(LayerManifestPath, 0, RegistryValueKind.DWord);
-            implicitLayers.SetValue(OverrideManifestPath, 0, RegistryValueKind.DWord);
-            RetirePreviousRegistration(explicitLayers, implicitLayers);
-        }
-        catch
-        {
-            explicitLayers.DeleteValue(LayerManifestPath, throwOnMissingValue: false);
-            implicitLayers.DeleteValue(OverrideManifestPath, throwOnMissingValue: false);
-            throw;
-        }
+        var path = new StringBuilder(32768);
+        uint count = GetShortPathName(RuntimeDirectory, path, (uint)path.Capacity);
+        ConfigureEnvironment(start, count > 0 && count < path.Capacity ? path.ToString() : RuntimeDirectory);
     }
+
+    internal static void ConfigureEnvironment(ProcessStartInfo start, string directory)
+    {
+        start.Environment.TryGetValue("VK_LAYER_PATH", out string? paths);
+        start.Environment["VK_LAYER_PATH"] = string.Join(';', (paths ?? "").Split(';', StringSplitOptions.RemoveEmptyEntries).Append(directory).Distinct(StringComparer.OrdinalIgnoreCase));
+        start.Environment.TryGetValue("VK_INSTANCE_LAYERS", out string? layers);
+        start.Environment["VK_INSTANCE_LAYERS"] = string.Join(';', (layers ?? "").Split(';', StringSplitOptions.RemoveEmptyEntries).Append(LayerName).Distinct(StringComparer.Ordinal));
+        // Prevent Steam from replacing the directly launched child and losing
+        // the child-only layer configuration.
+        start.Environment["SteamAppId"] = "782330";
+    }
+
+    [DllImport("kernel32.dll", EntryPoint = "GetShortPathNameW", CharSet = CharSet.Unicode)]
+    private static extern uint GetShortPathName(string path, StringBuilder output, uint capacity);
 
     public void Disable()
     {
@@ -88,18 +72,6 @@ public sealed class VulkanLayerRegistration
             explicitLayers?.DeleteValue(LegacyDataMigration.PreviousLayerManifest, throwOnMissingValue: false);
         if (LegacyDataMigration.OwnsPreviousManifest(LegacyDataMigration.PreviousOverrideManifest, true))
             implicitLayers?.DeleteValue(LegacyDataMigration.PreviousOverrideManifest, throwOnMissingValue: false);
-    }
-
-    private string ValidateGame(string gamePath)
-    {
-        if (string.IsNullOrWhiteSpace(gamePath) || !File.Exists(gamePath))
-            throw new FileNotFoundException("Select the DOOMEternalx64vk.exe path first.", gamePath);
-
-        string fullPath = Path.GetFullPath(gamePath);
-        if (!Path.GetFileName(fullPath).Equals("DOOMEternalx64vk.exe", StringComparison.OrdinalIgnoreCase))
-            throw new InvalidOperationException("Automatic layer loading supports DOOMEternalx64vk.exe.");
-
-        return fullPath;
     }
 
     internal void PrepareRuntime()
@@ -132,34 +104,4 @@ public sealed class VulkanLayerRegistration
         }, new JsonSerializerOptions { WriteIndented = true }));
     }
 
-    private void EnsureNoOtherOverrideRegistration()
-    {
-        foreach (RegistryHive hive in new[] { RegistryHive.CurrentUser, RegistryHive.LocalMachine })
-        {
-            using RegistryKey baseKey = RegistryKey.OpenBaseKey(hive, RegistryView.Registry64);
-            using RegistryKey? key = baseKey.OpenSubKey(ImplicitLayersKey);
-            if (key is null) continue;
-
-            foreach (string manifestPath in key.GetValueNames())
-            {
-                if (Path.GetFullPath(manifestPath).Equals(Path.GetFullPath(OverrideManifestPath), StringComparison.OrdinalIgnoreCase))
-                    continue;
-                if (!File.Exists(manifestPath)) continue;
-                if (hive == RegistryHive.CurrentUser && LegacyDataMigration.OwnsPreviousManifest(manifestPath, true)) continue;
-
-                try
-                {
-                    using JsonDocument document = JsonDocument.Parse(File.ReadAllText(manifestPath));
-                    if (document.RootElement.TryGetProperty("layer", out JsonElement layer) &&
-                        layer.TryGetProperty("name", out JsonElement name) &&
-                        name.GetString()?.Equals(OverrideName, StringComparison.Ordinal) == true)
-                        throw new InvalidOperationException("Another Vulkan Override Layer registration was found. LAB Plus leaves it unchanged. Disable that override in Vulkan Configurator or launch the game with the LAB Plus button.");
-                }
-                catch (JsonException)
-                {
-                    // Ignore unrelated or malformed Vulkan manifests.
-                }
-            }
-        }
-    }
 }

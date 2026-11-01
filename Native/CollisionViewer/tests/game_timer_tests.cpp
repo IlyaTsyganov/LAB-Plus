@@ -8,6 +8,13 @@ static const GameTimerRow& timerRow(const GameTimerSnapshot& value,const char* k
 static void checkAuditedTimerProfiles(uintptr_t base,uintptr_t map,uintptr_t clock,uintptr_t flag,uintptr_t lifetimeData) {
     struct ProfileClock {const GameProfile* profile;uint32_t caller,getter,mapGlobal,manager,flagGlobal,lifetime,lifetimeGlobal;};
     const ProfileClock cases[]{
+        {&kProfile20, 0x19663e3, 0xb78d20, 0x64a8538, 0x1280c8, 0x64a70d0, 0x189d461, 0x653a9f0},
+        {&kProfile21, 0x1968a63, 0xb78040, 0x64ab438, 0x1280c8, 0x64a9fd0, 0x189f641, 0x653e0d0},
+        {&kProfile30, 0x1aaa563, 0xbf0390, 0x677cae0, 0x128758, 0x677b520, 0x19df931, 0x6814130},
+        {&kProfile31, 0x1aaad63, 0xbf0140, 0x677cb60, 0x128758, 0x677b5a0, 0x19e0101, 0x68141b0},
+        {&kProfile40, 0x1a41563, 0xbf6100, 0x6797bb0, 0x1256a8, 0x6796570, 0x1975dd1, 0x682f9f0},
+        {&kProfile41, 0x1a40da3, 0xbf7870, 0x67987b0, 0x1256a8, 0x6797170, 0x1975091, 0x68305f0},
+        {&kProfile50, 0x1ae6c13, 0xc218b0, 0x658a5f0, 0x1257e0, 0x6588fb0, 0x1a0f2a1, 0x66263e0},
         {&kProfile10,0x18db163,0xb514e0,0x6136a10,0x127eb8,0x61355e0,0x1817fd1,0x61c57b0},
         {&kProfile11,0x192c8d3,0xb5e450,0x6128718,0x127f68,0x61272b0,0x18671f1,0x61b87c0},
         {&kProfile51,0x1ae67a3,0xc21100,0x658a5f0,0x1257e0,0x6588fb0,0x1a0e261,0x66263e0}};
@@ -35,6 +42,25 @@ static void checkAuditedTimerProfiles(uintptr_t base,uintptr_t map,uintptr_t clo
         timerPut(lifetimeData,12,4.5f);double seconds=0;check(readPowerupLifetimeOverride(WallMemory{},base,profile,seconds)&&seconds==4.5,"audited powerup lifetime readers include 1.1");
         timerPut(base,entry.lifetime+14,uint8_t(0x10));check(!readPowerupLifetimeOverride(WallMemory{},base,profile,seconds),"changed powerup value-field instruction is rejected");timerPut(base,entry.lifetime+14,uint8_t(0x0c));
         timerPut(lifetimeData,12,std::numeric_limits<float>::quiet_NaN());check(!readPowerupLifetimeOverride(WallMemory{},base,profile,seconds),"nonfinite powerup lifetime is unavailable");timerPut(lifetimeData,12,0.f);
+    }
+    const unsigned char compact[]{0x48,0x8b,0x05,0,0,0,0,0x4c,0x8b,0x49,0x10,0x83,0x78,0x08,0,0x75,0x0b,0x49,0x8b,0x41,0x18,0x48,0x89,0x02,0x48,0x8b,0xc2,0xc3,
+        0x49,0x63,0xc0,0x48,0x8d,0x0c,0xc0,0x49,0x8b,0x44,0xc9,0x18,0x48,0x89,0x02,0x48,0x8b,0xc2,0xc3};
+    for(const auto* profile:{&kProfile60,&kProfile61,&kProfile62,&kProfile63,&kProfile64,&kProfile6660,&kProfile6661,&kProfile66611,&kProfile6662,&kProfile66622,&kProfile6663,&kProfile66632}) {
+        const auto* code=observationCodeProfile(*profile);check(code!=nullptr,"late observation profile exists");
+        const uint32_t getterRva=0x10000,mapGlobal=0x6000000,flagGlobal=0x6000010,manager=0x100;
+        memcpy(reinterpret_cast<void*>(base+code->clock),caller,sizeof(caller));timerPut(base,code->clock+11,uint8_t(0x50));
+        timerPut(base,code->clock+3,int32_t(mapGlobal-(code->clock+7)));timerPut(base,code->clock+22,manager);
+        timerPut(base,code->clock+33,int32_t(getterRva-(code->clock+37)));
+        memcpy(reinterpret_cast<void*>(base+getterRva),compact,sizeof(compact));timerPut(base,getterRva+3,int32_t(flagGlobal-(getterRva+7)));
+        timerPut(base,mapGlobal,map);timerPut(map,manager+16,clock);timerPut(base,flagGlobal,flag);
+        timerPut(flag,8,int32_t(1));auto value=readGameTimerClock(WallMemory{},base,*profile,level,128);
+        check(value.valid&&value.ticks==999960,"all twelve compact clocks select domain1 from the compact getter");
+        timerPut(flag,8,int32_t(0));value=readGameTimerClock(WallMemory{},base,*profile,level,128);
+        check(value.valid&&value.ticks==1999920,"late clocks preserve the no-time-scaling branch");timerPut(flag,8,int32_t(1));
+        check(!readGameTimerClock(WallMemory{},base,*profile,level,132).valid,"late reflected field mismatch fails closed");
+        timerPut(base,code->clock+28,uint8_t(2));check(!readGameTimerClock(WallMemory{},base,*profile,level,128).valid,"late alternate clock domain rejected");timerPut(base,code->clock+28,uint8_t(1));
+        timerPut(base,getterRva+46,uint8_t(0x90));check(!readGameTimerClock(WallMemory{},base,*profile,level,128).valid,"late changed return rejected");timerPut(base,getterRva+46,uint8_t(0xc3));
+        auto foreign=*profile;++foreign.imageSize;check(!readGameTimerClock(WallMemory{},base,foreign,level,128).valid,"unlisted executable cannot borrow a late clock");
     }
 }
 int main() {
@@ -191,7 +217,9 @@ int main() {
     timerPut(player,1008,uintptr_t(0));timerPut(player,1108,sync);snapshot=captureGameTimers(WallMemory{},base,profile,level,lookup);
     check(timerRow(snapshot,"sync_animation").state=="active","melee currentSyncEntity works when legacy syncMaster is empty");
     std::array<unsigned char,32> interactionRef{};timerPut(reinterpret_cast<uintptr_t>(interactionRef.data()),8,sync);timerPut(player,1108,uintptr_t(0));timerPut(player,1240,reinterpret_cast<uintptr_t>(interactionRef.data()));timerPut(player,1248,int32_t(1));
-    timerPut(sync,181,uint8_t(1));snapshot=captureGameTimers(WallMemory{},base,profile,level,lookup);check(timerRow(snapshot,"interaction").state=="active","current interaction reference list can own its own sync clip");
+    timerPut(sync,181,uint8_t(1));snapshot=captureGameTimers(WallMemory{},base,profile,level,lookup);
+    check(timerRow(snapshot,"interaction").state=="unavailable"&&timerRow(snapshot,"interaction").remaining<0&&timerRow(snapshot,"interaction").label=="Player lock",
+        "an interaction reference without player-release metadata cannot substitute the NPC clip duration");
     timerPut(player,1240,uintptr_t(0));timerPut(player,1248,int32_t(0));timerPut(player,1008,sync);timerPut(player,1108,sync);timerPut(sync,181,uint8_t(0));
     auto savedAttack=types["idSyncAttack"];types.erase("idSyncAttack");snapshot=captureGameTimers(WallMemory{},base,profile,level,lookup);
     check(timerRow(snapshot,"sync_animation").state=="unavailable","unknown relevant sync source cannot claim inactive");types["idSyncAttack"]=savedAttack;

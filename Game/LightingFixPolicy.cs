@@ -37,4 +37,13 @@ internal static class LightingFixPolicy
         }
         return 0; // Unknown hardware cannot opt in to a graphics correction.
     }
+
+    internal static IEnumerable<string> DisplayNames()
+    {
+        for(uint index=0;index<32;index++) {
+            var device=new DisplayDevice { Size=Marshal.SizeOf<DisplayDevice>(),Name="",Description="",Id="",Key="" };
+            if(!EnumDisplayDevices(null,index,ref device,0)) yield break;
+            if(!string.IsNullOrWhiteSpace(device.Description)) yield return device.Description;
+        }
+    }
 }

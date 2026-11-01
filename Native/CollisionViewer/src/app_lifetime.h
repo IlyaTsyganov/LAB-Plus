@@ -8,6 +8,8 @@ static bool labPresenceSignaled(const wchar_t* name) {
     CloseHandle(presence);return available;
 }
 static bool labAppAvailable(const wchar_t* presenceName=L"Local\\labplus.commands.Active",const wchar_t* ownerName=L"Local\\LABPlus.App.Owner") {
+    wchar_t launched[2]{};
+    if(GetEnvironmentVariableW(L"LABPLUS_LAUNCHED",launched,2)!=1||launched[0]!=L'1') return false;
     if(!labPresenceSignaled(presenceName)) return false;
     HANDLE owner=OpenMutexW(SYNCHRONIZE|MUTEX_MODIFY_STATE,FALSE,ownerName);
     if(!owner) return false;

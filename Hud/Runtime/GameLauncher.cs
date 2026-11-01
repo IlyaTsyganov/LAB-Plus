@@ -16,10 +16,7 @@ internal static class GameLauncher
     }
     internal static bool WasLaunchedByLab(Process game,SettingsStore store)
     {
-        if(GameLaunchHistory.Matches(game,store))return true;
-        // Earlier LAB versions used a child-only Vulkan layer but no launch stamp.
-        try{return game.Modules.Cast<ProcessModule>().Any(m=>m.ModuleName.StartsWith("labplus-lighting",StringComparison.OrdinalIgnoreCase)||m.ModuleName.StartsWith("LAB-LI~",StringComparison.OrdinalIgnoreCase));}
-        catch(Exception e)when(e is InvalidOperationException or System.ComponentModel.Win32Exception){return false;}
+        return GameLaunchHistory.Matches(game,store);
     }
     internal static string LoaderPath(string path){var buffer=new StringBuilder(32768);uint count=GetShortPathName(path,buffer,(uint)buffer.Capacity);return count>0&&count<buffer.Capacity?buffer.ToString():path;}
     internal static bool LightingActive(int pid){try{using var status=EventWaitHandle.OpenExisting("Local\\LABPLUS.Lighting.Active."+pid);return status.WaitOne(0);}catch(WaitHandleCannotBeOpenedException){return false;}catch(UnauthorizedAccessException){return false;}}
@@ -30,6 +27,8 @@ internal static class GameLauncher
         string path=Path.GetFullPath(settings.GamePath);if(!File.Exists(path)||!Path.GetFileName(path).Equals("DOOMEternalx64vk.exe",StringComparison.OrdinalIgnoreCase))throw new ArgumentException("Select an existing DOOMEternalx64vk.exe.");
         var info=new ProcessStartInfo(path){UseShellExecute=false,WorkingDirectory=Path.GetDirectoryName(path)!};info.ArgumentList.Add("+com_skipIntroVideo");info.ArgumentList.Add("1");info.Environment["LABPLUS_HUD_DATA_DIRECTORY"]=dataDirectory;bool lighting=settings.LightingFix&&global::LabPlus.Game.LightingFixPolicy.CanUse(settings.GamePath);info.Environment["LABPLUS_HUD_LIGHTING_FIX"]=lighting?"1":"0";
         if(lighting){if(lightingFolder is null)throw new InvalidOperationException("Lighting runtime is not prepared.");info.Environment.TryGetValue("VK_INSTANCE_LAYERS",out string? oldLayers);info.Environment["VK_INSTANCE_LAYERS"]=string.Join(';',(oldLayers??"").Split(';',StringSplitOptions.RemoveEmptyEntries).Append("VK_LAYER_LABPLUS_lighting").Distinct());info.Environment.TryGetValue("VK_LAYER_PATH",out string? oldPath);info.Environment["VK_LAYER_PATH"]=string.IsNullOrEmpty(oldPath)?lightingFolder:lightingFolder+";"+oldPath;info.Environment["SteamAppId"]="782330";}
+        info.Environment["LABPLUS_LAUNCHED"]="1";
+        info.Environment["SteamAppId"]="782330";
         return info;
     }
     internal static void Start(SettingsStore store,Func<string,global::LabPlus.Game.GameFirewallResult>? inspect=null,Func<ProcessStartInfo,Process?>? start=null)

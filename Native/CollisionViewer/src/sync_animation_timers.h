@@ -1,12 +1,14 @@
 #pragma once
 // Included after the shared read-only timer helpers.
 // The release-event lookup is read, never called. This is the original
-// idEventDef indexed getter on the three independently audited timer builds.
+// idEventDef indexed getter on the independently audited timer builds. Its
+// release callback takes the source idMD6Anim pointer on the audited EXEs.
 static int syncReleaseEventNumber(const WallMemory& memory,uintptr_t base,const GameProfile& profile,const GraphLookup& lookup) {
     uintptr_t getter=0;
     if(profile.timestamp==0x5e794131&&profile.imageSize==0x1e706000)getter=0x44b2f0;
     if(profile.timestamp==0x5ec7deca&&profile.imageSize==0x1d551000)getter=0x44f870;
     if(profile.timestamp==0x607e69b0&&profile.imageSize==0x1b5dd000)getter=0x474360;
+    if(const auto* code=observationCodeProfile(profile))getter=code->event;
     if(!getter)return -1;
     unsigned char code[31]{};
     const unsigned char prefix[]{0x48,0x83,0xec,0x28,0x81,0xfa,0xff,0x0f,0,0,0x77,0x13,0x48,0x63,0xc2,0x48,0x8d,0x0d};
@@ -16,15 +18,19 @@ static int syncReleaseEventNumber(const WallMemory& memory,uintptr_t base,const 
     const uintptr_t table=base+getter+22+relative;
     if(table<base||table-base>=profile.imageSize||4096*8>profile.imageSize-(table-base))return -1;
     auto name=timerField(lookup,"idEventDef","name"),number=timerField(lookup,"idEventDef","eventnum"),
-         type=timerField(lookup,"idEventDef","type"),args=timerField(lookup,"idEventDef","numargs");
+         type=timerField(lookup,"idEventDef","type"),args=timerField(lookup,"idEventDef","numargs"),
+         format=timerField(lookup,"idEventDef","formatspec"),argTypes=timerField(lookup,"idEventDef","argTypes"),argNames=timerField(lookup,"idEventDef","argNames");
     if(!name||name->type!="char"||name->ops!="*"||name->size!=8||!timerIntField(number)||!timerIntField(args)||
-       !type||type->size!=4||!type->ops.empty()||type->type!="eventType_t")return -1;
+       !type||type->size!=4||!type->ops.empty()||type->type!="eventType_t"||!timerPointer(format,"char")||!timerPointer(argTypes,"char")||!timerPointer(argNames,"char"))return -1;
     auto matches=[&](uintptr_t definition,int index) {
-        uintptr_t text=0;int32_t actual=-1,kind=-1,count=-1;
+        uintptr_t text=0,spec=0,types=0,names=0;int32_t actual=-1,kind=-1,count=-1;
         return definition>=base&&definition-base<profile.imageSize&&lookup("idEventDef").size<=profile.imageSize-(definition-base)&&
             memory.get(definition+name->offset,text)&&readEntityText(memory,text,128)=="ae_releasePlayerFromSync"&&
             memory.get(definition+number->offset,actual)&&actual==index&&memory.get(definition+type->offset,kind)&&kind==2&&
-            memory.get(definition+args->offset,count)&&count==0;
+            memory.get(definition+args->offset,count)&&count==1&&
+            memory.get(definition+format->offset,spec)&&readEntityText(memory,spec,32)=="4"&&
+            memory.get(definition+argTypes->offset,types)&&readEntityText(memory,types,64)=="idMD6Anim*;"&&
+            memory.get(definition+argNames->offset,names)&&readEntityText(memory,names,32)=="anim;";
     };
     struct Cached { HANDLE remote{};uintptr_t base=0,definition=0;int index=-1; };
     static thread_local Cached cached;
@@ -43,16 +49,9 @@ static int syncReleaseEventNumber(const WallMemory& memory,uintptr_t base,const 
     return -1;
 }
 static bool syncPlayerLockProfile(const GameProfile* profile) {
-    // The per-model release boundary has positive game validation on 1.1.
-    return profile&&profile->timestamp==0x5ec7deca&&profile->imageSize==0x1d551000;
-}
-static bool syncPraetorPlayerLock(const WallMemory& memory,uintptr_t sync,const GraphLookup& lookup,const GameProfile* profile) {
-    if(!syncPlayerLockProfile(profile))return false;
-    const auto* field=timerField(lookup,"idSyncEntity","currentSyncEntityAnim");uintptr_t animation=0;
-    if(!timerPointer(field,"idMD6Anim")||!memory.get(sync+field->offset,animation)||!animation)return false;
-    // Scope the new control-lock semantics to the demonstrated pickup asset.
-    // Its release number, frame and rate still come from current engine data.
-    return timerResourceName(memory,animation,lookup).find("/mechanics/interact/preator_suit_token/")!=std::string::npos;
+    // Exact event getters are audited per executable. The actual per-model
+    // release event, ownership and animation timeline remain mandatory.
+    return profile&&observationCodeProfile(*profile);
 }
 static bool syncReleaseDeadline(uint16_t frames,uint16_t fps,float frame,int64_t started,float fraction,
                                 const float (&scales)[3],float rate,int64_t ticksPerSecond,int64_t& deadline) {
@@ -65,8 +64,48 @@ static bool syncReleaseDeadline(uint16_t frames,uint16_t fps,float frame,int64_t
     if(!std::isfinite(static_cast<double>(duration))||duration<0||duration>gameTimerTicksPerSecond*120||duration>INT64_MAX-started)return false;
     deadline=started+static_cast<int64_t>(duration);return true;
 }
+// Old builds through 2.1 store an explicit disabled bool. From 3.0 onward it is
+// ANIM_EVENT_FLAG_DISABLED in the reflected enum; there is no bool to read.
+// Verify the enum belonging to this exact EXE instead of treating a missing
+// field as an enabled event.
+static bool syncPackedEventFlags(const WallMemory& memory,uintptr_t base,const GameProfile* profile) {
+    if(!profile)return false;
+    const auto* code=observationCodeProfile(*profile);
+    if(!code||!code->syncEventFlagsEnum||code->syncEventFlagsEnum>=profile->imageSize||32>profile->imageSize-code->syncEventFlagsEnum)return false;
+    const auto at=base+code->syncEventFlagsEnum;
+    uintptr_t name=0,values=0;uint64_t kind=0;uint32_t count=0;
+    if(!memory.get(at,name)||readEntityText(memory,name,128)!="animEventFlags_t"||!memory.get(at+8,kind)||kind!=0x80000||
+       !memory.get(at+20,count)||count!=5||!memory.get(at+24,values)||values<base||values-base>=profile->imageSize||
+       uint64_t(count+1)*16>profile->imageSize-(values-base))return false;
+    const char* names[]{"ANIM_EVENT_FLAG_NONE","ANIM_EVENT_FLAG_DISABLED","ANIM_EVENT_FLAG_DEBUG","ANIM_EVENT_FLAG_LOCKED","ANIM_EVENT_ACTIVATE_IN_RANGE"};
+    const uint64_t bits[]{0,2,4,8,16};
+    for(unsigned i=0;i<5;++i) {
+        uintptr_t text=0;uint64_t value=~0ULL;
+        if(!memory.get(values+i*16,text)||!memory.get(values+i*16+8,value)||value!=bits[i]||readEntityText(memory,text,128)!=names[i])return false;
+    }
+    uintptr_t terminator=1;return memory.get(values+count*16,terminator)&&!terminator;
+}
+static bool syncAnimationRefLayout(const GraphLookup& lookup,const GraphField* field,uint32_t& stringOffset) {
+    if(!field||!field->ops.empty()||field->size!=8)return false;
+    if(field->type=="idAtomicStringT < md6AnimAtomicString_t >") {stringOffset=0;return true;}
+    if(field->type!="idMD6AnimRef")return false;
+    const auto& ref=lookup("idMD6AnimRef");const auto& atomic=lookup("idAtomicString");
+    const auto* text=timerField(lookup,"idAtomicString","str");
+    if(!ref.complete||ref.size!=field->size||ref.parent!="idAtomicString"||!atomic.complete||atomic.size>ref.size||
+       !timerPointer(text,"char")||uint64_t(text->offset)+8>ref.size)return false;
+    stringOffset=text->offset;return true;
+}
+static bool syncEventStorage(const WallMemory& memory,uintptr_t base,const GameProfile* profile,const GraphLookup& lookup,const GraphField* disabled) {
+    if(disabled)return timerBoolField(disabled);
+    const auto* row=timerField(lookup,"idMD6AnimEvent","row");
+    return row&&row->type=="unsigned char"&&row->size==1&&row->ops.empty()&&syncPackedEventFlags(memory,base,profile);
+}
+static bool syncReadEventDisabled(const WallMemory& memory,uintptr_t event,const GraphField* field,uint32_t flags,unsigned char& disabled) {
+    if(!field) {disabled=(flags&2)!=0;return true;}
+    return memory.get(event+field->offset,disabled)&&disabled<=1;
+}
 static GameTimerRow captureSyncPlayerControlLock(const WallMemory& memory,uintptr_t player,uintptr_t sync,const GameTimerClock& clock,
-                                                const GraphLookup& lookup,int releaseNumber) {
+                                                const GraphLookup& lookup,int releaseNumber,uintptr_t base=0,const GameProfile* profile=nullptr) {
     GameTimerRow row{"interaction","Sync animations","Player lock","unavailable","Player release timeline unavailable",-1};
     auto managedPointer=[&](const GraphField* field,const char* target)->const GraphField* {
         const std::string type=std::string("idManagedClassPtr < ")+target+" >";
@@ -79,7 +118,8 @@ static GameTimerRow captureSyncPlayerControlLock(const WallMemory& memory,uintpt
     if(!savedPtr||!masterPtr||!memory.get(player+saved->offset+savedPtr->offset,savedSync)||!memory.get(player+master->offset+masterPtr->offset,masterSync))return row;
     auto released=[&] {uintptr_t a=0,b=0;return memory.get(player+saved->offset+savedPtr->offset,a)&&memory.get(player+master->offset+masterPtr->offset,b)&&a!=sync&&b!=sync;};
     if(savedSync!=sync&&masterSync!=sync) {row.state="inactive";row.remaining=0;row.detail="Player control has been released";return row;}
-    if(!clock.valid||releaseNumber<0||releaseNumber>4095)return row;
+    if(!clock.valid) {row.detail=clock.detail;return row;}
+    if(releaseNumber<0||releaseNumber>4095) {row.detail="Player release event registry unavailable";return row;}
     const auto* stack=timerField(lookup,"idAnimatedEntity","animStack"),*pause=timerField(lookup,"idAnimStack","pauseTime"),*local=timerField(lookup,"idAnimStack","useClientLocalTime");
     int64_t pausedAt=0;unsigned char localTime=1;
     if(!timerInline(stack,"idAnimStack",lookup)||!timerTimeField(pause)||!timerBoolField(local)||
@@ -108,10 +148,12 @@ static GameTimerRow captureSyncPlayerControlLock(const WallMemory& memory,uintpt
          events=timerField(lookup,infoType,"events"),eventData=timerField(lookup,eventsType,"list"),eventCount=timerField(lookup,eventsType,"num"),
          eventFrame=timerField(lookup,"idMD6AnimEvent","frameNum"),eventNumber=timerField(lookup,"idMD6AnimEvent","eventNum"),
          eventDisabled=timerField(lookup,"idMD6AnimEvent","disabled"),eventFlags=timerField(lookup,"idMD6AnimEvent","flags");
+    uint32_t animRefStringOffset=0;
+    row.detail="Player-release animation event metadata unavailable";
     if(!timerInline(animEvents,"idAnimEvents",lookup)||!list(infos,infosType,infoData,infoCount,infoType.c_str())||
-       !animRef||animRef->ops!=""||animRef->type!="idAtomicStringT < md6AnimAtomicString_t >"||animRef->size!=8||
+       !syncAnimationRefLayout(lookup,animRef,animRefStringOffset)||
        !list(events,eventsType,eventData,eventCount,"idMD6AnimEvent")||!eventFrame||eventFrame->size!=4||eventFrame->type!="float"||!eventFrame->ops.empty()||
-       !eventNumber||eventNumber->size!=2||eventNumber->type!="short"||!eventNumber->ops.empty()||!timerBoolField(eventDisabled)||
+       !eventNumber||eventNumber->size!=2||eventNumber->type!="short"||!eventNumber->ops.empty()||!syncEventStorage(memory,base,profile,lookup,eventDisabled)||
        !eventFlags||eventFlags->size!=4||!eventFlags->ops.empty()||eventFlags->type!="animEventFlags_t")return row;
     auto nodeType=timerField(lookup,"idMD6Node","type"),left=timerField(lookup,"idMD6Branch","left"),right=timerField(lookup,"idMD6Branch","right"),
          leftTime=timerField(lookup,"idMD6Branch","leftTimeOverride"),rightTime=timerField(lookup,"idMD6Branch","rightTimeOverride"),
@@ -158,7 +200,7 @@ static GameTimerRow captureSyncPlayerControlLock(const WallMemory& memory,uintpt
             for(int32_t index=0;index<infoNum;++index) {
                 if(++work>20000){row.detail="Player-release scan budget exhausted";return row;}
                 const auto info=infoList+size_t(index)*infoSize;uintptr_t text=0;
-                if(!memory.get(info+animRef->offset,text))return row;
+                if(!memory.get(info+animRef->offset+animRefStringOffset,text))return row;
                 if(readEntityText(memory,text,512)!=animationName)continue;
                 uintptr_t eventList=0;int32_t eventNum=0;
                 const auto eventAddress=info+events->offset;
@@ -168,9 +210,10 @@ static GameTimerRow captureSyncPlayerControlLock(const WallMemory& memory,uintpt
                     const auto event=eventList+size_t(indexEvent)*eventSize;int16_t number=-1;unsigned char disabled=1;uint32_t flags=~0u;float frame=0;int64_t deadline=0;
                     if(!memory.get(event+eventNumber->offset,number))return row;
                     if(number!=releaseNumber)continue;
-                    if(!memory.get(event+eventDisabled->offset,disabled)||disabled>1||!memory.get(event+eventFlags->offset,flags)||!memory.get(event+eventFrame->offset,frame))return row;
+                    if(!memory.get(event+eventFlags->offset,flags)||!syncReadEventDisabled(memory,event,eventDisabled,flags,disabled)||!memory.get(event+eventFrame->offset,frame))return row;
                     if(disabled)continue;
-                    if(flags||!syncReleaseDeadline(frameCount,frameRate,frame,started,fractionValue,scaleValues,rateValue,tps,deadline))return row;
+                    if(flags) {row.detail="Player-release event has unsupported activation flags";return row;}
+                    if(!syncReleaseDeadline(frameCount,frameRate,frame,started,fractionValue,scaleValues,rateValue,tps,deadline)) {row.detail="Player-release event clock or frame is unsupported";return row;}
                     schedules.push_back({leaf,animation,data,md6,event,root,model,frameCount,frameRate,started,deadline,frame,rateValue,fractionValue,{scaleValues[0],scaleValues[1],scaleValues[2]},tps});
                 }
                 uintptr_t finalEvents=0;int32_t finalEventNum=0;
@@ -191,8 +234,9 @@ static GameTimerRow captureSyncPlayerControlLock(const WallMemory& memory,uintpt
         if(!memory.get(observed.leaf+leafAnim->offset,animation)||animation!=observed.animation||!memory.get(observed.leaf+start->offset,started)||started!=observed.started||
            !memory.get(observed.leaf+rate->offset,rateValue)||rateValue!=observed.rate||!memory.get(observed.leaf+fraction->offset,fractionValue)||fractionValue!=observed.fraction||
            !memory.get(observed.leaf+scales->offset,scaleValues)||memcmp(scaleValues,observed.scales,sizeof(scaleValues))||!memory.get(observed.leaf+ticks->offset,tps)||tps!=observed.ticks||
-           !memory.get(observed.event+eventFrame->offset,frame)||frame!=observed.eventFrame||!memory.get(observed.event+eventDisabled->offset,disabled)||disabled||
+           !memory.get(observed.event+eventFrame->offset,frame)||frame!=observed.eventFrame||
            !memory.get(observed.event+eventNumber->offset,number)||number!=releaseNumber||!memory.get(observed.event+eventFlags->offset,flags)||flags||
+           !syncReadEventDisabled(memory,observed.event,eventDisabled,flags,disabled)||disabled||
            !memory.get(observed.leaf+wrap->offset,mode)||mode||!memory.get(observed.leaf+weight->offset,currentWeight)||!std::isfinite(currentWeight)||currentWeight<=.001f||
            !memory.get(animation+animData->offset,data)||data!=observed.data||!memory.get(data+frames->offset,frameCount)||frameCount!=observed.frames||
            !memory.get(data+fps->offset,frameRate)||frameRate!=observed.fps||!memory.get(states+size_t(observed.model)*stateSize+modelTree->offset,root)||root!=observed.root)return row;
@@ -376,15 +420,20 @@ static std::vector<GameTimerRow> captureSyncAnimationTimers(const WallMemory& me
         if(timerBoolField(interactable)&&(!memory.get(candidate.entity+interactable->offset,isInteraction)||isInteraction>1))return unavailable("Sync interaction state unavailable");
         auto row=captureSyncEntityCurrentClip(memory,candidate.entity,clock,lookup);
         if(candidate.sources&Interactable||isInteraction) {
-            const bool playerLock=syncPraetorPlayerLock(memory,candidate.entity,lookup,profile);
-            if(playerLock)row=captureSyncPlayerControlLock(memory,player,candidate.entity,clock,lookup,syncReleaseEventNumber(memory,base,*profile,lookup));
+            // A player-owned interaction can release control before the NPC
+            // clip ends (tokens, Gore Nests, buttons, and other authored syncs).
+            // Use its actual release event, without an asset-name whitelist.
+            const bool playerLock=syncPlayerLockProfile(profile);
+            if(playerLock)row=captureSyncPlayerControlLock(memory,player,candidate.entity,clock,lookup,syncReleaseEventNumber(memory,base,*profile,lookup),base,profile);
             row.key=interactionCount++?"interaction_"+std::to_string(candidate.entity):"interaction";
             row.label=playerLock?"Player lock":"Interaction (current clip)";
         } else if(candidate.sources&Melee) {
             row.key=meleeCount++?"sync_animation_"+std::to_string(candidate.entity):"sync_animation";
             row.label="Glory kill / chainsaw (current clip)";
         } else {
-            row.key="sync_other_"+std::to_string(++genericCount);row.label="Scripted sync (current clip)";
+            const bool playerLock=syncPlayerLockProfile(profile);
+            if(playerLock)row=captureSyncPlayerControlLock(memory,player,candidate.entity,clock,lookup,syncReleaseEventNumber(memory,base,*profile,lookup),base,profile);
+            row.key="sync_other_"+std::to_string(++genericCount);row.label=playerLock?"Player lock":"Scripted sync (current clip)";
         }
         if(!memory.get(candidate.entity+participant->offset+playerPointer->offset,syncPlayer)||syncPlayer!=player||
            !memory.get(candidate.entity+working->offset,on)||on!=1||!memory.get(candidate.entity+0xa4,removed)||removed)

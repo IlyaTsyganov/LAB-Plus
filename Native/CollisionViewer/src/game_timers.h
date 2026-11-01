@@ -50,6 +50,8 @@ static GameTimerClock readGameTimerClock(const WallMemory& memory,uintptr_t base
     if(profile.timestamp==0x5e794131&&profile.imageSize==0x1e706000) caller=0x18db163;
     if(profile.timestamp==0x5ec7deca&&profile.imageSize==0x1d551000) caller=0x192c8d3;
     if(profile.timestamp==0x607e69b0&&profile.imageSize==0x1b5dd000) caller=0x1ae67a3;
+    const auto* audited=observationCodeProfile(profile);
+    if(audited) caller=audited->clock;
     if(!caller) return result;
     result.detail="Audited game clock could not be read";
     unsigned char code[37]{},getter[54]{};
@@ -57,7 +59,7 @@ static GameTimerClock readGameTimerClock(const WallMemory& memory,uintptr_t base
     const unsigned char first[]{0x48,0x8b,0x0d},stack[]{0x48,0x8d,0x54,0x24,0x30},load[]{0x48,0x8b,0x9f},add[]{0x48,0x81,0xc1},kind[]{0x41,0xb8,1,0,0,0};
     uint32_t offset=0,manager=0; int32_t mapRelative=0,callRelative=0;
     memcpy(&mapRelative,code+3,4); memcpy(&offset,code+15,4); memcpy(&manager,code+22,4); memcpy(&callRelative,code+33,4);
-    if(memcmp(code,first,3)||memcmp(code+7,stack,5)||memcmp(code+12,load,3)||offset!=flameOffset||memcmp(code+19,add,3)||
+    if(memcmp(code,first,3)||(memcmp(code+7,stack,4)||code[11]!=(audited?audited->clockStack:0x30))||memcmp(code+12,load,3)||offset!=flameOffset||memcmp(code+19,add,3)||
         manager>0x200000||memcmp(code+26,kind,6)||code[32]!=0xe8) return result;
     uintptr_t getterAddress=base+caller+37+callRelative;
     if(getterAddress<base||getterAddress+sizeof(getter)>=base+profile.imageSize||!memory.read(getterAddress,getter,sizeof(getter))) return result;
@@ -65,8 +67,12 @@ static GameTimerClock readGameTimerClock(const WallMemory& memory,uintptr_t base
     const unsigned char tail[]{0x49,0x8b,0x41,0x10,0x48,0x8b,0x4c,0xc8,0x18};
     const unsigned char finish[]{0x48,0x8b,0xc2,0x48,0x89,0x0a,0xc3};
     const unsigned char fixedBody[]{0x83,0x78,0x08,0x00,0x75,0x0f,0x48,0x8b,0x41,0x10,0x48,0x8b,0x48,0x18,0x48,0x8b,0xc2,0x48,0x89,0x0a,0xc3,0x49,0x63,0xc0,0x48,0x8d,0x0c,0xc0};
-    if(getter[0]!=0x48||getter[1]!=0x8b||getter[2]!=0x05||memcmp(getter+7,body,3)||memcmp(getter+10,fixedBody,sizeof(fixedBody))||
-       memcmp(getter+38,tail,sizeof(tail))||memcmp(getter+47,finish,sizeof(finish))) return result;
+    const unsigned char compactBody[]{0x4c,0x8b,0x49,0x10,0x83,0x78,0x08,0x00,0x75,0x0b,0x49,0x8b,0x41,0x18,0x48,0x89,0x02,0x48,0x8b,0xc2,0xc3,
+        0x49,0x63,0xc0,0x48,0x8d,0x0c,0xc0,0x49,0x8b,0x44,0xc9,0x18,0x48,0x89,0x02,0x48,0x8b,0xc2,0xc3};
+    const bool legacy=!memcmp(getter+7,body,3)&&!memcmp(getter+10,fixedBody,sizeof(fixedBody))&&
+        !memcmp(getter+38,tail,sizeof(tail))&&!memcmp(getter+47,finish,sizeof(finish));
+    const bool compact=audited&&audited->clockStack==0x50&&!memcmp(getter+7,compactBody,sizeof(compactBody));
+    if(getter[0]!=0x48||getter[1]!=0x8b||getter[2]!=0x05||(!legacy&&!compact)) return result;
     int32_t flagRelative=0; memcpy(&flagRelative,getter+3,4);
     uintptr_t map=0,flag=0,data=0; int32_t timeScalingEnabled=0; int64_t ticks=0;
     uintptr_t mapGlobal=base+caller+7+mapRelative,flagGlobal=getterAddress+7+flagRelative;
@@ -96,6 +102,7 @@ static bool readPowerupLifetimeOverride(const WallMemory& memory,uintptr_t base,
     if(profile.timestamp==0x5e794131&&profile.imageSize==0x1e706000)site=0x1817fd1;
     if(profile.timestamp==0x5ec7deca&&profile.imageSize==0x1d551000)site=0x18671f1;
     if(profile.timestamp==0x607e69b0&&profile.imageSize==0x1b5dd000)site=0x1a0e261;
+    if(const auto* code=observationCodeProfile(profile))site=code->powerup;
     if(!site)return false;
     unsigned char code[15]{};const unsigned char prefix[]{0x48,0x8b,0x05},tail[]{0x0f,0x57,0xff,0xf3,0x0f,0x10,0x48,0x0c};
     int32_t relative=0;uintptr_t data=0;float value=0;

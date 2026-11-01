@@ -156,24 +156,16 @@ internal sealed class GameMonitor:IDisposable
                     Connected=!_preview&&game is not null&&Alive(game);
                     if(Connected){
                         CancelLaunch();
-                        if(preexisting&&!launchedByLab&&now>=identityAt){
+                        if(!launchedByLab&&now>=identityAt){
                             identityAt=now+1000;launchedByLab=GameLauncher.WasLaunchedByLab(game!,_store);
                         }
-                        RequiresRestart=preexisting&&!launchedByLab;
+                        RequiresRestart=!launchedByLab;
                         if(RequiresRestart){
                             CloseAdapter(ref session);
                             if(lastGate!=false){GameLauncher.WriteLightingControl(_store,false);lastGate=false;}
-                            if(notice is null&&profile is not null&&now>=attachAt){
-                                attachAt=now+3000;
-                                try{
-                                    var layout=NativeGameLayout.Resolve(observedPath);
-                                    notice=PerformanceMetrics.Attach(game!,layout,profile.Metrics);
-                                }catch(Exception e){Log.Warning(e,"Restart notice initialization");}
-                            }
-                            if(notice is not null){
-                                try{notice.UpdateRestartNotice();}
-                                catch(Exception e){Log.Warning(e,"Restart notice");CloseAdapter(ref notice);attachAt=now+1000;}
-                            }
+                            // An externally launched game is observed only; even
+                            // the restart notice must not install an in-game hook.
+                            CloseAdapter(ref notice);
                             Features=FeatureStatus.Restart;
                         }else{
                             CloseAdapter(ref notice);

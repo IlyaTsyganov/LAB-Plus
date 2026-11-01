@@ -26,7 +26,8 @@ static bool loadedLibrary(const wchar_t* fragment) {
 
 int wmain(int argc, wchar_t** argv) {
     bool joint=argc==3&&wcscmp(argv[2],L"--joint")==0;
-    if (argc != 2 && !joint) {
+    bool absent=argc==3&&wcscmp(argv[2],L"--absent")==0;
+    if (argc != 2 && !joint && !absent) {
         std::wcerr << L"Usage: LayerLoaderProbe <layer-runtime-directory>\n";
         return 2;
     }
@@ -58,6 +59,14 @@ int wmain(int argc, wchar_t** argv) {
     if (instance) {
         auto destroyInstance = reinterpret_cast<PFN_vkDestroyInstance>(getInstanceProcAddr(instance, "vkDestroyInstance"));
         if (destroyInstance) destroyInstance(instance, nullptr);
+    }
+    if(absent) {
+        if(result!=VK_SUCCESS||collisionLoaded||lightingLoaded) {
+            std::cerr<<"External launch unexpectedly loaded LAB Plus. vkCreateInstance="<<result<<" collision="<<collisionLoaded<<" lighting="<<lightingLoaded<<"\n";
+            return 5;
+        }
+        std::cout<<"PASS: external Vulkan process loaded neither LAB Plus layer.\n";
+        return 0;
     }
 
     const std::filesystem::path logPath = std::filesystem::path(argv[1]) / L"VulkanViewer.log";

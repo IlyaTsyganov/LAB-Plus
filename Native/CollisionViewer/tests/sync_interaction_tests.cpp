@@ -54,9 +54,8 @@ int main() {
     rows=captureSyncAnimationTimers(WallMemory{},player,clock,lookup);
     expectSync(syncRow(rows,"interaction").state=="active"&&syncRow(rows,"interaction").remaining==1&&syncRow(rows,"interaction").maximum==2,"interactable component supplies its active sync even with empty player/melee lists");
     auto ordinary11=captureSyncAnimationTimers(WallMemory{},player,clock,lookup,0,&kProfile11);
-    expectSync(syncRow(ordinary11,"interaction").state=="active"&&syncRow(ordinary11,"interaction").label=="Interaction (current clip)","other 1.1 interactions retain their existing clip countdown without requiring a Praetor release timeline");
+    expectSync(syncRow(ordinary11,"interaction").state=="inactive"&&syncRow(ordinary11,"interaction").label=="Player lock","an interaction whose player ownership has ended cannot retain an NPC-clip control timer");
     syncPut(anim,8,reinterpret_cast<uintptr_t>("md6/player/human/base/motion/mechanics/interact/preator_suit_token/preator_suit_token_sync11.md6anim"));
-    expectSync(syncPraetorPlayerLock(WallMemory{},interaction,lookup,&kProfile11)&&!syncPraetorPlayerLock(WallMemory{},interaction,lookup,&kProfile10),"new lock semantics select only the verified Praetor asset and game profile");
     syncPut(anim,8,reinterpret_cast<uintptr_t>("sync/test"));
     expectSync(syncRow(rows,"sync_animation").state=="inactive","button/pickup interaction is not mislabeled as glory kill");
     managed(player,interaction);managed(player+200,interaction);managed(player+232,interaction);
@@ -86,10 +85,16 @@ int main() {
         float scale[3]{1,1,1};int64_t deadline=0;
         expectSync(syncReleaseDeadline(200,30,94.f,22000876,-1.f,scale,1.f,999960,deadline)&&deadline==25134084,"release deadline uses the event frame rather than the longer NPC clip");
         expectSync(deadline<25136123&&25136123-deadline<999960/30,"recorded engine release dispatch follows the authored deadline within one game update");
+        expectSync(syncReleaseDeadline(233,30,81.f,168345267,-1.f,scale,1.f,999960,deadline)&&deadline==171045159,
+            "live Rev3.2 Gore Nest uses frame81 rather than the 233-frame NPC clip");
+        expectSync(deadline>170976343&&171056328>deadline&&171056328-deadline<999960/30,
+            "live Gore Nest deadline is bracketed by last-held and first-released ownership samples");
+        expectSync(syncReleaseDeadline(83,30,65.f,51638022,-1.f,scale,1.f,999960,deadline)&&deadline==53804602&&
+            deadline>53437366&&deadline<53909117,"live Golden Gore Nest uses its own frame65 and agrees with stable ownership samples");
         expectSync(!syncReleaseDeadline(200,30,94.f,22000876,0.f,scale,1.f,999960,deadline),"fractional-start path remains unavailable until its separate clock is audited");
         expectSync(!syncReleaseDeadline(200,30,94.f,22000876,-1.f,scale,1.f,1000,deadline)&&!syncReleaseDeadline(200,30,94.f,22000876,-1.f,scale,1.f,1999920,deadline),"foreign leaf tick domains cannot be compared with the fixed999960 game clock");
         expectSync(!syncReleaseDeadline(200,30,200.f,22000876,-1.f,scale,1.f,999960,deadline)&&!syncReleaseDeadline(200,30,94.f,22000876,-1.f,scale,0.f,999960,deadline),"invalid frame and stopped playback cannot invent a release");
-        schema("idEventDef",96,{{"name","char","*",0,8},{"numargs","int","",44,4},{"eventnum","int","",52,4},{"type","eventType_t","",60,4}});
+        schema("idEventDef",96,{{"name","char","*",0,8},{"formatspec","char","*",8,8},{"argTypes","char","*",16,8},{"argNames","char","*",24,8},{"numargs","int","",44,4},{"eventnum","int","",52,4},{"type","eventType_t","",60,4}});
         auto* image=static_cast<unsigned char*>(VirtualAlloc(nullptr,kProfile11.imageSize,MEM_RESERVE,PAGE_READWRITE));expectSync(image!=nullptr,"reserve sparse release-registry fixture");
         const auto imageBase=reinterpret_cast<uintptr_t>(image);
         auto commit=[&](size_t offset,size_t length) { const size_t first=offset&~size_t(4095),end=(offset+length+4095)&~size_t(4095);expectSync(VirtualAlloc(image+first,end-first,MEM_COMMIT,PAGE_READWRITE)!=nullptr,"commit sparse release-registry fixture page"); };
@@ -98,14 +103,20 @@ int main() {
         unsigned char code[]{0x48,0x83,0xec,0x28,0x81,0xfa,0xff,0x0f,0,0,0x77,0x13,0x48,0x63,0xc2,0x48,0x8d,0x0d,0,0,0,0,0x48,0x8b,0x04,0xc1,0x48,0x83,0xc4,0x28,0xc3};
         const int32_t relative=static_cast<int32_t>(table-getter-22);memcpy(code+18,&relative,4);memcpy(image+getter,code,sizeof(code));
         strcpy_s(reinterpret_cast<char*>(image+text),64,"ae_releasePlayerFromSync");strcpy_s(reinterpret_cast<char*>(image+text+64),64,"unrelated");
-        syncPut(imageBase+definition,0,imageBase+text);syncPut(imageBase+definition,44,int32_t(0));syncPut(imageBase+definition,52,int32_t(691));syncPut(imageBase+definition,60,int32_t(2));
+        syncPut(imageBase+definition,0,imageBase+text);syncPut(imageBase+definition,8,reinterpret_cast<uintptr_t>("4"));syncPut(imageBase+definition,16,reinterpret_cast<uintptr_t>("idMD6Anim*;"));syncPut(imageBase+definition,24,reinterpret_cast<uintptr_t>("anim;"));syncPut(imageBase+definition,44,int32_t(1));syncPut(imageBase+definition,52,int32_t(691));syncPut(imageBase+definition,60,int32_t(2));
         syncPut(imageBase+dummy,0,imageBase+text+64);
         for(unsigned index=0;index<692;++index)syncPut(imageBase+table,index*8,imageBase+(index==691?definition:dummy));
+        syncPut(imageBase+definition,44,int32_t(0));expectSync(syncReleaseEventNumber(WallMemory{},imageBase,kProfile11,lookup)<0,"zero-argument synthetic signature cannot replace the real animation-pointer event");syncPut(imageBase+definition,44,int32_t(1));
         expectSync(syncReleaseEventNumber(WallMemory{},imageBase,kProfile11,lookup)==691,"event lookup discovers the named release event through the verified engine registry");
+        syncPut(imageBase+definition,16,reinterpret_cast<uintptr_t>("float;"));expectSync(syncReleaseEventNumber(WallMemory{},imageBase,kProfile11,lookup)<0,"same-arity foreign argument type cannot borrow release semantics");syncPut(imageBase+definition,16,reinterpret_cast<uintptr_t>("idMD6Anim*;"));
         image[getter+22]=0;expectSync(syncReleaseEventNumber(WallMemory{},imageBase,kProfile11,lookup)<0,"changed event getter invalidates cached bindings");image[getter+22]=code[22];
         syncPut(imageBase+definition,60,int32_t(0));expectSync(syncReleaseEventNumber(WallMemory{},imageBase,kProfile11,lookup)<0,"non-animation event cannot masquerade as player release");syncPut(imageBase+definition,60,int32_t(2));
         syncPut(imageBase+definition,52,int32_t(198));expectSync(syncReleaseEventNumber(WallMemory{},imageBase,kProfile11,lookup)<0,"registry index and definition number must agree");syncPut(imageBase+definition,52,int32_t(691));
-        expectSync(!syncPlayerLockProfile(&kProfile10)&&!syncPlayerLockProfile(&kProfile51)&&syncPlayerLockProfile(&kProfile11),"only the validated per-model player lock profile changes its display semantics");
+        for(const auto* profile:{&kProfile20,&kProfile21,&kProfile30,&kProfile31,&kProfile40,&kProfile41,&kProfile50,&kProfile10,&kProfile11,&kProfile51,&kProfile60,&kProfile61,&kProfile62,&kProfile63,&kProfile64,&kProfile6660,&kProfile6661,&kProfile66611,&kProfile6662,&kProfile66622,&kProfile6663,&kProfile66632}) {
+            expectSync(syncPlayerLockProfile(profile),"audited event profiles allow data-validated player release timelines");
+            auto unknown=*profile;++unknown.imageSize;
+            expectSync(!syncPlayerLockProfile(&unknown),"unlisted image cannot borrow player lock support");
+        }
         VirtualFree(image,0,MEM_RELEASE);
     }
     {
@@ -156,6 +167,41 @@ int main() {
         syncPut(playerEventAddress,83,uint8_t(1));lock=captureSyncPlayerControlLock(WallMemory{},player,interaction,clock,lookup,691);expectSync(lock.state=="unavailable","disabled release event does not create a countdown");syncPut(playerEventAddress,83,uint8_t(0));
         syncPut(playerLeafAddress,48,.5f);lock=captureSyncPlayerControlLock(WallMemory{},player,interaction,clock,lookup,691);expectSync(lock.state=="unavailable","unsupported fractional start stays explicit");syncPut(playerLeafAddress,48,-1.f);
         syncPut(interaction,336,uint8_t(1));lock=captureSyncPlayerControlLock(WallMemory{},player,interaction,clock,lookup,691);expectSync(lock.state=="unavailable","local animation clock cannot supply global player-release time");syncPut(interaction,336,uint8_t(0));
+        const auto legacyInfo=schemas[infoType],legacyEvent=schemas["idMD6AnimEvent"];
+        for(const auto* profile:{&kProfile20,&kProfile21,&kProfile30,&kProfile31,&kProfile40,&kProfile41,&kProfile50,&kProfile10,&kProfile11,&kProfile51,&kProfile60,&kProfile61,&kProfile62,&kProfile63,&kProfile64,&kProfile6660,&kProfile6661,&kProfile66611,&kProfile6662,&kProfile66622,&kProfile6663,&kProfile66632}) {
+            const auto* code=observationCodeProfile(*profile);const bool packed=code->syncEventFlagsEnum!=0;
+            schemas[infoType]=legacyInfo;schemas["idMD6AnimEvent"]=legacyEvent;
+            auto* enumImage=static_cast<unsigned char*>(VirtualAlloc(nullptr,profile->imageSize,MEM_RESERVE,PAGE_READWRITE));
+            expectSync(enumImage!=nullptr,"reserve per-profile packed-event fixture");const auto enumBase=reinterpret_cast<uintptr_t>(enumImage);
+            if(packed) {
+                auto commit=[&](size_t offset,size_t length) {const size_t first=offset&~size_t(4095),end=(offset+length+4095)&~size_t(4095);expectSync(VirtualAlloc(enumImage+first,end-first,MEM_COMMIT,PAGE_READWRITE)!=nullptr,"commit packed-event enum pages");};
+                commit(code->syncEventFlagsEnum,32);commit(0x10000,96);commit(0x20000,1024);
+                const char* names[]{"ANIM_EVENT_FLAG_NONE","ANIM_EVENT_FLAG_DISABLED","ANIM_EVENT_FLAG_DEBUG","ANIM_EVENT_FLAG_LOCKED","ANIM_EVENT_ACTIVATE_IN_RANGE"};const uint64_t bits[]{0,2,4,8,16};
+                syncPut(enumBase+code->syncEventFlagsEnum,0,enumBase+0x20280);strcpy_s(reinterpret_cast<char*>(enumImage+0x20280),64,"animEventFlags_t");
+                syncPut(enumBase+code->syncEventFlagsEnum,8,uint64_t(0x80000));syncPut(enumBase+code->syncEventFlagsEnum,16,uint32_t(5));syncPut(enumBase+code->syncEventFlagsEnum,20,uint32_t(5));syncPut(enumBase+code->syncEventFlagsEnum,24,enumBase+0x10000);
+                for(unsigned i=0;i<5;++i) {strcpy_s(reinterpret_cast<char*>(enumImage+0x20000+i*128),128,names[i]);syncPut(enumBase+0x10000,i*16,enumBase+0x20000+i*128);syncPut(enumBase+0x10000,i*16+8,bits[i]);}
+                schema(infoType,32,{{"animRef","idMD6AnimRef","",0,8},{"events",eventList,"",8,24}});
+                schema("idMD6AnimRef",8,{});schemas["idMD6AnimRef"].parent="idAtomicString";
+                schema("idMD6AnimEvent",88,{{"flags","animEventFlags_t","",40,4},{"frameNum","float","",52,4},{"eventNum","short","",56,2},{"row","unsigned char","",82,1}});
+            }
+            clock.ticks=22000876;syncPut(playerEventAddress,40,uint32_t(0));
+            lock=captureSyncPlayerControlLock(WallMemory{},player,interaction,clock,lookup,691,enumBase,profile);
+            expectSync(lock.state=="active"&&fabs(lock.remaining-94./30)<.00001,"all ten profile event formats produce the player-release deadline");
+            if(packed) {
+                syncPut(playerEventAddress,40,uint32_t(2));lock=captureSyncPlayerControlLock(WallMemory{},player,interaction,clock,lookup,691,enumBase,profile);
+                expectSync(lock.state=="unavailable","packed disabled flag cannot supply a player-release timer");syncPut(playerEventAddress,40,uint32_t(0));
+                syncPut(enumBase+0x10000,24,uint64_t(1));lock=captureSyncPlayerControlLock(WallMemory{},player,interaction,clock,lookup,691,enumBase,profile);
+                expectSync(lock.state=="unavailable","changed enum mapping does not silently remove the disabled guard");syncPut(enumBase+0x10000,24,uint64_t(2));
+                syncPut(enumBase+code->syncEventFlagsEnum,20,uint32_t(4));lock=captureSyncPlayerControlLock(WallMemory{},player,interaction,clock,lookup,691,enumBase,profile);
+                expectSync(lock.state=="unavailable","the actual enum member count at offset20 must match");syncPut(enumBase+code->syncEventFlagsEnum,20,uint32_t(5));
+                schemas["idMD6AnimRef"].parent="unrelated";lock=captureSyncPlayerControlLock(WallMemory{},player,interaction,clock,lookup,691,enumBase,profile);
+                expectSync(lock.state=="unavailable","same-sized unrelated reference cannot borrow the atomic-string representation");schemas["idMD6AnimRef"].parent="idAtomicString";
+                auto unknown=*profile;++unknown.imageSize;lock=captureSyncPlayerControlLock(WallMemory{},player,interaction,clock,lookup,691,enumBase,&unknown);
+                expectSync(lock.state=="unavailable","unknown EXE cannot inherit packed event enum semantics");
+            }
+            VirtualFree(enumImage,0,MEM_RELEASE);
+        }
+        schemas[infoType]=legacyInfo;schemas["idMD6AnimEvent"]=legacyEvent;
         std::vector<unsigned char> unrelatedNpcInfos(10000*32),largePlayerInfos(10000*32);
         const auto npcInfosAddress=reinterpret_cast<uintptr_t>(unrelatedNpcInfos.data()),playerInfosAddress=reinterpret_cast<uintptr_t>(largePlayerInfos.data());
         for(unsigned index=0;index<10000;++index) {

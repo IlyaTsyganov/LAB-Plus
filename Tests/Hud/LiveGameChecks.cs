@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text;
+using System.Runtime.InteropServices;
 using LabPlus.Hud.Memory;
 using LabPlus.Hud.Overlay;
 using LabPlus.Hud.Runtime;
@@ -7,6 +8,32 @@ using LabPlus.Hud.Runtime;
 // Explicit opt-in, read-only acceptance checks against LAB's existing adapters.
 internal static class LiveGameChecks
 {
+    internal static int InspectMetrics()
+    {
+        using var game=Process.GetProcessesByName("DOOMEternalx64vk").Single();
+        IntPtr image=game.MainModule!.BaseAddress;
+        var layout=NativeGameLayout.Resolve(game.MainModule.FileName);
+        var metrics=layout.Metrics??throw new Exception(layout.MetricsFailure);
+        using var reader=new ReadOnlyMemory(game.Id);
+        string Text(IntPtr at)=>Encoding.UTF8.GetString(reader.Read(at,128)).Split('\0')[0];
+        Console.WriteLine($"READ-ONLY PID {game.Id}; fps={Text(image+metrics.FpsFormat)}; frameTime={Text(image+metrics.FpsFormat+8)}; last={Text(image+metrics.LastFormat)}");
+        Console.WriteLine("Detected hardware labels: "+string.Join(" | ",LabPlus.Game.HardwareNames.Current));
+        byte[] entry=reader.Read(image+metrics.Function,16);
+        if(!entry.AsSpan(0,6).SequenceEqual(Convert.FromHexString("FF2500000000"))) {Console.WriteLine("No metrics adapter installed");return 1;}
+        IntPtr adapter=new(BitConverter.ToInt64(entry,6)),state=adapter+4096;
+        Console.WriteLine($"Magic={Text(adapter+0x700)}; lease={BitConverter.ToInt64(reader.Read(state,8))}; now={Environment.TickCount64}; DESRU={BitConverter.ToInt32(reader.Read(state+8,4))}; Hide={BitConverter.ToInt32(reader.Read(state+12,4))}; indicator={Text(state+64)}");
+        return 0;
+    }
+    private sealed class ReadOnlyMemory : IDisposable
+    {
+        private readonly IntPtr _handle;
+        internal ReadOnlyMemory(int pid) { _handle=OpenProcess(0x1010,false,pid);if(_handle==IntPtr.Zero)throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error()); }
+        internal byte[] Read(IntPtr at,int length) { var bytes=new byte[length];if(!ReadProcessMemory(_handle,at,bytes,(UIntPtr)length,out var got)||got.ToUInt64()!=(ulong)length)throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error());return bytes; }
+        public void Dispose()=>CloseHandle(_handle);
+        [DllImport("kernel32.dll",SetLastError=true)]private static extern IntPtr OpenProcess(uint access,bool inherit,int pid);
+        [DllImport("kernel32.dll",SetLastError=true)]private static extern bool ReadProcessMemory(IntPtr process,IntPtr at,byte[] bytes,UIntPtr size,out UIntPtr read);
+        [DllImport("kernel32.dll")]private static extern bool CloseHandle(IntPtr handle);
+    }
     internal static int InspectPlayerCheats()
     {
         using var game=Process.GetProcessesByName("DOOMEternalx64vk").Single();

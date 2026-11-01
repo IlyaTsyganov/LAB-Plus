@@ -62,18 +62,6 @@ internal sealed partial class MainForm
             foreach (var key in new[] { "VK_INSTANCE_LAYERS", "VK_LAYER_PATH", "LABPLUS_HUD_DATA_DIRECTORY", "LABPLUS_HUD_LIGHTING_FIX", "SteamAppId" })
                 if (hudStart.Environment.TryGetValue(key, out string? value)) start.Environment[key] = value;
         }
-        if (_settings.CollisionViewerEnabled)
-        {
-            // VK_LAYER_PATH replaces the loader's normal explicit-layer search.
-            // Include both owned manifests instead of hiding the registered viewer.
-            _layerRegistration.PrepareRuntime();
-            start.Environment["SteamAppId"] = "782330";
-            string viewer = Hud.Runtime.GameLauncher.LoaderPath(_layerRegistration.RuntimeDirectory);
-            start.Environment.TryGetValue("VK_LAYER_PATH", out string? directories);
-            start.Environment["VK_LAYER_PATH"] = string.Join(';', (directories ?? "").Split(';', StringSplitOptions.RemoveEmptyEntries).Append(viewer).Distinct(StringComparer.OrdinalIgnoreCase));
-            start.Environment.TryGetValue("VK_INSTANCE_LAYERS", out string? layers);
-            start.Environment["VK_INSTANCE_LAYERS"] = string.Join(';', (layers ?? "").Split(';', StringSplitOptions.RemoveEmptyEntries).Append("VK_LAYER_LABPLUS_collision").Distinct(StringComparer.Ordinal));
-        }
     }
 
     private void ApplyAppearance(JsonElement message)

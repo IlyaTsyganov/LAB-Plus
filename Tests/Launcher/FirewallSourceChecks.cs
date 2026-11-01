@@ -34,7 +34,7 @@ internal static class FirewallSourceChecks
         }
         int checks = 0, starts = 0;
         var protectedLauncher = new GameLauncher(store, path => { Check(path == exe, "Rechecked a different target"); checks++; return new(true, "protected"); }, info =>
-        { Check(info.FileName == exe && !info.UseShellExecute, "Started a different process from the verified executable"); starts++; return Process.GetCurrentProcess(); });
+        { Check(info.FileName == exe && !info.UseShellExecute, "Started a different process from the verified executable"); Check(info.Environment["LABPLUS_LAUNCHED"] == "1" && info.Environment["SteamAppId"] == "782330", "Child launch identity must survive Steam initialization even without the viewer"); starts++; return Process.GetCurrentProcess(); });
         using (protectedLauncher.Start(new() { GameExecutablePath = exe, CollisionViewerEnabled = false })) { }
         Check(checks == 2 && starts == 1, "Protected launch must inspect the rule again immediately before the process starts");
         checks = 0;

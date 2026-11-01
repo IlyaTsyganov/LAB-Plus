@@ -78,4 +78,6 @@ if errorlevel 1 exit /b %errorlevel%
 cl /nologo /std:c++17 /W4 /O2 /EHsc /MD /I"%VULKAN_HEADERS%" tests\sync_interaction_tests.cpp /Fo:build\sync_interaction_tests.obj /Fe:bin\SyncInteractionTests.exe user32.lib /link /INCREMENTAL:NO
 if errorlevel 1 exit /b %errorlevel%
 if errorlevel 1 exit /b %errorlevel%
+cl /nologo /std:c++17 /W4 /O2 /EHsc /MD /I"%VULKAN_HEADERS%" tests\patch_port_tests.cpp /Fo:build\patch_port_tests.obj /Fe:bin\RetailPatchPortProbe.exe user32.lib /link /INCREMENTAL:NO
+if errorlevel 1 exit /b %errorlevel%
 exit /b %errorlevel%

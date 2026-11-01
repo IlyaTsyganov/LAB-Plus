@@ -1,10 +1,24 @@
 using LabPlus.Game;
+using System.Diagnostics;
 
 internal static class LifecycleChecks
 {
     internal static void Run()
     {
         static void Check(bool valid, string message) { if (!valid) throw new Exception(message); }
+        string? parentPaths = Environment.GetEnvironmentVariable("VK_LAYER_PATH");
+        string? parentLayers = Environment.GetEnvironmentVariable("VK_INSTANCE_LAYERS");
+        var child = new ProcessStartInfo { UseShellExecute = false };
+        child.Environment["VK_LAYER_PATH"] = @"C:\OtherLayers";
+        child.Environment["VK_INSTANCE_LAYERS"] = "VK_LAYER_OTHER";
+        VulkanLayerRegistration.ConfigureEnvironment(child, @"C:\LabLayers");
+        VulkanLayerRegistration.ConfigureEnvironment(child, @"C:\LabLayers");
+        Check(child.Environment["VK_LAYER_PATH"] == @"C:\OtherLayers;C:\LabLayers" &&
+            child.Environment["VK_INSTANCE_LAYERS"] == "VK_LAYER_OTHER;VK_LAYER_LABPLUS_collision" &&
+            child.Environment["SteamAppId"] == "782330", "Child-only explicit layers must preserve other layers without duplicates");
+        Check(Environment.GetEnvironmentVariable("VK_LAYER_PATH") == parentPaths &&
+            Environment.GetEnvironmentVariable("VK_INSTANCE_LAYERS") == parentLayers,
+            "Layer preparation changed the parent environment used by unrelated launches");
         string name = @"Local\labplus-instance-test-" + Guid.NewGuid().ToString("N");
         using var ready = new ManualResetEventSlim(); using var finish = new ManualResetEventSlim();
         var owner = new Thread(() => { using var lease = SingleInstance.TryAcquire(name); Check(lease is not null, "First instance rejected"); ready.Set(); finish.Wait(); });

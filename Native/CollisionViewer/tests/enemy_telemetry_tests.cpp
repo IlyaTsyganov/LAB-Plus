@@ -17,13 +17,18 @@ static std::unordered_map<std::string,GraphType> makeSchemas(uint32_t stride) {
     result["idAIHealth"]={16+stride*2+128,"idShieldHealthT",{},true};
     result["idShieldHealthT"]={16+stride*2+128,health,{},true};
     result[component]={stride,"",{{"type","aiHealthComponent_t","",0,4},{"max","float","",4,4},{"cur","float","",12,4}},true};
+    if(stride==176) {
+        const std::string branch="idBranchedOptionValue < declInputBranch_t , float >";
+        result[component].fields={{"type","aiHealthComponent_t","",0,4},{"max",branch,"",8,40},{"cur","float","",52,4}};
+        result[branch]={40,"",{{"defaultValue","float","",0,4},{"currentValue","float","",32,4}},true};
+    }
     result["idPhysics"]={128,"",{{"mapInstance","idMapInstance","*",112,8}},true};
     result["idHavokPhysics_Base"]={520,"idPhysics",{{"bodyBoundsWorld","idBounds","",224,24}},true};
     return result;
 }
 int main() {
-    for(const auto* selected:{&kProfile10,&kProfile11,&kProfile51}) {
-        uint32_t stride=selected==&kProfile51?96u:88u;
+    for(const auto* selected:{&kProfile20,&kProfile21,&kProfile30,&kProfile31,&kProfile40,&kProfile41,&kProfile50,&kProfile10,&kProfile11,&kProfile51,&kProfile60,&kProfile61,&kProfile62,&kProfile63,&kProfile64,&kProfile6660,&kProfile6661,&kProfile66611,&kProfile6662,&kProfile66622,&kProfile6663,&kProfile66632}) {
+        uint32_t stride=(selected==&kProfile30||selected==&kProfile31||selected==&kProfile40||selected==&kProfile41||selected==&kProfile50||selected==&kProfile51||selected==&kProfile60||selected==&kProfile61||selected==&kProfile62||selected==&kProfile63||selected==&kProfile64)?96u:(selected==&kProfile10||selected==&kProfile11||selected==&kProfile20||selected==&kProfile21?88u:176u);
         auto schemas=makeSchemas(stride); auto lookup=[&](const std::string& name)->const GraphType& { auto found=schemas.find(name); static const GraphType empty; return found==schemas.end()?empty:found->second; };
         auto layout=resolveEnemyTelemetryLayout(lookup); expect(layout.valid&&layout.componentSize==stride,"health component stride comes from reflection");
         const auto& profile=*selected; auto* base=static_cast<unsigned char*>(VirtualAlloc(nullptr,0x7000000,MEM_RESERVE|MEM_COMMIT,PAGE_READWRITE)); expect(base!=nullptr,"base allocation"); uintptr_t b=reinterpret_cast<uintptr_t>(base);
@@ -40,16 +45,16 @@ int main() {
         const char* managerName="my_encounter",*actorName="imp_42"; put(manager.data(),72,reinterpret_cast<uintptr_t>(managerName)); put(actor.data(),72,reinterpret_cast<uintptr_t>(actorName)); put(manager.data(),layout.think,int32_t(1));
         put(manager.data(),3176,reinterpret_cast<uintptr_t>(spawns.data())); put(manager.data(),3184,int32_t(2)); put(manager.data(),3952,reinterpret_cast<uintptr_t>(adopted.data())); put(manager.data(),3960,int32_t(1));
         for(unsigned i=0;i<2;++i) { put(spawns.data(),i*104+8,uint32_t(100)); put(spawns.data(),i*104+16,reinterpret_cast<uintptr_t>(actor.data())); } put(adopted.data(),0,uint32_t(100)); put(adopted.data(),8,reinterpret_cast<uintptr_t>(actor.data()));
-        put(actor.data(),layout.health+layout.components,int32_t(0)); put(actor.data(),layout.health+layout.components+4,125.0f); put(actor.data(),layout.health+layout.components+12,75.0f);
-        put(actor.data(),layout.health+layout.components+stride,int32_t(1)); put(actor.data(),layout.health+layout.components+stride+4,999.0f); put(actor.data(),layout.health+layout.components+stride+12,900.0f);
+        put(actor.data(),layout.health+layout.components,int32_t(0)); put(actor.data(),layout.health+layout.components+layout.maximum,125.0f); put(actor.data(),layout.health+layout.components+layout.current,75.0f);
+        put(actor.data(),layout.health+layout.components+stride,int32_t(1)); put(actor.data(),layout.health+layout.components+stride+layout.maximum,999.0f); put(actor.data(),layout.health+layout.components+stride+layout.current,900.0f);
         put(actor.data(),464,reinterpret_cast<uintptr_t>(physics.data())); put(physics.data(),112,reinterpret_cast<uintptr_t>(map.data())); float bounds[]{1,2,3,5,6,8}; memcpy(physics.data()+224,bounds,24);
         const uint32_t painOffset=0x100; put(actor.data(),layout.staggerVolatile,reinterpret_cast<uintptr_t>(aiVolatile.data()));
         unsigned char painGetter[]{0x48,0x8b,0x81,0,0,0,0,0x48,0x05,0,0,0,0,0xc3};
         unsigned char finishGetter[]{0x48,0x8b,0x81,0,0,0,0,0x48,0x8b,0x88,0,0,0,0,0x48,0x8b,0xc2,0x48,0x89,0x0a,0xc3};
         memcpy(painGetter+3,&layout.staggerVolatile,4); memcpy(painGetter+9,&painOffset,4); memcpy(finishGetter+3,&layout.staggerVolatile,4);
         uint32_t deadlineOffset=painOffset+layout.staggerFinish; memcpy(finishGetter+10,&deadlineOffset,4);
-        uint32_t painGetterRva=selected==&kProfile10?0xbb6fc0:selected==&kProfile11?0xbc3f00:0xc8ceb0;
-        uint32_t finishGetterRva=selected==&kProfile10?0xbb7050:selected==&kProfile11?0xbc3fb0:0xc8cf40;
+        uint32_t painGetterRva=static_cast<uint32_t>(observationCodeProfile(profile)->pain);
+        uint32_t finishGetterRva=static_cast<uint32_t>(observationCodeProfile(profile)->finish);
         memcpy(base+painGetterRva,painGetter,sizeof(painGetter)); memcpy(base+finishGetterRva,finishGetter,sizeof(finishGetter));
         uint32_t resolvedPain=~0u; expect(resolveEnemyStaggerPointer(WallMemory{},b,profile,layout,resolvedPain)&&resolvedPain==painOffset,"each audited 1.0,1.1,5.1 getter pair resolves its reflected pain state");
         auto wrongProfile=profile; wrongProfile.imageSize+=0x1000; expect(!resolveEnemyStaggerPointer(WallMemory{},b,wrongProfile,layout,resolvedPain),"a version label or timestamp alone cannot authorize another executable's getters");
@@ -87,12 +92,27 @@ int main() {
         put(physics.data(),224+20,11.0f); Vec3 fresh{}; expect(refreshEnemyTelemetryTop(WallMemory{},b,profile,row,fresh)&&fresh.z>11,"render pose refresh follows bounds without a new snapshot");
         ++entries[1].generation; expect(!refreshEnemyTelemetryTop(WallMemory{},b,profile,row,fresh),"reused map slots cannot retain an old HP bar"); --entries[1].generation;
         put(actor.data(),layout.health+layout.dead,uint8_t(1)); expect(captureEnemyTelemetry(WallMemory{},b,profile,level,lookup).enemies.empty(),"dead AI excluded despite positive health"); put(actor.data(),layout.health+layout.dead,uint8_t(0));
-        put(actor.data(),layout.health+layout.components+12,std::numeric_limits<float>::quiet_NaN()); capture=captureEnemyTelemetry(WallMemory{},b,profile,level,lookup); expect(capture.enemies.empty()&&capture.state=="partial","unreadable/nonfinite health never becomes a zero-health enemy"); put(actor.data(),layout.health+layout.components+12,75.0f);
+        put(actor.data(),layout.health+layout.components+layout.current,std::numeric_limits<float>::quiet_NaN()); capture=captureEnemyTelemetry(WallMemory{},b,profile,level,lookup); expect(capture.enemies.empty()&&capture.state=="partial","unreadable/nonfinite health never becomes a zero-health enemy"); put(actor.data(),layout.health+layout.components+layout.current,75.0f);
         put(manager.data(),layout.think,int32_t(0)); expect(captureEnemyTelemetry(WallMemory{},b,profile,level,lookup).enemies.empty(),"inactive managers do not contribute enemies"); put(manager.data(),layout.think,int32_t(1));
         put(manager.data(),layout.think,int32_t(0)); auto standalone=captureEnemyTelemetry(WallMemory{},b,profile,level,lookup,true);
         expect(standalone.enemies.empty()&&standalone.barEnemies.size()==1&&standalone.barEnemies.front().encounter.empty(),"standalone live AI receives a bar without inventing encounter membership");
         put(manager.data(),layout.think,int32_t(1));
         actor[0xa4]=1; expect(captureEnemyTelemetry(WallMemory{},b,profile,level,lookup).enemies.empty(),"removed actors excluded"); actor[0xa4]=0;
+        if(stride==176) {
+            const std::string branch="idBranchedOptionValue < declInputBranch_t , float >";
+            put(actor.data(),layout.health+layout.components+8,900.f);
+            auto branched=captureEnemyTelemetry(WallMemory{},b,profile,level,lookup);
+            expect(branched.enemies.size()==1&&branched.enemies.front().maximum==125,"selected branch, not defaultValue, supplies maximum HP");
+            put(actor.data(),layout.health+layout.components+layout.maximum,250.f);
+            branched=captureEnemyTelemetry(WallMemory{},b,profile,level,lookup);
+            expect(branched.enemies.size()==1&&branched.enemies.front().maximum==250,"changed cached branch is read afresh");
+            put(actor.data(),layout.health+layout.components+layout.maximum,std::numeric_limits<float>::quiet_NaN());
+            branched=captureEnemyTelemetry(WallMemory{},b,profile,level,lookup);
+            expect(branched.enemies.size()==1&&branched.enemies.front().health==75&&!branched.enemies.front().maximumKnown,"unknown maximum preserves known HP without fabricating a bar ratio");
+            schemas[branch].fields.back().size=8;
+            expect(!resolveEnemyTelemetryLayout(lookup).valid,"invalid cached branch type/size rejects health layout");
+            schemas[branch].fields.back().size=4;
+        }
         const auto originalHealth=schemas["idAIHealth"];
         schemas["idAIHealth"].size+=16; schemas["idAI2"].fields.front().size+=16;
         expect(resolveEnemyTelemetryLayout(lookup).valid,"larger derived health retains the bounded base layout");

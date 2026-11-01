@@ -42,12 +42,34 @@ struct ConfiguredBatsCode {
     uint32_t timestamp,imageSize;
     uintptr_t calculation,dexterity,declGetter,status;
     uint64_t calculationHash,dexterityHash,statusHash;
+    uint32_t calculationSize=529,desiredOperand=0x129,scaleOperand=0x16a;
+    uint32_t firstMillisecondsOperand=0x64,secondMillisecondsOperand=0xc2;
+    uint32_t dexterityEpsilonOperand=0x1b,dexterityOneOperand=0x27;
 };
 static const ConfiguredBatsCode* configuredBatsCode(const GameProfile& profile) {
     static constexpr ConfiguredBatsCode audited[]{
+        {0x5eeb0267, 0x1d396000, 0x16878cb, 0x1949310, 0x19c0b70, 0x189e540, 0x4c8a03b60a45d2cdULL, 0xdeccf3af8456230ULL, 0x7846c4c3a62faaa2ULL},
+        {0x5f203d59, 0x1e1ef000, 0x168a15b, 0x194b8e0, 0x14ac8f0, 0x18a0740, 0x65597895c945ee69ULL, 0xcea1ff976ce5007ULL, 0xc2c8f373c96c779ULL},
+        {0x5f8065da, 0x1c587000, 0x1773ceb, 0x1a8ea30, 0x146da80, 0x19e0a30, 0xdabaa8727c4e155ULL, 0x656ec0ee011be13cULL, 0x2e2f6e50dcd2c6ddULL},
+        {0x5f90c129, 0x1e0c1000, 0x1774c0b, 0x1a8f120, 0xb5ef60, 0x19e1200, 0x9e294321652e74efULL, 0x6e4c9c86b76e1fcfULL, 0xbc2181ff35913cb5ULL},
+        {0x5fb68f01, 0x1c7e9000, 0x178a14b, 0x1a25780, 0x1e32da0, 0x1976ec0, 0x39c721cbd3dc3426ULL, 0x3aac2de21193ae2dULL, 0x76f167b59b176ad2ULL},
+        {0x5fc9da94, 0x1c2eb000, 0x178a09b, 0x1a24e30, 0x121e9e0, 0x1976190, 0x2aec7edce4860074ULL, 0xa720d13656809c1cULL, 0x9b187622e6c09af3ULL},
+        {0x603896f3, 0x1c5bf000, 0x1815c2b, 0x1ac7df0, 0x462fe0, 0x1a10610, 0x53ab753bb84a4d8ULL, 0xbf9f0d1d8afbc334ULL, 0xa7032f0fe770853fULL},
+        {0x60c98dd6, 0x1cb22000, 0x18f6fd0, 0x1bbf1d0, 0x4512c0, 0x1b00500, 0x1d0b54e850a14175ULL, 0xe398328045ec1723ULL, 0x1fe4149fc8d9ee3dULL, 516, 0x120, 0x161, 0x5c, 0xba, 0x18, 0x24},
+        {0x60dff532, 0x1bc55000, 0x18f6fd0, 0x1bbf1d0, 0x4512c0, 0x1b00500, 0xb2c3135c71e87de5ULL, 0xe398328045ec1723ULL, 0x1fe4149fc8d9ee3dULL, 516, 0x120, 0x161, 0x5c, 0xba, 0x18, 0x24},
+        {0x60f26b2f, 0x1bb06000, 0x18f73a0, 0x1bbf860, 0x4512c0, 0x1b00b80, 0x18f06b5949e85a73ULL, 0x3e89ca6ae239337fULL, 0x5141a10e139a5a2cULL, 516, 0x120, 0x161, 0x5c, 0xba, 0x18, 0x24},
+        {0x6116d6b5, 0x1cd60000, 0x18f7300, 0x1bbf7c0, 0x4512c0, 0x1b00ae0, 0x8b40138ef1448c8bULL, 0x29d05704b56e4b7fULL, 0xb1f7a4af7acd7ec3ULL, 516, 0x120, 0x161, 0x5c, 0xba, 0x18, 0x24},
+        {0x61202c76, 0x1d77e000, 0x18f72c0, 0x1bbf780, 0x4512c0, 0x1b00aa0, 0xedf551dfe68bb1ULL, 0xd0376b424ae6f758ULL, 0x405da12fc0cf1503ULL, 516, 0x120, 0x161, 0x5c, 0xba, 0x18, 0x24},
         {0x5e794131,0x1e706000,0x161dbbb,0x18beea0,0x144a360,0x1818fd0,0x42140d67acd3cf3eULL,0x50fd559ab7522032ULL,0xc605486a842437a8ULL},
         {0x5ec7deca,0x1d551000,0x1659efb,0x1911620,0x1c83140,0x1868230,0x89e19155f199a6dfULL,0x2f6c144bb4a46ca5ULL,0x443df4f24e42cd99ULL},
-        {0x607e69b0,0x1b5dd000,0x181377b,0x1ac6bc0,0x162c5b0,0x1a0f5b0,0xd06fb2ac87bdc8eeULL,0x56d24858d3fc4114ULL,0x43560282b09a104fULL}
+        {0x607e69b0,0x1b5dd000,0x181377b,0x1ac6bc0,0x162c5b0,0x1a0f5b0,0xd06fb2ac87bdc8eeULL,0x56d24858d3fc4114ULL,0x43560282b09a104fULL},
+        {0x6a7b9b8c, 0x7431000, 0x136b950, 0x163ec30, 0x5cea80, 0x156f760, 0xd002696aac5d4e82ULL, 0xc408482b5874127cULL, 0xf32520f9f7f4f7ccULL, 516, 0x120, 0x161, 0x5c, 0xba, 0x18, 0x24},
+        {0x61692c83, 0x1e4cd000, 0x19a9a40, 0x1c83af0, 0x4625b0, 0x1bbbbc0, 0x6d62e93584ca31b6ULL, 0x722329fca09e94f0ULL, 0xd07c69e9b8c2f559ULL, 516, 0x120, 0x161, 0x5c, 0xba, 0x18, 0x24},
+        {0x618dfc01, 0x1c835000, 0x19c3d70, 0x1c9dff0, 0x462670, 0x1bd60b0, 0xa24e64582d99a48dULL, 0xeb9bee9624c3b658ULL, 0x560b73440a9cb5e6ULL, 516, 0x120, 0x161, 0x5c, 0xba, 0x18, 0x24},
+        {0x61d7704e, 0x1c58a000, 0x19c3ff0, 0x1c9f200, 0x462860, 0x1bd6330, 0x3ee1a0675a9750b5ULL, 0xb82f22327f47211cULL, 0x2e5f682d71fa654cULL, 516, 0x120, 0x161, 0x5c, 0xba, 0x18, 0x24},
+        {0x6256614c, 0x1e69d000, 0x19e5e20, 0x1ccae80, 0x464240, 0x1bfc3e0, 0x25b69b2e8d39535fULL, 0xf7943f8087f9ff5fULL, 0x9d6252ba2bc70601ULL, 516, 0x120, 0x161, 0x5c, 0xba, 0x18, 0x24},
+        {0x64cc8a9b, 0x7421000, 0x19dc530, 0x1caa210, 0x463d80, 0x1bdba90, 0x417ea443f8d36cf4ULL, 0x6f8511de452bb67ULL, 0x7e2a1b2a2deac059ULL, 516, 0x120, 0x161, 0x5c, 0xba, 0x18, 0x24},
+        {0x669f0dcf, 0x744d000, 0x1361e90, 0x1633100, 0x5c9d00, 0x1563dc0, 0x56592253010caebaULL, 0x8eb507bf2c758cadULL, 0xf3505429daef38edULL, 516, 0x120, 0x161, 0x5c, 0xba, 0x18, 0x24}
     };
     for(const auto& code:audited) if(code.timestamp==profile.timestamp&&code.imageSize==profile.imageSize) return &code;
     return nullptr;
@@ -68,11 +90,12 @@ static bool configuredBatsFingerprint(const WallMemory& memory,uintptr_t base,co
         const int64_t target=static_cast<int64_t>(instructionEnd)+displacement;
         return target>=0&&uint64_t(target)+4<=profile.imageSize&&memory.get(base+static_cast<uintptr_t>(target),value)&&value==expected;
     };
-    return matches(code.calculation,529,code.calculationHash)&&matches(code.dexterity,44,code.dexterityHash)&&
+    return matches(code.calculation,code.calculationSize,code.calculationHash)&&matches(code.dexterity,44,code.dexterityHash)&&
         matches(code.declGetter,5,0x71fa801ff8c90d42ULL)&&matches(code.status,143,code.statusHash)&&
-        scalar(code.calculation+5,code.calculation+9,1.f)&&scalar(code.calculation+0x64,code.calculation+0x68,.001f)&&scalar(code.calculation+0xc2,code.calculation+0xc6,.001f)&&
-        scalar(code.dexterity+0x1b,code.dexterity+0x1f,std::numeric_limits<float>::epsilon())&&
-        scalar(code.dexterity+0x27,code.dexterity+0x2b,1.f)&&scalar(code.status+0x18,code.status+0x1c,1.f);
+        scalar(code.calculation+5,code.calculation+9,1.f)&&scalar(code.calculation+code.firstMillisecondsOperand,code.calculation+code.firstMillisecondsOperand+4,.001f)&&
+        scalar(code.calculation+code.secondMillisecondsOperand,code.calculation+code.secondMillisecondsOperand+4,.001f)&&
+        scalar(code.dexterity+code.dexterityEpsilonOperand,code.dexterity+code.dexterityEpsilonOperand+4,std::numeric_limits<float>::epsilon())&&
+        scalar(code.dexterity+code.dexterityOneOperand,code.dexterity+code.dexterityOneOperand+4,1.f)&&scalar(code.status+0x18,code.status+0x1c,1.f);
 }
 // Audited SetWeapon calculations:1.0 0x161dbbb..0x161ddcc;
 //1.1 0x1659efb..0x165a10c; 5.1 0x181377b..0x181398c.
@@ -198,8 +221,8 @@ static SpeedrunTechRow captureConfiguredBats(const WallMemory& memory,uintptr_t 
     memcpy(&relative,load+3,4);
     const uintptr_t configGlobal=base+code->calculation+16+relative;
     if(configGlobal<base||configGlobal+8>base+profile.imageSize||!memory.get(configGlobal,config)||!config||!memory.get(config+8,rateMode)||rateMode!=0||
-       !memory.get(base+code->calculation+0x129,nativeOffset)||nativeOffset!=desired->offset+milliseconds->offset||
-       !memory.get(base+code->calculation+0x16a,nativeOffset)||nativeOffset!=mods->offset+scale->offset) return row;
+       !memory.get(base+code->calculation+code->desiredOperand,nativeOffset)||nativeOffset!=desired->offset+milliseconds->offset||
+       !memory.get(base+code->calculation+code->scaleOperand,nativeOffset)||nativeOffset!=mods->offset+scale->offset) return row;
     uintptr_t finalEquipped=0,finalItem=0,finalData=0,system=0,map=0,currentPlayer=0,finalNext=0,finalQueued=0; uint32_t finalHeldToken=0,finalSlotToken=0; int32_t finalCount=0; unsigned char removed=1;
     if(!memory.get(heldAddress+ptr->offset,finalEquipped)||finalEquipped!=heldItem||!memory.get(heldAddress+token->offset,finalHeldToken)||finalHeldToken!=heldToken||
        !memory.get(handsAddress+next->offset,finalNext)||finalNext!=nextWeapon||!memory.get(handsAddress+queued->offset,finalQueued)||finalQueued!=queuedWeapon||

@@ -2,6 +2,7 @@
 #include <future>
 static void expect(bool valid,const char* message) { if(!valid) { fprintf(stderr,"FAIL: %s\n",message);exit(1); } }
 int main() {
+    SetEnvironmentVariableW(L"LABPLUS_LAUNCHED",nullptr);
     const auto suffix=std::to_wstring(GetCurrentProcessId());
     const auto eventName=L"Local\\LABPlus.Test.Active."+suffix,ownerName=L"Local\\LABPlus.Test.Owner."+suffix;
     HANDLE event=CreateEventW(nullptr,TRUE,TRUE,eventName.c_str()),owner=CreateMutexW(nullptr,FALSE,ownerName.c_str());
@@ -10,6 +11,10 @@ int main() {
     std::promise<void> ready,finish;auto done=finish.get_future();
     std::thread active([&] { expect(WaitForSingleObject(owner,0)==WAIT_OBJECT_0,"owner acquired");ready.set_value();done.wait(); });
     ready.get_future().wait();
+    expect(!labAppAvailable(eventName.c_str(),ownerName.c_str()),"an external launch stays inactive even with a live companion");
+    SetEnvironmentVariableW(L"LABPLUS_LAUNCHED",L"0");
+    expect(!labAppAvailable(eventName.c_str(),ownerName.c_str()),"a disabled launch marker cannot opt in");
+    SetEnvironmentVariableW(L"LABPLUS_LAUNCHED",L"1");
     expect(labAppAvailable(eventName.c_str(),ownerName.c_str()),"live owner plus server enables functionality");
     HANDLE stale=OpenEventW(SYNCHRONIZE,FALSE,eventName.c_str());
     ResetEvent(event);CloseHandle(event);

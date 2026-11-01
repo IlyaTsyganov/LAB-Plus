@@ -1,4 +1,5 @@
 #pragma once
+#include "observation_code_profiles.h"
 
 // Read-only encounter membership and health. Every offset comes from reflected
 // fields, including the health-component stride (88 bytes in 1.0, 96 in 5.1).
@@ -53,6 +54,19 @@ static EnemyTelemetryLayout resolveEnemyTelemetryLayout(const GraphLookup& looku
     const auto* aiHealth=enemyTelemetryField(ai,"aiHealth"); const auto* components=enemyTelemetryField(health,"components");
     const auto* dead=field(health,"isDead","bool",1); const auto* componentType=field(component,"type","aiHealthComponent_t",4);
     const auto* current=field(component,"cur","float",4); const auto* maximum=field(component,"max","float",4);
+    uint32_t maximumOffset=maximum?maximum->offset:~0u;
+    if(!maximum) {
+        const auto* branched=enemyTelemetryField(component,"max");
+        const std::string type="idBranchedOptionValue < declInputBranch_t , float >";
+        if(branched&&branched->type==type&&branched->ops.empty()) {
+            const auto& value=schema(type.c_str());
+            const auto* selected=field(value,"currentValue","float",4);
+            const auto* fallback=field(value,"defaultValue","float",4);
+            if(value.complete&&value.size==branched->size&&selected&&fallback&&
+               uint64_t(selected->offset)+4<=value.size&&uint64_t(branched->offset)+value.size<=component.size)
+                maximumOffset=branched->offset+selected->offset;
+        }
+    }
     bool healthAncestry=false;
     if(aiHealth&&aiHealth->type=="idAIHealth"&&aiHealth->ops.empty()) {
         std::string parent="idAIHealth"; uint32_t available=aiHealth->size;
@@ -83,9 +97,9 @@ static EnemyTelemetryLayout resolveEnemyTelemetryLayout(const GraphLookup& looku
             layout.lists.push_back({adopted->offset,managed.size,0});
     }
     if(healthAncestry&&aiHealth&&aiHealth->size>=health.size&&health.size&&components&&components->type=="idHealthT < aiHealthComponent_t , AI_HEALTH_MAX , AI_HEALTH_HITPOINTS >::component_t"&&
-       components->ops=="[2]"&&component.size&&components->size==component.size*2&&dead&&componentType&&current&&maximum) {
+       components->ops=="[2]"&&component.size&&components->size==component.size*2&&dead&&componentType&&current&&maximumOffset!=~0u) {
         layout.health=aiHealth->offset; layout.components=components->offset; layout.componentSize=component.size; layout.componentCount=2;
-        layout.type=componentType->offset; layout.current=current->offset; layout.maximum=maximum->offset; layout.dead=dead->offset;
+        layout.type=componentType->offset; layout.current=current->offset; layout.maximum=maximumOffset; layout.dead=dead->offset;
     }
     const bool requiredPending=layout.pending;
     const auto& physics=lookup("idPhysics"); const auto& havok=lookup("idHavokPhysics_Base");
@@ -138,6 +152,7 @@ static bool resolveEnemyStaggerPointer(const WallMemory& memory,uintptr_t base,c
     if(profile.timestamp==0x5e794131&&profile.imageSize==0x1e706000) { painGetter=0xbb6fc0; finishGetter=0xbb7050; }
     if(profile.timestamp==0x5ec7deca&&profile.imageSize==0x1d551000) { painGetter=0xbc3f00; finishGetter=0xbc3fb0; }
     if(profile.timestamp==0x607e69b0&&profile.imageSize==0x1b5dd000) { painGetter=0xc8ceb0; finishGetter=0xc8cf40; }
+    if(const auto* code=observationCodeProfile(profile)) { painGetter=code->pain; finishGetter=code->finish; }
     if(!painGetter||!finishGetter) return false;
     unsigned char pain[14]{},finish[21]{}; uint32_t painPointer=0,finishPointer=0,deadline=0;
     if(!memory.read(base+painGetter,pain,sizeof(pain))||!memory.read(base+finishGetter,finish,sizeof(finish))) return false;

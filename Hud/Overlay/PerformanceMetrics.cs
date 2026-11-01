@@ -21,7 +21,14 @@ internal static class LabIndicator
 // strings are read after DESRU updates them; LAB never writes those strings.
 internal sealed class PerformanceMetrics : IDisposable
 {
-    internal const string Magic = "LPMET003";
+    internal const string Magic = "LPMET006";
+    internal const int HardwareCountOffset=192, HardwareNamesOffset=320, HardwareNameSize=256, HardwareNameLimit=14;
+    internal static void StoreHardwareNames(byte[] data,IReadOnlyList<string> names)
+    {
+        string[] accepted=names.Where(n=>!string.IsNullOrEmpty(n)&&Encoding.UTF8.GetByteCount(n)<HardwareNameSize).Distinct(StringComparer.OrdinalIgnoreCase).Take(HardwareNameLimit).ToArray();
+        BitConverter.GetBytes(accepted.Length).CopyTo(data,HardwareCountOffset);
+        for(int i=0;i<accepted.Length;i++)Encoding.UTF8.GetBytes(accepted[i]+"\0").CopyTo(data,HardwareNamesOffset+i*HardwareNameSize);
+    }
     internal const float CvarFontScale = .75f;
     internal const int CvarBankOffset = 40, CvarAcknowledgedOffset = 48;
     internal const int CvarRecordSize = 1024;
@@ -46,7 +53,7 @@ internal sealed class PerformanceMetrics : IDisposable
         if(before.AsSpan(0, 6).SequenceEqual(Convert.FromHexString("FF2500000000"))) {
             IntPtr existing = new(BitConverter.ToInt64(before, 6));
             string magic = Encoding.ASCII.GetString(game.ReadBytes(existing + 0x700, 8) ?? []);
-            if(magic is "LPMET001" or "LPMET002") throw new NotSupportedException("Restart DOOM Eternal to load the updated LAB Plus cvar HUD.");
+            if(magic is "LPMET001" or "LPMET002" or "LPMET003" or "LPMET004" or "LPMET005") throw new NotSupportedException("Restart DOOM Eternal to load the updated LAB Plus metrics HUD.");
             if(magic != Magic)
                 throw new NotSupportedException("Another metrics formatter hook is installed");
             return new(game, existing + 4096, image + metricsOffset) { _smallScale = m.SmallScale };
@@ -63,6 +70,7 @@ internal sealed class PerformanceMetrics : IDisposable
             BitConverter.GetBytes(m.SmallScale * CvarFontScale).CopyTo(data, 28);
             Encoding.ASCII.GetBytes("%s\0").CopyTo(data, 128);
             Encoding.ASCII.GetBytes("%i FPS\0").CopyTo(data, 160);
+            StoreHardwareNames(data,Game.HardwareNames.Current);
             byte[] code = MetricsCode.Create(state.ToInt64(), trampoline.ToInt64(),
                 NativeModbotInputGuard.RemoteApi(game, "kernel32.dll", "GetTickCount64").ToInt64(),
                 (image + m.FpsFormat).ToInt64(), (image + m.LastFormat).ToInt64(),
@@ -188,6 +196,37 @@ internal static class MetricsCode
         c.Emit("488B8424A8000000 49BA"); c.Pointer(firstReturn); c.Emit("4C39D0"); c.Jump("0F82", "forward");
         c.Emit("49BA"); c.Pointer(lastReturn); c.Emit("4C39D0"); c.Jump("0F87", "forward");
         c.Call(clock); c.Emit("483B03"); c.Jump("0F83", "forward");
+        // Examine every string in the verified metrics caller range: on 6.x
+        // CPU precedes Vulkan, while GPU and the driver label follow it.
+        c.Emit("837B0800"); c.Jump("0F84","regular");
+        c.Emit("488B742428 4889F7 66813E2573"); c.Jump("0F85","candidate");
+        c.Emit("807E0200"); c.Jump("0F85","candidate");
+        c.Emit("488B7C2430");
+        c.Label("candidate"); c.Emit("4885FF"); c.Jump("0F84","regular");
+        foreach(var part in "amd proprietary driver".Select((letter,index)=>(letter,index))) {
+            c.Emit(part.index==0?"8A07":"8A47"+part.index.ToString("X2"));
+            c.Emit("0C20 3C"+((byte)part.letter).ToString("X2"));c.Jump("0F85","hardwareTest");
+        }
+        // Save the entire row, including its original format, color, printf
+        // arguments and font size, then replay it below LAB at the final call.
+        c.Emit("48897B20 8B842488000000 898310010000 488D742420 488DBBD0000000 B908000000 F348A5");
+        c.Jump("E9","suppressed");
+        c.Label("hardwareTest");c.Emit("837B0C00");c.Jump("0F84","regular");
+        c.Emit("8B8BC0000000 85C9"); c.Jump("0F8E","regular");
+        c.Emit("83F90E"); c.Jump("0F87","regular");
+        c.Emit("488DB340010000");
+        c.Label("hardwareName"); c.Emit("4989FA 4989F3 41B800010000");
+        c.Label("hardwareByte"); c.Emit("418A02 418A13 38D0"); c.Jump("0F84","hardwareEqual");
+        c.Emit("0C20 80CA20 38D0"); c.Jump("0F85","hardwareNext");
+        c.Emit("3C61"); c.Jump("0F82","hardwareNext"); c.Emit("3C7A"); c.Jump("0F87","hardwareNext");
+        c.Label("hardwareEqual"); c.Emit("84C0"); c.Jump("0F84","suppressed");
+        c.Emit("49FFC2 49FFC3 41FFC8"); c.Jump("0F85","hardwareByte");
+        c.Label("hardwareNext"); c.Emit("4881C600010000 FFC9"); c.Jump("0F85","hardwareName");
+        c.Jump("E9","regular");
+        c.Label("suppressed");c.Emit("488B442428 49BA");c.Pointer(last);c.Emit("4C39D0");c.Jump("0F84","afterLast");
+        c.Emit("488B8424A8000000 49BA");c.Pointer(lastReturn);c.Emit("4C39D0");c.Jump("0F84","afterLast");
+        c.Jump("E9","done");
+        c.Label("regular");
         c.Emit("488B742428 48B8"); c.Pointer(fps); c.Emit("4839C6"); c.Jump("0F84", "fps");
         c.Emit("837B0800"); c.Jump("0F85", "desru");
         c.Emit("48B8"); c.Pointer(fps + 8); c.Emit("4839C6"); c.Jump("0F84", "marker");
@@ -203,17 +242,12 @@ internal static class MetricsCode
         c.Emit("807E0200"); c.Jump("0F85", "forward");
         c.Emit("488B442430 4885C0"); c.Jump("0F84", "forward");
         c.Emit("803800"); c.Jump("0F84", "done");
-        // Match the driver label, not an AMD CPU or another DESRU text row.
-        foreach(var part in new[] { (0,"amd "), (4,"prop"), (8,"riet"), (12,"ary ") }) {
-            c.Emit(part.Item1 == 0 ? "448B10" : "448B50" + part.Item1.ToString("X2"));
-            c.Emit("4181CA20202020 4181FA"); c.Bytes.AddRange(Encoding.ASCII.GetBytes(part.Item2)); c.Jump("0F85", "forward");
-        }
-        c.Emit("48894320"); c.Jump("E9", "done");
+        c.Jump("E9", "forward");
         c.Label("last"); c.Emit("803E00"); c.Jump("0F84", "afterLast"); CallOriginal();
         c.Label("afterLast"); Marker();
         c.Emit("837B0C00"); c.Jump("0F85", "done");
         c.Emit("488B4320 4885C0"); c.Jump("0F84", "done");
-        c.Emit("4889442430 488D8380000000 4889442428"); CallOriginal(); c.Jump("E9", "done");
+        c.Emit("488DB3D0000000 488D7C2420 B908000000 F348A5 8B8310010000 89842488000000"); CallOriginal(); c.Jump("E9", "done");
         c.Label("marker"); Marker(); c.Jump("E9", "done");
         c.Label("forward"); CallOriginal();
         c.Label("done"); c.Emit("4881C490000000 5F5E5B C3");

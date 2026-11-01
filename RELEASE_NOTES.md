@@ -1,3 +1,32 @@
+# LAB Plus 0.8.21
+
+This release includes the patch compatibility and fixes developed since 0.8.12.
+
+## Patch support and timers
+
+- Adds audited observation, health, timer and BATS profiles for all 22 recognized executable builds: 1.0, 1.1, 2.0, 2.1, 3.0, 3.1, 4.0, 4.1, 5.0, 5.1, 6.0, 6.1, 6.2, 6.3, 6.4, 6.66, and 6.66 Rev 1, Rev 1.1, Rev 2, Rev 2.2, Rev 3 and Rev 3.2.
+- Corrects Praetor Token, ordinary and Golden Gore Nest, and other sync-interaction countdowns. Player lock follows the actual player-release animation event instead of the longer NPC clip. Pause, ownership release and unsupported event metadata remain guarded.
+- Adapts health component layouts, game clocks and BATS calculation checks per executable. Updates managed player/HUD/velocity layouts and the missing base 6.66 metrics profile.
+
+## Launch ownership and HUD
+
+- Enables LAB Plus only for the exact game process launched through LAB Plus. An external Steam shortcut no longer acquires its HUD or native layers; saving settings no longer registers a persistent implicit Vulkan layer.
+- Extends **Hide AMD driver line** to CPU and GPU labels from any manufacturer, while preserving unrelated DESRU text.
+- Places LAB Plus indicators and changed cheat cvars above the original AMD driver row when that row is visible. Preserves its original font and formatting arguments.
+
+## Install
+
+Extract the entire Windows x64 ZIP into one folder and run **LABPlus.exe**. Requires **.NET 10 Desktop Runtime x64** and **Microsoft Edge WebView2 Evergreen Runtime**. Keep the selected executable's required outbound firewall block. Close the previous companion and fully restart the game through LAB Plus after replacing this build's native DLLs or HUD adapter. Meathook is not bundled.
+
+The release includes `SHA256SUMS` for the program ZIP.
+
+## Validation and scope
+
+All 23 native regression suites and launcher checks passed locally. The latest patch checks passed 239 managed assertions across the 12 currently installed executable layouts; earlier patch audits cover the other listed builds. Retail executable audits inspect code and reflection as data without executing the games. The release workflow rebuilds the native layers and launcher, runs the public fixtures, and checks the exact 29-file runtime ZIP before publication.
+
+Per-patch data audits and synthetic fixtures establish adapter compatibility; they do not replace live gameplay and visual acceptance for every feature on every patch. Existing feature-specific restrictions, including early NVIDIA Lighting Fix and checkpoint loading, still apply. See `docs/validation/` for the audit scope and remaining live checks.
+
+
 # LAB Plus 0.8.10
 
 - On game 1.1, the verified Praetor Suit Point interaction now shows Player lock through the authored release event in the player's model timeline. The continuing NPC clip no longer determines this countdown.
