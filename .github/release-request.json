@@ -5,5 +5,5 @@
   "notes": "docs/releases/0.8.10.md",
   "asset": "labplus-0.8.10-win-x64.zip",
   "expectedRuntimeFiles": 29,
-  "buildRevision": 1
+  "buildRevision": 2
 }

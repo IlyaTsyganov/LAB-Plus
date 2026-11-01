@@ -48,8 +48,6 @@ jobs:
       - name: Validate the release request and select the installed .NET 10 SDK
         run: |
           $ErrorActionPreference = 'Stop'
-          "LABPLUS_DATA_DIRECTORY=$env:RUNNER_TEMP\labplus-release-data" >> $env:GITHUB_ENV
-          "LAB_TEST_DATA_ROOT=$env:RUNNER_TEMP\labplus-release-fixtures" >> $env:GITHUB_ENV
           $request = Get-Content -LiteralPath '.github/release-request.json' -Raw | ConvertFrom-Json
           [xml]$project = Get-Content -LiteralPath 'labplus.csproj' -Raw
           $version = ([string]$project.Project.PropertyGroup.Version).Trim()
