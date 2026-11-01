@@ -2,7 +2,7 @@
 // Read-only production capture. Module base and metadata addresses are explicit
 // so the probe needs only VM_READ / QUERY_LIMITED_INFORMATION access.
 int wmain(int argc,wchar_t** argv) {
-    if(argc!=5) { puts("Usage: NumbersLiveProbe PID BASE metadata-addresses.tsv output-directory"); return 2; }
+    if(argc!=5&&argc!=6) { puts("Usage: NumbersLiveProbe PID BASE metadata-addresses.tsv output-directory [feature-mask]"); return 2; }
     DWORD pid=static_cast<DWORD>(_wtoi(argv[1])); uintptr_t base=_wcstoui64(argv[2],nullptr,0);
     HANDLE handle=OpenProcess(PROCESS_VM_READ|PROCESS_QUERY_LIMITED_INFORMATION,FALSE,pid);
     if(!handle) { printf("OpenProcess failed: %lu\n",GetLastError()); return 3; }
@@ -22,11 +22,33 @@ int wmain(int argc,wchar_t** argv) {
             return schemas.emplace(type,std::move(value)).first->second;
         };
         auto begin=GetTickCount64(); auto level=readLevelIdentity(memory,base,*profile);
-        auto snapshot=captureInvisibleNumbers(memory,base,*profile,level,lookup); snapshot.process=pid;
+        auto snapshot=captureInvisibleNumbers(memory,base,*profile,level,lookup,argc==6?static_cast<unsigned>(_wtoi(argv[5])):7u); snapshot.process=pid;
         if(!gameplayVisible(memory,base,*profile)&&snapshot.phase=="live") snapshot.phase="paused";
         printf("Profile: %s\nMap: %s\nPhase: %s; enemies=%s/%zu; timers=%s/%zu; techs=%zu; unavailable=%u; elapsed=%llums\n",profile->name,level.name.c_str(),snapshot.phase.c_str(),snapshot.enemiesState.c_str(),snapshot.enemies.size(),snapshot.timersState.c_str(),snapshot.timers.size(),snapshot.techs.size(),snapshot.unavailable,GetTickCount64()-begin);
         for(const auto& timer:snapshot.timers) printf("Timer: %s | %s | %.6f | %s\n",timer.key.c_str(),timer.state.c_str(),timer.known?timer.seconds:-1,timer.detail.c_str());
         for(const auto& tech:snapshot.techs) printf("Tech: %s | %s | %s\n",tech.key.c_str(),tech.state.c_str(),tech.detail.c_str());
+        if(argc==6&&(_wtoi(argv[5])&16)) {
+            uintptr_t player=0;memory.get(level.map+profile->mapPlayerOffset,player);
+            auto current=captureConfiguredBats(memory,base,*profile,level,player,lookup);
+            printf("BATS production sample: %s, verified=%d, %s\n",current.state.c_str(),current.verified,current.detail.c_str());
+            auto* inventory=techField(lookup,"idActor","inventory");auto* hands=techField(lookup,"idPlayer","hands");auto* animator=techField(lookup,"idHands","webAnimator");
+            auto* ptr=techField(lookup,"idManagedClassPtr < idInventoryItem >","ptr");auto* decl=techField(lookup,"idInventoryItem","decl");
+            auto* desired=techField(lookup,"idDeclWeapon","desiredBringupDurationMS");auto* ms=techField(lookup,"milliToGameTime_t","milliseconds");
+            BatsArray items;
+            if(inventory&&hands&&animator&&ptr&&decl&&desired&&ms&&batsArray(memory,player+inventory->offset,lookup,"idInventoryCollection","inventory","idManagedClassPtr < idInventoryItem >",false,1024,items)) {
+                for(int i=0;i<items.count;++i) {
+                    uintptr_t weapon=0,definition=0,vt=0;int32_t duration=0;
+                    if(!memory.get(items.data+size_t(i)*items.stride+ptr->offset,weapon)||!weapon||!memory.get(weapon,vt)||readEntityClass(memory,vt,base,*profile)!="idWeapon"||
+                       !memory.get(weapon+decl->offset,definition)||!definition||!memory.get(definition+desired->offset+ms->offset,duration))continue;
+                    auto name=techResourceName(memory,definition,lookup);
+                    for(int mode=0;mode<2;++mode) {
+                        uintptr_t selected=0;float seconds=0;
+                        const bool resolved=batsModeDefinition(memory,weapon,definition,mode,lookup,selected)&&batsBringupClip(memory,player+hands->offset+animator->offset,selected,lookup,seconds);
+                        printf("Weapon clip: %s | mode=%d | desired=%dms | resolved=%d | clip=%.6fs\n",name.c_str(),mode,duration,resolved,resolved?seconds:0);
+                    }
+                }
+            }
+        }
         for(const auto& type:missing) printf("MISSING\t%s\n",type.c_str());
         for(const auto& type:rejected) printf("REJECTED\t%s\n",type.c_str());
         if(!writeInvisibleNumbers(snapshot,std::filesystem::path(argv[4]))) throw std::runtime_error("Could not save production snapshot");

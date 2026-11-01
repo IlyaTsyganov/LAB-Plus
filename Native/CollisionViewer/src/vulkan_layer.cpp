@@ -2,6 +2,7 @@
 #define NOMINMAX
 #define VK_NO_PROTOTYPES
 #include <windows.h>
+#include "app_lifetime.h"
 #include <vulkan/vulkan.h>
 extern "C" {
 #include <vulkan/vk_layer.h>
@@ -457,14 +458,14 @@ static bool healthBarHiddenSmokeTest() { static const bool active=[] { wchar_t v
 static bool healthBarSmokeTest() { static const bool active=[] { wchar_t value[8]{}; return GetEnvironmentVariableW(L"LABPLUS_TEST_HEALTH_BARS",value,8)&&value[0]==L'1'; }(); return active; }
 static bool smokeTest() { static const bool value=GetEnvironmentVariableW(L"LABPLUS_SMOKE_TEST",nullptr,0)>0; return value; }
 static uint32_t occlusionCase() { static const uint32_t value=[] { wchar_t text[32]{}; GetEnvironmentVariableW(L"LABPLUS_OCCLUSION_TEST",text,32); return text[0]=='h'?1u:(text[0]=='p'?2u:(text[0]=='f'?3u:(text[0]=='r'?4u:(text[0]=='i'?(text[9]=='p'?6u:(text[9]=='f'?7u:5u)):0u)))); }(); return value; }
-static void updateViewerSettings() {
+static void updateViewerSettings(bool force=false) {
     static ULONGLONG lastRead=0;
     static std::wstring settingsPath=[] {
         auto directory=labplusDataDirectory();
         return directory.empty()?std::wstring{}:(directory/L"viewer.ini").wstring();
     }();
     const ULONGLONG now=GetTickCount64();
-    if(settingsPath.empty()||now-lastRead<250) return;
+    if(settingsPath.empty()||(!force&&now-lastRead<250)) return;
     lastRead=now;
     readVolumeAppearances(settingsPath);
     wchar_t scaleText[64]{};
@@ -591,6 +592,7 @@ static void sortVisibleCandidates(std::vector<Candidate>& visible) {
 // Resolve the existing visibility cvar only on the engine callback. The
 // renderer consumes its immutable result and never calls engine functions.
 static bool debugHudEngineVisible(const MeathookHudApi* api) {
+    if(!labAppAvailable()) return false;
     static uintptr_t variable=0;
     static ULONGLONG retryAt=0;
     int value=0; std::string text;
@@ -1113,6 +1115,19 @@ EXPORT VKAPI_ATTR void VKAPI_CALL vkDestroySwapchainKHR(VkDevice device,VkSwapch
     data->DestroySwapchainKHR(device,swapchain,allocator);
 }
 
+static bool companionRuntimeActive=false;
+static bool applyCompanionAvailability(bool available) {
+    if(!available) {
+        if(companionRuntimeActive) {
+            enabled=false;inspectVolumes=false;showResearchPath=false;recordResearch=false;showPlayerCollider=false;showMotionPaths=false;
+            showEnemyHealthHud=false;showEnemyHealthBars=false;showGameTimersHud=false;showSpeedrunTechsHud=false;showSupportHud=false;showActiveEncountersHud=false;
+            inspectorHud().publish({});movementLab().control(nullptr,0,false,false,false);
+            runtimeManager.pause();runtimeManager.retire(std::move(runtimeWorld));runtimeEntities.reset();runtimeRoute.reset();runtimeLevel={};runtimeRendering=false;
+        }
+        companionRuntimeActive=false;return false;
+    }
+    updateViewerSettings(!companionRuntimeActive);companionRuntimeActive=true;return true;
+}
 EXPORT VKAPI_ATTR VkResult VKAPI_CALL vkQueuePresentKHR(VkQueue queue,const VkPresentInfoKHR* present) {
     std::unique_lock<std::recursive_mutex> lock(guard);
     auto foundQueue=queues.find(queue);
@@ -1134,7 +1149,9 @@ EXPORT VKAPI_ATTR VkResult VKAPI_CALL vkQueuePresentKHR(VkQueue queue,const VkPr
         lock.unlock();
         return driverPresent(queue,info);
     };
-    updateViewerSettings();
+    const bool testMode=smokeTest()||sceneTest()||occlusionCase();
+    if(!testMode&&!applyCompanionAvailability(labAppAvailable())) return forwardPresent(present);
+    if(testMode) updateViewerSettings();
     if(!smokeTest()&&!sceneTest()&&!occlusionCase()) labConsole().connect();
     if(!smokeTest()&&!sceneTest()&&!occlusionCase()) activeEncounters().connect();
     if(!smokeTest()&&!sceneTest()&&!occlusionCase()) invisibleNumbers().connect();

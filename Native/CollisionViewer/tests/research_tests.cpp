@@ -73,10 +73,10 @@ int main() {
     expect(validLabArguments({"labplus_distance","200"})&&!validLabArguments({"labplus_distance","201"})&&!validLabArguments({"labplus_distance","20;quit"}),"console numbers never become engine command text");
     expect(!validLabArguments({"quit","1"})&&validLabArguments({"labplus_clear"})&&!validLabArguments({"labplus_clear","1"}),"only explicit lab commands are accepted");
     std::wstring presenceName=L"Local\\labplus-Lab-Test-"+std::to_wstring(GetCurrentProcessId());
-    expect(!labAppAvailable(presenceName.c_str()),"lab commands are unavailable without the companion presence");
+    expect(!labPresenceSignaled(presenceName.c_str()),"lab commands are unavailable without the companion presence");
     HANDLE presence=CreateEventW(nullptr,TRUE,TRUE,presenceName.c_str());
-    expect(presence&&labAppAvailable(presenceName.c_str()),"live companion presence permits lab commands");
-    CloseHandle(presence); expect(!labAppAvailable(presenceName.c_str()),"lab commands become inactive when the companion closes");
+    expect(presence&&labPresenceSignaled(presenceName.c_str()),"live companion presence is signaled");
+    CloseHandle(presence); expect(!labPresenceSignaled(presenceName.c_str()),"presence ends when the companion closes");
     auto* block=static_cast<unsigned char*>(VirtualAlloc(nullptr,0x20000,MEM_RESERVE|MEM_COMMIT,PAGE_READWRITE));
     uintptr_t b=reinterpret_cast<uintptr_t>(block); GameProfile testProfile=*kGameProfiles[0]; testProfile.imageSize=0x20000;
     const unsigned char thunk[]{0x48,0x89,0xca,0x48,0x8b,0x05,0,0,0,0,0x48,0x8b,0x08,0x48,0x8b,0x01,0x48,0x8b,0x40,0x40,0x48,0xff,0xe0};

@@ -56,7 +56,8 @@ public sealed record InvisibleNumbersSnapshot(int Process, DateTimeOffset Captur
             {
                 if (cell.Length != 5 || cell[1] is not ("bats" or "fast_dblade") || !keys.Add("tech:" + cell[1]) ||
                     cell[3] is not ("active" or "inactive" or "unavailable")) return null;
-                techs.Add(new(cell[1], cell[2], cell[3], cell[4]));
+                string state = cell[1] == "bats" && cell[3] != "active" ? "inactive" : cell[3];
+                techs.Add(new(cell[1], cell[2], state, cell[4]));
             }
             else return null;
         }

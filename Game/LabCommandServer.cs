@@ -9,12 +9,14 @@ internal sealed class LabCommandServer : IDisposable
     private readonly EventWaitHandle _presence;
     private readonly string _pipeName;
     private readonly Task _listener;
+    private int _stopped, _disposed;
 
     public LabCommandServer(Action<int, string[]> receive, string pipeName = "labplus.commands", string presenceName = @"Local\labplus.commands.Active")
     {
         _pipeName = pipeName;
-        _presence = new EventWaitHandle(true, EventResetMode.ManualReset, presenceName);
+        _presence = new EventWaitHandle(false, EventResetMode.ManualReset, presenceName);
         _listener = Listen(receive);
+        _presence.Set();
     }
 
     private async Task Listen(Action<int, string[]> receive)
@@ -40,7 +42,7 @@ internal sealed class LabCommandServer : IDisposable
                 }
                 string text = Encoding.UTF8.GetString(data, 0, length).TrimEnd('\r', '\n');
                 string[] fields = text.Split('\t');
-                if (fields.Length is >= 2 and <= 130 && int.TryParse(fields[0], out int process))
+                if (!_cancellation.IsCancellationRequested && fields.Length is >= 2 and <= 130 && int.TryParse(fields[0], out int process))
                     try { receive(process, fields[1..]); } catch (InvalidOperationException) { }
             }
             catch (OperationCanceledException) { }
@@ -49,9 +51,18 @@ internal sealed class LabCommandServer : IDisposable
         }
     }
 
+    public void Stop()
+    {
+        if (Interlocked.Exchange(ref _stopped, 1) != 0) return;
+        // Reset before releasing our handle: another reader may retain one.
+        _presence.Reset();
+        _cancellation.Cancel();
+    }
+
     public void Dispose()
     {
-        _cancellation.Cancel();
+        if (Interlocked.Exchange(ref _disposed, 1) != 0) return;
+        Stop();
         _presence.Dispose();
         // Do not block the UI thread waiting for a pending pipe connection.
         _ = _listener.ContinueWith(_ => _cancellation.Dispose(), TaskScheduler.Default);

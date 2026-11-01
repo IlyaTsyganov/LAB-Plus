@@ -16,6 +16,11 @@ internal static class InvisibleNumbersChecks
         {
             CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("ru-RU");
             var parsed = InvisibleNumbersSnapshot.Parse([head, enemy, timer, tech]);
+            foreach (string state in new[] { "active", "inactive", "unavailable" })
+            {
+                var bats = InvisibleNumbersSnapshot.Parse([head, $"S\tbats\tBATS\t{state}\tObserved state"]);
+                Check(bats?.Techs[0].State == (state == "active" ? "active" : "inactive"), "BATS must display only active/inactive, including snapshots from an older native layer.");
+            }
             Check(parsed is { Ready: true, Unavailable: 1 } && parsed.Enemies[0].Health == 125.5 && parsed.Timers[0].Seconds == 1.25 && parsed.Techs[0].State == "active", "Engine numbers must parse with invariant culture.");
             Check(parsed!.IsFresh(parsed.Captured.AddSeconds(1)) && !parsed.IsFresh(parsed.Captured.AddSeconds(3)), "Stale enemy and timer data must expire.");
             var maximum = InvisibleNumbersSnapshot.Parse([head, timer + "\t20", "T\tsticky_charge_1\tsticky_charges\tCharge 1\tcooldown\t0.75\tSequential recharge\t1.5"]);

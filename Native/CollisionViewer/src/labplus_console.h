@@ -64,11 +64,6 @@ static bool printDebugHudScaleQuery(const MeathookHudApi& api,const std::vector<
     text<<"labplus_debughud_scale is "<<debugHudScale.load()<<" (0.5..3)\n";
     api.consolePrint("%s",text.str().c_str()); return true;
 }
-static bool labAppAvailable(const wchar_t* name=L"Local\\labplus.commands.Active") {
-    HANDLE presence=OpenEventW(SYNCHRONIZE,FALSE,name);
-    if(!presence) return false;
-    bool available=WaitForSingleObject(presence,0)==WAIT_OBJECT_0; CloseHandle(presence); return available;
-}
 static bool sendLabRequest(const std::vector<std::string>& args) {
     if(!labAppAvailable()) return false;
     std::string request=std::to_string(GetCurrentProcessId());

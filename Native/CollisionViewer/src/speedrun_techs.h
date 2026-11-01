@@ -1,6 +1,6 @@
 #pragma once
 
-struct SpeedrunTechRow { std::string key,label,state="unavailable",detail; };
+struct SpeedrunTechRow { std::string key,label,state="unavailable",detail; bool verified=false; };
 struct SpeedrunTechSnapshot { std::vector<SpeedrunTechRow> rows; };
 static const GraphField* techField(const GraphLookup& lookup,const std::string& type,const char* name) {
     const auto& schema=lookup(type);
@@ -46,11 +46,14 @@ struct ConfiguredBatsCode {
 static const ConfiguredBatsCode* configuredBatsCode(const GameProfile& profile) {
     static constexpr ConfiguredBatsCode audited[]{
         {0x5e794131,0x1e706000,0x161dbbb,0x18beea0,0x144a360,0x1818fd0,0x42140d67acd3cf3eULL,0x50fd559ab7522032ULL,0xc605486a842437a8ULL},
-        {0x5ec7deca,0x1d551000,0x1659efb,0x1911620,0x1c83140,0x1868230,0x89e19155f199a6dfULL,0x2f6c144bb4a46ca5ULL,0x443df4f24e42cd99ULL}
+        {0x5ec7deca,0x1d551000,0x1659efb,0x1911620,0x1c83140,0x1868230,0x89e19155f199a6dfULL,0x2f6c144bb4a46ca5ULL,0x443df4f24e42cd99ULL},
+        {0x607e69b0,0x1b5dd000,0x181377b,0x1ac6bc0,0x162c5b0,0x1a0f5b0,0xd06fb2ac87bdc8eeULL,0x56d24858d3fc4114ULL,0x43560282b09a104fULL}
     };
     for(const auto& code:audited) if(code.timestamp==profile.timestamp&&code.imageSize==profile.imageSize) return &code;
     return nullptr;
 }
+#include "bats_signature.h"
+#include "bats_animation.h"
 static bool configuredBatsFingerprint(const WallMemory& memory,uintptr_t base,const GameProfile& profile,const ConfiguredBatsCode& code) {
     auto matches=[&](uintptr_t rva,size_t length,uint64_t expected) {
         if(rva>=profile.imageSize||length>profile.imageSize-rva||length>529) return false;
@@ -67,11 +70,13 @@ static bool configuredBatsFingerprint(const WallMemory& memory,uintptr_t base,co
     };
     return matches(code.calculation,529,code.calculationHash)&&matches(code.dexterity,44,code.dexterityHash)&&
         matches(code.declGetter,5,0x71fa801ff8c90d42ULL)&&matches(code.status,143,code.statusHash)&&
-        scalar(code.calculation+5,code.calculation+9,1.f)&&scalar(code.calculation+0xc2,code.calculation+0xc6,.001f)&&
-        scalar(code.dexterity+0x1b,code.dexterity+0x1f,std::numeric_limits<float>::epsilon());
+        scalar(code.calculation+5,code.calculation+9,1.f)&&scalar(code.calculation+0x64,code.calculation+0x68,.001f)&&scalar(code.calculation+0xc2,code.calculation+0xc6,.001f)&&
+        scalar(code.dexterity+0x1b,code.dexterity+0x1f,std::numeric_limits<float>::epsilon())&&
+        scalar(code.dexterity+0x27,code.dexterity+0x2b,1.f)&&scalar(code.status+0x18,code.status+0x1c,1.f);
 }
 // Audited SetWeapon calculations:1.0 0x161dbbb..0x161ddcc;
-//1.1 0x1659efb..0x165a10c. Exact code fingerprints cover the mode branch,
+//1.1 0x1659efb..0x165a10c; 5.1 0x181377b..0x181398c.
+// Exact code fingerprints cover the mode branch,
 // normal-rate operations, call targets and the final bring-up rate assignment.
 // A zero requested bring-up duration leaves clip rate 1, multiplies the active
 // fire-mode override, and divides by the clamped upgrade/status-effect speed.
@@ -79,8 +84,10 @@ static bool configuredBatsFingerprint(const WallMemory& memory,uintptr_t base,co
 // comparing all weapons with a Ballista-specific rate learned from a demo.
 static SpeedrunTechRow captureConfiguredBats(const WallMemory& memory,uintptr_t base,const GameProfile& profile,
                                             const LevelIdentity& level,uintptr_t player,const GraphLookup& lookup) {
-    SpeedrunTechRow row{"bats","BATS","unavailable","Weapon animation metadata unavailable"};
+    SpeedrunTechRow row{"bats","BATS","inactive","No accelerated weapon appearance observed"};
+    ConfiguredBatsCode discovered{};
     const auto* code=configuredBatsCode(profile);
+    if(!code&&resolveBatsSignature(memory,base,profile,discovered)) code=&discovered;
     if(!code) { row.detail="Weapon animation-rate calculation is not yet verified for this build"; return row; }
     if(!configuredBatsFingerprint(memory,base,profile,*code)) { row.detail="Weapon animation-rate code does not match the verified build"; return row; }
     auto hands=techField(lookup,"idPlayer","hands"),right=techField(lookup,"idHands","rightItem"),held=techField(lookup,"idHandsItem","item");
@@ -136,22 +143,33 @@ static SpeedrunTechRow captureConfiguredBats(const WallMemory& memory,uintptr_t 
     uintptr_t vtable=0;
     if(!memory.get(equipped,vtable)||readEntityClass(memory,vtable,base,profile)!="idWeapon") return row;
     uintptr_t definition=0; int32_t weaponSlot=-1;
-    if(!memory.get(equipped+decl->offset,definition)||!definition||!memory.get(equipped+quickSlot->offset,weaponSlot)||weaponSlot<0||weaponSlot>128) return row;
+    if(!memory.get(equipped+decl->offset,definition)||!definition||!memory.get(equipped+quickSlot->offset,weaponSlot)||weaponSlot< -1||weaponSlot>128) return row;
+    const auto weaponName=techResourceName(memory,definition,lookup);
+    if(weaponName.rfind("weapon/player/",0)!=0||weaponName.rfind("weapon/player/fists",0)==0||weaponName=="weapon/player/pointing_arm"||
+       weaponName=="weapon/player/doomblade"||weaponName.rfind("weapon/player/equipment_",0)==0) return row;
     auto desired=techField(lookup,"idDeclWeapon","desiredBringupDurationMS"),milliseconds=techField(lookup,"milliToGameTime_t","milliseconds");
     if(!techInline(desired,"milliToGameTime_t",lookup)||!milliseconds||milliseconds->size!=4||
        milliseconds->type!="idTypesafeTime < int , millisecondUnique_t , 1000 >"||!milliseconds->ops.empty()) return row;
     int32_t desiredMS=-1;
     if(!memory.get(definition+desired->offset+milliseconds->offset,desiredMS)) return row;
-    if(desiredMS!=0) { row.detail="This weapon's non-default bring-up timing is not yet supported"; return row; }
+    if(desiredMS<0) return row;
     auto mods=techField(lookup,"idWeapon","weaponModOverrides"),fireMode=techField(lookup,"idWeapon","fireMode");
     const std::string modType="idWeapon::weaponModOverrides_t"; const auto& modSchema=lookup(modType);
     auto scale=techField(lookup,modType,"bringUpRateScale");
     if(!mods||mods->type!=modType||mods->ops!="[2]"||!modSchema.complete||!modSchema.size||mods->size!=modSchema.size*2||
        !techFloat(scale)||!fireMode||fireMode->size!=4||fireMode->type!="weaponFireMode_t"||!fireMode->ops.empty()) return row;
-    int32_t mode=-1; float modScale=0,otherScale=0;
+    int32_t mode=-1; float modScale=0;
     if(!memory.get(equipped+fireMode->offset,mode)||mode<0||mode>1||
-       !memory.get(equipped+mods->offset+size_t(mode)*modSchema.size+scale->offset,modScale)||
-       !memory.get(equipped+mods->offset+size_t(1-mode)*modSchema.size+scale->offset,otherScale)||!techNear(modScale,otherScale)) return row;
+       !memory.get(equipped+mods->offset+size_t(mode)*modSchema.size+scale->offset,modScale)) return row;
+    float clipScale=1;uintptr_t clipDefinition=0;
+    if(desiredMS>0) {
+        float clipSeconds=0;
+        if(!batsModeDefinition(memory,equipped,definition,mode,lookup,clipDefinition)||
+           !batsBringupClip(memory,handsAddress+animator->offset,clipDefinition,lookup,clipSeconds)) {
+            row.detail="Weapon's normal bring-up animation could not be resolved";return row;
+        }
+        clipScale=clipSeconds/(float(desiredMS)*.001f);
+    }
     auto props=techField(lookup,"idPlayer","playerProps"),clamping=techField(lookup,"idDeclPlayerProps","playerSpeedClamping"),clampField=techField(lookup,"idDeclPlayerProps::playerSpeedClamping_t","weaponSwitchClampScale");
     auto dashboard=techField(lookup,"idPlayer","dashboard"),abilities=techField(lookup,"idPlayerDashboard","abilityUpgrades"),dexterity=techField(lookup,"idAbility_UpgradeHandler","dexterityWeaponSwitching");
     auto dexterityMods=techField(lookup,"idUpgradeMod_Abilities","dexterityMods"),speedField=techField(lookup,"idUpgradeMod_Abilities::dexterityMods_t","weaponChangeSpeed");
@@ -168,7 +186,11 @@ static SpeedrunTechRow captureConfiguredBats(const WallMemory& memory,uintptr_t 
     if(!techInline(status,"idStatusEffectComponent",lookup)||!effects||effects->type!="idStaticList < idStatusEffect * , 10 , false , TAG_IDLIST >"||
        !effects->ops.empty()||!effectCount||effectCount->size!=4||effectCount->type!="int"||!effectCount->ops.empty()||effectCount->offset+4>effects->size||
        !memory.get(player+status->offset+effects->offset+effectCount->offset,effectsCount)) return row;
-    if(effectsCount!=0) { row.detail="Temporary status-effect animation multipliers are not yet supported"; return row; }
+    uint32_t statusSwitchSlot=0;
+    if(!memory.get(base+code->status+0x5f,statusSwitchSlot)||
+       !batsNeutralStatusEffects(memory,base,profile,player+status->offset+effects->offset,effects->size,effectsCount,lookup,statusSwitchSlot)) {
+        row.detail="Temporary status-effect animation multipliers are not yet supported";return row;
+    }
     // Check the audited property's exact displacement and the configuration
     // branch. An alternate switch-rate mode uses a different normal formula.
     unsigned char load[7]{}; uintptr_t config=0; int32_t relative=0,rateMode=-1; uint32_t nativeOffset=0;
@@ -190,9 +212,14 @@ static SpeedrunTechRow captureConfiguredBats(const WallMemory& memory,uintptr_t 
         if(!memory.get(handsAddress+previous->offset,finalPrevious)||finalPrevious!=equipped||
            !memory.get(handsAddress+flags->offset+meleeBit.byte,finalFlag)||(finalFlag&meleeBit.mask)==0) return row;
     }
-    row.state=configuredBatsState(actual,modScale,speed,clamp);
-    row.detail=row.state=="active"?"Weapon raise speed exceeds its current normal configuration":
-        row.state=="inactive"?"Weapon raise speed matches its current normal configuration":"Weapon animation has not reached a supported state";
+    int32_t finalMode=-1;float finalRate=0;uintptr_t finalClipDefinition=0;
+    if(!memory.get(equipped+fireMode->offset,finalMode)||finalMode!=mode||!memory.get(handsAddress+animator->offset+up->offset,finalRate)||finalRate!=actual||
+       (desiredMS>0&&(!batsModeDefinition(memory,equipped,definition,mode,lookup,finalClipDefinition)||finalClipDefinition!=clipDefinition)))return row;
+    const auto observed=configuredBatsState(actual,clipScale*modScale,speed,clamp);
+    row.verified=observed!="unavailable";
+    row.state=observed=="active"?"active":"inactive";
+    row.detail=observed=="active"?"Weapon raise speed exceeds its current normal configuration":
+        observed=="inactive"?"Weapon raise speed matches its current normal configuration":"Weapon animation has not reached a supported state";
     return row;
 }
 static bool fastDestroyerBladeArmed(int64_t once,int64_t nominal) { return once>0&&nominal>once&&nominal<=999960LL*60; }
@@ -268,7 +295,7 @@ static FastBladeTracker& fastBladeTracker() { static auto* tracker=new FastBlade
 static std::mutex& fastBladeTrackerMutex() { static auto* mutex=new std::mutex; return *mutex; }
 static SpeedrunTechSnapshot captureSpeedrunTechs(const WallMemory& memory,uintptr_t base,const GameProfile& profile,
                                                const LevelIdentity& level,const GraphLookup& lookup) {
-    SpeedrunTechSnapshot result; result.rows={{"bats","BATS","unavailable","Weapon animation metadata unavailable"},
+    SpeedrunTechSnapshot result; result.rows={{"bats","BATS","inactive","No accelerated weapon appearance observed"},
         {"fast_dblade","Fast DBlade","unavailable","Weapon charge metadata unavailable"}};
     auto& bats=result.rows[0]; auto& blade=result.rows[1];
     uintptr_t system=0,map=0,player=0,playerVtable=0; unsigned char removed=1;
@@ -350,7 +377,7 @@ static SpeedrunTechSnapshot captureSpeedrunTechs(const WallMemory& memory,uintpt
        !memory.get(listAddress+list->offset,finalData)||finalData!=data||!memory.get(listAddress+num->offset,finalCount)||finalCount!=count||
        !memory.get(ballistaLink+ptr->offset,finalBallista)||finalBallista!=ballista||!memory.get(ballistaLink+token->offset,finalToken)||finalToken!=ballistaToken||
        !memory.get(ballista+decl->offset,finalDecl)||finalDecl!=ballistaDecl) {
-        for(auto& row:result.rows) { row.state="unavailable"; row.detail="Player inventory changed during observation"; }
+        for(auto& row:result.rows) { row.state=row.key=="bats"?"inactive":"unavailable";row.verified=false;row.detail="Player inventory changed during observation"; }
         std::lock_guard<std::mutex> lock(fastBladeTrackerMutex()); fastBladeTracker().clear();
         return result;
     }

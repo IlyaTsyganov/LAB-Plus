@@ -13,9 +13,17 @@ internal static class Program
             Environment.SetEnvironmentVariable("LABPLUS_DATA_DIRECTORY", Path.Combine(Path.GetTempPath(), "labplus-preview-" + Guid.NewGuid().ToString("N")));
         }
         ApplicationConfiguration.Initialize();
+        bool preview = Environment.GetEnvironmentVariable("LABPLUS_PREVIEW") == "1";
+        using var instance = preview ? null : Game.SingleInstance.TryAcquire();
+        if (!preview && (instance is null || Game.SingleInstance.OlderInstanceRunning()))
+        {
+            MessageBox.Show(Game.SingleInstance.Warning, "LAB Plus", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+        }
         LabPlusTheme.Initialize();
         using var form = new MainForm();
         using var commands = Environment.GetEnvironmentVariable("LABPLUS_PREVIEW") == "1" ? null : new Game.LabCommandServer(form.ReceiveLabCommand);
+        form.FormClosing += (_, e) => { if (!e.Cancel) commands?.Stop(); };
         Application.Run(new WorkspaceApplicationContext(form));
         form.StopResearchOnExit();
     }

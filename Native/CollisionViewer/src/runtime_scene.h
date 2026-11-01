@@ -153,7 +153,7 @@ class RuntimeSceneManager {
                 if(generation.load()!=version) { version=generation.load(); level=requested; image=base; profile=requestedProfile; built=false; retryAt=0; scanner.resetHistory(); }
             }
             garbage.clear();
-            if(!profile) continue;
+            if(!profile) { research.finish(); continue; }
             try {
                 auto actualLevel=readLevelIdentity(memory,image,*profile);
                 Vec3 playerPosition{};
@@ -204,6 +204,13 @@ public:
         wake.notify_one();
     }
     void controlResearch(ResearchControl control) { std::lock_guard<std::mutex> lock(mutex); researchControl=std::move(control); }
+    void pause() {
+        std::lock_guard<std::mutex> lock(mutex);
+        if(!requestedProfile) return;
+        requestedProfile=nullptr;requested={};researchControl={};++generation;
+        if(world) retired.push_back(std::move(world));
+        entities.reset();researchRoute.reset();wake.notify_one();
+    }
     std::shared_ptr<const ResearchRoute> route() { std::lock_guard<std::mutex> lock(mutex); return researchRoute; }
     void retire(std::shared_ptr<const RuntimeScene> old) {
         if(!old) return;

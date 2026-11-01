@@ -155,7 +155,7 @@ class MeathookHud {
         InspectorPacket current;
         { std::lock_guard<std::mutex> lock(mutex); current=packet; }
         Phase state=Phase::Active;
-        if(!current.enabled||!current.profile) state=Phase::Disabled;
+        if((registered&&!labAppAvailable())||!current.enabled||!current.profile) state=Phase::Disabled;
         else if(GetTickCount64()-current.updated>500) state=Phase::Stale;
         else if(readLevelIdentity(WallMemory{},current.base,*current.profile)!=current.level) state=Phase::LevelChanged;
         else if(!gameplayVisible(WallMemory{},current.base,*current.profile)) state=Phase::Menu;

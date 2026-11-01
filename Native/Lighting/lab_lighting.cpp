@@ -1,6 +1,7 @@
 #define WIN32_LEAN_AND_MEAN
 #define VK_NO_PROTOTYPES
 #include <windows.h>
+#include "../CollisionViewer/src/app_lifetime.h"
 #include <vulkan/vulkan.h>
 #include <vulkan/vk_layer.h>
 #include <map>
@@ -41,7 +42,7 @@ bool enabled(){
                 if(GetProcessTimes(owner,&creation,&exit,&kernel,&user)){identity.LowPart=creation.dwLowDateTime;identity.HighPart=creation.dwHighDateTime;live=WaitForSingleObject(owner,0)==WAIT_TIMEOUT&&identity.QuadPart==_wcstoui64(started,nullptr,10);}
                 CloseHandle(owner);
             }
-        }requested=value&&live;
+        }requested=value&&live&&labAppAvailable();
         static HANDLE status=CreateEventW(nullptr,TRUE,FALSE,(L"Local\\LABPLUS.Lighting.Active."+std::to_wstring(GetCurrentProcessId())).c_str());
         if(status){if(requested.load())SetEvent(status);else ResetEvent(status);}
     }return requested.load();
