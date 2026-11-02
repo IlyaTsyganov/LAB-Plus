@@ -40,7 +40,7 @@ internal sealed class PracticeSaveAdvancedForm : LabPlusForm
         UiAction UiAction(string text, int width, Action action) { var button = new UiAction { Text = text, Size = new(width, 30), FlatStyle = FlatStyle.Flat, BackColor = Color.FromArgb(65, 65, 65), ForeColor = ForeColor, Margin = new(0, 0, 8, 0) }; button.Click += (_, _) => action(); _buttons.Add(button); return button; }
         var location = Bar(0); location.Controls.Add(new UiText { Text = "Steam saves", AutoSize = true, Margin = new(0, 6, 10, 0) }); location.Controls.Add(_remote);
         location.Controls.Add(UiAction("Browse…", 90, BrowseRemote)); location.Controls.Add(UiAction("Find", 65, Discover));
-        var actions = Bar(1); _slot.Items.AddRange(PracticeSaveVault.Slots); _slot.SelectedIndex = 0; actions.Controls.Add(_slot);
+        var actions = Bar(1); _slot.Items.AddRange(PracticeSaveSource.RuntimeBuild(_gameProcess()) is string build ? PracticeSaveSource.AvailableLiveSlots(build).ToArray() : PracticeSaveVault.Slots); _slot.SelectedIndex = 0; actions.Controls.Add(_slot);
         actions.Controls.Add(UiAction("Inspect slot", 120, () => _ = Inspect()));
         actions.Controls.Add(UiAction("Archive full slot", 160, () => _ = CaptureSlot()));
         actions.Controls.Add(UiAction("Recover backup pair…", 200, () => _ = Recover()));
@@ -53,7 +53,7 @@ internal sealed class PracticeSaveAdvancedForm : LabPlusForm
         var live = Bar(5); live.Controls.Add(UiAction("Archive with game open", 210, () => _ = CaptureLive()));
         live.Controls.Add(UiAction("Test current checkpoint reload…", 250, () => _ = TestReload()));
         live.Controls.Add(UiAction("Restore archive + reload…", 230, () => _ = RestoreLive()));
-        live.Controls.Add(new UiText { Text = "6.66 Rev 3 · TAG1 slot 3 · pause first", AutoSize = true, Margin = new(4, 5, 0, 0) });
+        live.Controls.Add(new UiText { Text = "audited patches · selected slot · pause first", AutoSize = true, Margin = new(4, 5, 0, 0) });
         layout.Controls.Add(_details, 0, 6); _details.BackColor = Color.FromArgb(45, 45, 45); _details.ForeColor = ForeColor;
         _grid.Dock = DockStyle.Fill; _grid.ReadOnly = true; _grid.AllowUserToAddRows = _grid.AllowUserToDeleteRows = false;
         _grid.MultiSelect = false; _grid.RowHeadersVisible = false; _grid.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
@@ -62,7 +62,7 @@ internal sealed class PracticeSaveAdvancedForm : LabPlusForm
             _grid.Columns.Add(new UiTableColumn { HeaderText = text, Width = width, SortMode = DataGridViewColumnSortMode.NotSortable });
         _grid.SelectionChanged += (_, _) => { if (!_populating) ShowSelected(); };
         layout.Controls.Add(_grid, 0, 7); layout.Controls.Add(_status, 0, 8);
-        layout.Controls.Add(new UiText { Dock = DockStyle.Fill, Font = new(Font.FontFamily, 9f), UseMnemonic = false, Text = "Archives retain the whole checkpoint slot, including both -BACKUP containers. Authentication cannot prove that scripts/progression are logically consistent.\nLive operations require pause and effective Cloud OFF (globally or per game); they are restricted to TAG1 slot 3 on 6.66 Rev 3.\nRestore archive + reload writes a verified live archive through Steam storage, retains all four originals, verifies disk/cache bytes and requests engine loading.\nAt 100% loading, press Space in game and pause again. Offline Review restore / recovery keep their closed-process guards; account ownership is never changed.\nArchives are completed disk checkpoints, not arbitrary RAM states. PROFILE and other slots are not replaced; Steam maintains its own file metadata." }, 0, 9);
+        layout.Controls.Add(new UiText { Dock = DockStyle.Fill, Font = new(Font.FontFamily, 9f), UseMnemonic = false, Text = "Archives retain the whole checkpoint slot, including both -BACKUP containers. Authentication cannot prove that scripts/progression are logically consistent.\nLive operations require pause and effective Cloud OFF (globally or per game); audited save/load adapters cover the installed audited patch profiles.\nRestore archive + reload writes a verified live archive through Steam storage, retains all four originals, verifies disk/cache bytes and requests engine loading.\nAt 100% loading, press Space in game and pause again. Offline Review restore / recovery keep their closed-process guards; account ownership is never changed.\nArchives are completed disk checkpoints, not arbitrary RAM states. PROFILE and other slots are not replaced; Steam maintains its own file metadata." }, 0, 9);
         if (context is not null) { _name.Text = context.Name; _category.Text = context.Category; _map.Text = context.Observation.Map; }
         _search.TextChanged += (_, _) => Populate(); Discover(); Reload();
     }
@@ -127,7 +127,7 @@ internal sealed class PracticeSaveAdvancedForm : LabPlusForm
         _ = LivePracticeBridge.RequestText(_gameProcess(), Guid.NewGuid().ToString("N"), DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(), "reload", SteamSaveLocation.Parse(remote), slot, cloud);
         var health = await Task.Run(() => _vault.Inspect(remote, slot)); if (!health.Authenticated) throw new IOException("All four current checkpoint containers must authenticate before the reload experiment.");
         if (IsDisposed) return;
-        if (WorkspaceDialog.Show(this, "Load the CURRENT primary checkpoint of TAG1 slot 3 through the engine?\nMovement and progress since the last checkpoint will be lost.\nNo archive files will be installed; this tests the engine loader only.\nKeep the game paused until the request starts. At 100% loading press Space, then pause again.", "Test current checkpoint reload", MessageBoxButtons.OKCancel, MessageBoxIcon.Information) != DialogResult.OK) return;
+        if (WorkspaceDialog.Show(this, "Load the CURRENT primary checkpoint of the selected slot through the engine?\nMovement and progress since the last checkpoint will be lost.\nNo archive files will be installed; this tests the engine loader only.\nKeep the game paused until the request starts. At 100% loading press Space, then pause again.", "Test current checkpoint reload", MessageBoxButtons.OKCancel, MessageBoxIcon.Information) != DialogResult.OK) return;
         _status.Text = "Waiting for checkpoint loading. At 100% press Space in game, then pause.";
         var result = await LivePracticeBridge.Execute(_directory, _gameProcess, "reload", remote, slot, cloud, p => { if (!IsDisposed && p.Phase == "loading") _status.Text = "Loading checkpoint: at 100% press Space in game, then pause."; });
         if (IsDisposed) return; _status.Text = result.Detail;
@@ -137,7 +137,7 @@ internal sealed class PracticeSaveAdvancedForm : LabPlusForm
     {
         if (Selected is not { } item) return; int process = _gameProcess(); string remote = _remote.Text, slot = _slot.Text; bool cloud = _cloud.Checked;
         var plan = await Task.Run(() => _vault.PlanLiveRestore(process, item.Id, remote, slot, cloud)); if (IsDisposed) return;
-        if (WorkspaceDialog.Show(this, plan.Description + "\n\nInstall this archive and reload the checkpoint?", "Review live training restore", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning) != DialogResult.OK) return;
+        if (WorkspaceDialog.Show(this, plan.Description + "\n\nInstall this archive and reload the checkpoint?", "Review in-game checkpoint restore", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning) != DialogResult.OK) return;
         await Task.Run(() => _vault.StageLiveRestore(_directory, plan)); if (IsDisposed) return;
         _details.Text = plan.Description; _status.Text = "Waiting for paused engine and Steam storage checks…";
         var result = await LivePracticeBridge.ExecuteRestore(_directory, _gameProcess, plan, cloud, p =>

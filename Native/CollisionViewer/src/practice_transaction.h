@@ -49,18 +49,20 @@ static void writePracticeFiles(const std::filesystem::path& path,const PracticeF
 }
 struct PracticeExpectedFile { uint64_t length=0; std::string hash; };
 struct PracticeRestorePlan {
-    std::string archive;
+    std::string archive,slot="DLC1-AUTOSAVE5",build="6.66 Rev 3";
     std::array<PracticeExpectedFile,4> targets,sources;
 };
-static PracticeRestorePlan readPracticeRestorePlan(const std::filesystem::path& bundle,const std::string& account,const std::string& token,DWORD process) {
+static PracticeRestorePlan readPracticeRestorePlan(const std::filesystem::path& bundle,const std::string& account,const std::string& token,DWORD process,const std::string& slot="DLC1-AUTOSAVE5",const std::string& build="6.66 Rev 3") {
     practiceNoLinks(bundle); auto path=bundle/L"plan.tsv"; practiceNoLinks(path);
     if(std::filesystem::file_size(path)>4096) throw std::runtime_error("Restore plan is too large.");
     std::ifstream in(path,std::ios::binary); std::string line,part; std::vector<std::string> header;
     if(!std::getline(in,line)) throw std::runtime_error("Restore plan missing."); std::istringstream fields(line);
     while(std::getline(fields,part,'\t')) header.push_back(part);
-    if(header.size()!=6||header[0]!="#LABPLUS_LIVE_RESTORE_PLAN_V1"||header[1]!=account||header[2]!="DLC1-AUTOSAVE5"||header[3]!=token||header[4]!=std::to_string(process)||!practiceToken(header[5]))
+    bool legacy=header.size()==6&&header[0]=="#LABPLUS_LIVE_RESTORE_PLAN_V1"&&slot=="DLC1-AUTOSAVE5"&&build=="6.66 Rev 3";
+    bool current=header.size()==7&&header[0]=="#LABPLUS_LIVE_RESTORE_PLAN_V2"&&header[6]==build;
+    if((!legacy&&!current)||!practiceSlot(slot)||header[1]!=account||header[2]!=slot||header[3]!=token||header[4]!=std::to_string(process)||!practiceToken(header[5]))
         throw std::runtime_error("Restore plan owner/slot/process/token mismatch.");
-    PracticeRestorePlan plan; plan.archive=header[5];
+    PracticeRestorePlan plan; plan.archive=header[5]; plan.slot=slot; plan.build=build;
     for(size_t i=0;i<8;++i) {
         if(!std::getline(in,line)) throw std::runtime_error("Incomplete restore target fingerprint.");
         std::istringstream row(line); std::string name,size,hash,extra;
@@ -82,7 +84,8 @@ struct PracticeStorageApi {
     std::function<bool(size_t,const std::vector<unsigned char>&)> write;
     std::function<PracticeFiles()> read;
 };
-static PracticeStorageApi practiceStorageApi() {
+static PracticeStorageApi practiceStorageApi(const std::string& slot="DLC1-AUTOSAVE5") {
+    if(!practiceSlot(slot)) throw std::runtime_error("Unsupported save slot.");
     auto module=GetModuleHandleW(L"steam_api64.dll"); if(!module) throw std::runtime_error("Steam storage unavailable.");
     using User=int(__cdecl*)(); using Find=void*(__cdecl*)(int,const char*);
     using Write=bool(__cdecl*)(void*,const char*,const void*,int); using Read=int(__cdecl*)(void*,const char*,void*,int); using Size=int(__cdecl*)(void*,const char*);
@@ -93,12 +96,12 @@ static PracticeStorageApi practiceStorageApi() {
     PracticeStorageApi api;
     api.write=[=](size_t index,const std::vector<unsigned char>& bytes) {
         if(index>=4||bytes.size()>64000000) return false;
-        auto path=std::string("DLC1-AUTOSAVE5/")+practiceFileKeys[index]; return write(storage,path.c_str(),bytes.data(),static_cast<int>(bytes.size()));
+        auto path=practiceStorageKey(slot,index); return write(storage,path.c_str(),bytes.data(),static_cast<int>(bytes.size()));
     };
     api.read=[=] {
         PracticeFiles files; uint64_t total=0;
         for(size_t i=0;i<4;++i) {
-            auto path=std::string("DLC1-AUTOSAVE5/")+practiceFileKeys[i]; int length=size(storage,path.c_str());
+            auto path=practiceStorageKey(slot,i); int length=size(storage,path.c_str());
             if(length<28||length>64000000||(total+=length)>128000000) throw std::runtime_error("Unsupported Steam checkpoint file size.");
             files[i].resize(static_cast<size_t>(length)); if(read(storage,path.c_str(),files[i].data(),length)!=length) throw std::runtime_error("Steam checkpoint read failed.");
         }
@@ -115,7 +118,8 @@ static PracticeCommitResult commitPracticeRestore(const std::filesystem::path& r
     const PracticeStorageApi& storage,const std::function<bool()>& stillIdle,const std::function<void(const char*)>& step={}) {
     practiceAuthenticate(incoming,account); practiceAuthenticate(current,account);
     if(!practiceToken(token)||!practiceTargetMatches(current,plan)||!practiceFilesMatch(incoming,plan.sources)) throw std::runtime_error("Archive or target checkpoint changed after review. Nothing restored.");
-    auto app=remote.parent_path(),target=remote/L"DLC1-AUTOSAVE5",original=app/(L".labplus-live-original-"+std::wstring(token.begin(),token.end()));
+    if(!practiceSlot(plan.slot)) throw std::runtime_error("Unsupported restore slot.");
+    auto app=remote.parent_path(),target=remote/std::filesystem::u8path(plan.slot),original=app/(L".labplus-live-original-"+std::wstring(token.begin(),token.end()));
     practiceNoLinks(app); practiceNoLinks(target); practiceNoLinks(original);
     if(std::filesystem::exists(original)||!storage.read||!storage.write) throw std::runtime_error("Restore transaction path already exists or storage unavailable.");
     if(storage.read()!=current||!stillIdle()) throw std::runtime_error("Steam storage and selected disk slot differ, or engine state changed. Nothing restored.");

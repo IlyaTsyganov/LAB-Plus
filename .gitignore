@@ -16,3 +16,4 @@ Native/Lighting/*.exp
 Native/Lighting/*.lib
 Tests/Tests/
 Native/CollisionViewer/tests/private/
+__pycache__/

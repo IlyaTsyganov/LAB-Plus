@@ -2,17 +2,19 @@ using System.Diagnostics;
 
 namespace LabPlus.Game;
 
-public sealed record LivePracticeResult(int Process, string Token, long Captured, string Phase, string Account, string Slot, string Map, string Checkpoint, string Detail)
+public sealed record LivePracticeResult(int Process, string Token, long Captured, string Phase, string Account, string Slot, string Map, string Checkpoint, string Detail, string Build = "6.66 Rev 3")
 {
     public static LivePracticeResult? Parse(string text)
     {
         if (text.Length > 8192 || text.TrimEnd('\r', '\n').Contains('\n')) return null;
         string[] h = text.TrimEnd('\r', '\n').Split('\t');
-        if (h.Length != 10 || h[0] != "#LABPLUS_LIVE_PRACTICE_V1" || !int.TryParse(h[1], out int process) || process <= 0 || !LevelStateSnapshot.ValidToken(h[2])
+        bool legacy = h.Length == 10 && h[0] == "#LABPLUS_LIVE_PRACTICE_V1";
+        bool current = h.Length == 11 && h[0] == "#LABPLUS_LIVE_PRACTICE_V2";
+        if ((!legacy && !current) || !int.TryParse(h[1], out int process) || process <= 0 || !LevelStateSnapshot.ValidToken(h[2])
             || !long.TryParse(h[3], out long epoch) || epoch is <= 0 or > 253402300799999 || h[4] is not ("waiting" or "archived" or "loading" or "reloaded" or "error")
             || h[5].Length != 17 || !ulong.TryParse(h[5], out ulong account) || account <= 76561197960265728UL || account > 76561197960265728UL + uint.MaxValue
-            || h[6] != "DLC1-AUTOSAVE5" || h[7].Length > 512 || h[8].Length > 1023 || h[9].Length > 2048 || h.Any(s => s.Any(char.IsControl))) return null;
-        return new(process, h[2], epoch, h[4], h[5], h[6], h[7], h[8], h[9]);
+            || (legacy ? h[6] != "DLC1-AUTOSAVE5" : !PracticeSaveVault.ValidSlot(h[6])) || h[7].Length > 512 || h[8].Length > 1023 || h[9].Length > 2048 || (current && h[10].Length is < 1 or > 64) || h.Any(s => s.Any(char.IsControl))) return null;
+        return new(process, h[2], epoch, h[4], h[5], h[6], h[7], h[8], h[9], current ? h[10] : "6.66 Rev 3");
     }
     public string CaptureFolder(string directory)
     {
@@ -26,9 +28,9 @@ public static class LivePracticeBridge
     {
         if (!cloudDisabled) throw new IOException("Confirm Steam Cloud is disabled for DOOM Eternal first.");
         if (process <= 0 || !LevelStateSnapshot.ValidToken(token) || operation is not ("archive" or "reload")) throw new IOException("Invalid live checkpoint request.");
-        if (slot != "DLC1-AUTOSAVE5") throw new IOException("This first live experiment supports TAG1 slot 3 (DLC1-AUTOSAVE5) only.");
+        if (!PracticeSaveVault.ValidSlot(slot)) throw new IOException("Unsupported campaign slot.");
         if (location.Remote.Any(char.IsControl)) throw new IOException("Unsupported save-folder path.");
-        return $"#LABPLUS_LIVE_PRACTICE_REQUEST_V1\t{process}\t{token}\t{now}\t{operation}\t{location.Account}\t{slot}\t{location.Remote}\n";
+        return $"#LABPLUS_LIVE_PRACTICE_REQUEST_V2\t{process}\t{token}\t{now}\t{operation}\t{location.Account}\t{slot}\t{location.Remote}\t*\n";
     }
     public static async Task<LivePracticeResult> Execute(string directory, Func<int> gameProcess, string operation, string remote, string slot, bool cloudDisabled, Action<LivePracticeResult>? progress = null)
     {
@@ -43,8 +45,8 @@ public static class LivePracticeBridge
         var location = SteamSaveLocation.Parse(plan.Remote);
         if (location.Account != plan.Account) throw new IOException("Live restore owner mismatch. Account mixing is blocked.");
         _ = plan.Bundle(directory);
-        string request = $"#LABPLUS_LIVE_PRACTICE_REQUEST_V1\t{plan.Process}\t{plan.Token}\t{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}\trestore\t{location.Account}\tDLC1-AUTOSAVE5\t{location.Remote}\n";
-        return await Submit(directory, gameProcess, "restore", location, "DLC1-AUTOSAVE5", plan.Process, plan.Token, request, progress);
+        string request = $"#LABPLUS_LIVE_PRACTICE_REQUEST_V2\t{plan.Process}\t{plan.Token}\t{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}\trestore\t{location.Account}\t{plan.Slot}\t{location.Remote}\t{plan.Build}\n";
+        return await Submit(directory, gameProcess, "restore", location, plan.Slot, plan.Process, plan.Token, request, progress);
     }
     private static async Task<LivePracticeResult> Submit(string directory, Func<int> gameProcess, string operation, SteamSaveLocation location, string slot, int process, string token, string request, Action<LivePracticeResult>? progress)
     {
@@ -52,14 +54,17 @@ public static class LivePracticeBridge
         string stem = Path.Combine(directory, $"practice-live-{process}"), path = stem + ".request";
         PracticeSaveVault.NoLinks(path); PracticeSaveVault.NoLinks(path + ".tmp");
         File.WriteAllText(path + ".tmp", request, new System.Text.UTF8Encoding(false)); File.Move(path + ".tmp", path, true);
+        IOException Interrupted(string reason) => new(operation == "restore"
+            ? reason + " Loading was not confirmed. Files may already be installed; if installation started, the original checkpoint is retained at " + Path.Combine(location.AppRoot, ".labplus-live-original-" + token)
+            : reason);
         long started = Environment.TickCount64, deadline = started + (operation == "archive" ? 15000 : 330000), reported = 0; bool received = false;
         while (Environment.TickCount64 < deadline)
         {
             await Task.Delay(100);
             if (!received && Environment.TickCount64 - started >= 15000) break;
-            if (gameProcess() != process) throw new IOException("Selected game process changed; live operation stopped.");
-            try { using var game = Process.GetProcessById(process); if (game.HasExited) throw new IOException("Game closed during live operation."); }
-            catch (ArgumentException) { throw new IOException("Game closed during live operation."); }
+            try { using var game = Process.GetProcessById(process); if (game.HasExited) throw Interrupted("Game closed during live operation."); }
+            catch (ArgumentException) { throw Interrupted("Game closed during live operation."); }
+            if (gameProcess() != process) throw Interrupted("Selected game process changed; live operation stopped.");
             string response = stem + ".tsv"; PracticeSaveVault.NoLinks(response);
             if (!File.Exists(response) || new FileInfo(response).Length > 8192) continue;
             var result = LivePracticeResult.Parse(await File.ReadAllTextAsync(response));

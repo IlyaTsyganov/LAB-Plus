@@ -69,41 +69,102 @@ static void transactionTests() {
 }
 struct Fixture {
     unsigned char* image=nullptr; uintptr_t base=0,system=0;
+    std::vector<unsigned char> entries=std::vector<unsigned char>(9*0xe0);
     std::vector<unsigned char> map=std::vector<unsigned char>(0x1c00),player=std::vector<unsigned char>(0x48000),ghost=std::vector<unsigned char>(0x80),users=std::vector<unsigned char>(0x30),record=std::vector<unsigned char>(0x100);
     std::array<uintptr_t,3> masterShared{},slotShared{}; std::array<unsigned char,16> master{}; uintptr_t list=0;
-    Fixture() {
-        image=static_cast<unsigned char*>(VirtualAlloc(nullptr,0x47cc000,MEM_COMMIT|MEM_RESERVE,PAGE_READWRITE)); expect(image!=nullptr,"fixture memory"); base=reinterpret_cast<uintptr_t>(image); system=base+0x45d82c0;
-        put(image,kProfile6663.gameSystemRva,system); put(reinterpret_cast<void*>(system),0x44,uint32_t(2)); put(reinterpret_cast<void*>(system),0x50,reinterpret_cast<uintptr_t>(map.data()));
-        put(map.data(),0x19c8,uint32_t(1)); put(map.data(),0x20,reinterpret_cast<uintptr_t>("game/dlc/e4m1_rig/e4m1_rig"));
-        put(map.data(),kProfile6663.mapPlayerOffset,reinterpret_cast<uintptr_t>(player.data())); put(player.data(),0,base+kProfile6663.playerVtableRva);
-        put(player.data(),kProfile6663.playerHudOffset+kProfile6663.hudPausedOffset,uint8_t(1));
-        put(reinterpret_cast<void*>(system),0x9b38,reinterpret_cast<uintptr_t>(ghost.data())); put(image,0x47cb468,reinterpret_cast<uintptr_t>(users.data()));
+    const PracticeProfile* adapter;
+    explicit Fixture(const PracticeProfile* selected=&practiceProfile6663):adapter(selected) {
+        image=static_cast<unsigned char*>(VirtualAlloc(nullptr,0x7000000,MEM_COMMIT|MEM_RESERVE,PAGE_READWRITE)); expect(image!=nullptr,"fixture memory"); base=reinterpret_cast<uintptr_t>(image); system=base+adapter->systemRva;
+        put(image,adapter->game->gameSystemRva,system); put(reinterpret_cast<void*>(system),0x44,uint32_t(2)); put(reinterpret_cast<void*>(system),0x50,reinterpret_cast<uintptr_t>(map.data()));
+        put(map.data(),adapter->mapTypeOffset,uint32_t(1)); put(map.data(),0x20,reinterpret_cast<uintptr_t>("game/dlc/e4m1_rig/e4m1_rig"));
+        put(map.data(),adapter->game->mapPlayerOffset,reinterpret_cast<uintptr_t>(player.data())); put(player.data(),0,base+adapter->game->playerVtableRva);
+        put(player.data(),adapter->game->playerHudOffset+adapter->game->hudPausedOffset,uint8_t(1));
+        put(reinterpret_cast<void*>(system),adapter->ghostOffset,reinterpret_cast<uintptr_t>(ghost.data())); put(image,adapter->usersRva,reinterpret_cast<uintptr_t>(users.data()));
         put(master.data(),4,uint32_t(42)); masterShared[1]=reinterpret_cast<uintptr_t>(master.data()); put(users.data(),0x18,reinterpret_cast<uintptr_t>(masterShared.data()));
+        put(entries.data(),2*0xe0+0x78,reinterpret_cast<uintptr_t>("AUTOSAVE5"));
+        put(record.data(),0x80,reinterpret_cast<uintptr_t>(entries.data())); put(record.data(),0x88,uint32_t(9));
         put(record.data(),0,uint32_t(42)); put(record.data(),8,uint32_t(2)); put(record.data(),24,reinterpret_cast<uintptr_t>("AUTOSAVE5"));
         slotShared[1]=reinterpret_cast<uintptr_t>(record.data()); list=reinterpret_cast<uintptr_t>(slotShared.data());
-        put(ghost.data(),0x70,reinterpret_cast<uintptr_t>(&list)); put(ghost.data(),0x78,uint64_t(1));
+        put(ghost.data(),adapter->slotsOffset,reinterpret_cast<uintptr_t>(&list)); put(ghost.data(),adapter->slotsOffset+8,uint64_t(1));
     }
-    PracticeRuntime read() { return readPracticeRuntime(WallMemory{},base,&kProfile6663); }
+    PracticeRuntime read() { return readPracticeRuntime(WallMemory{},base,adapter->game); }
     ~Fixture() { VirtualFree(image,0,MEM_RELEASE); }
 };
 int main(int argc,char** argv) {
-    if(argc==6&&strcmp(argv[1],"--plan")==0) {
+    if((argc==6||argc==8)&&strcmp(argv[1],"--plan")==0) {
         try {
-            auto plan=readPracticeRestorePlan(std::filesystem::u8path(argv[2]),argv[3],argv[4],static_cast<DWORD>(std::stoul(argv[5])));
+            auto plan=readPracticeRestorePlan(std::filesystem::u8path(argv[2]),argv[3],argv[4],static_cast<DWORD>(std::stoul(argv[5])),argc==8?argv[6]:"DLC1-AUTOSAVE5",argc==8?argv[7]:"6.66 Rev 3");
             auto incoming=readPracticeFiles(std::filesystem::u8path(argv[2])/L"incoming"); practiceAuthenticate(incoming,argv[3]);
             expect(practiceFilesMatch(incoming,plan.sources),"managed incoming files match native plan hashes");
             puts("PASS: managed staged plan accepted by production native parser, four incoming SHA-256/AES-GCM verified. No game/Steam calls or live save changes."); return 0;
         } catch(const std::exception& error) { fprintf(stderr,"FAIL: %s\n",error.what()); return 1; }
     }
     transactionTests();
+    expect(practiceRuntimeSlot("AUTOSAVE3")&&std::string(practiceRuntimeSlot("AUTOSAVE3")->slot)=="DLC1-AUTOSAVE3","canonical TAG1 folder mapping");
+    expect(!practiceRuntimeSlot("../AUTOSAVE3")&&!practiceRuntimeSlot("AUTOSAVE9"),"unsafe/unknown folder mapping rejected");
+    {
+        Fixture sparse;
+        put(sparse.entries.data(),3*0xe0+0x78,reinterpret_cast<uintptr_t>("AUTOSAVE5"));
+        put(sparse.record.data(),8,uint32_t(3)); put(sparse.record.data(),0x88,uint32_t(4));
+        expect(bool(sparse.read())&&sparse.read().slot=="DLC1-AUTOSAVE5","actual Rev 3 sparse save-list index 3 maps to AUTOSAVE5");
+        put(sparse.entries.data(),3*0xe0+0x78,reinterpret_cast<uintptr_t>("AUTOSAVE4"));expect(!sparse.read(),"selected list entry must match the exact current folder");
+        put(sparse.entries.data(),3*0xe0+0x78,reinterpret_cast<uintptr_t>("AUTOSAVE5"));
+        put(sparse.record.data(),0x88,uint32_t(3));expect(!sparse.read(),"out-of-range discovered-entry index rejected");
+        put(sparse.record.data(),0x88,uint32_t(100000));expect(!sparse.read(),"unbounded discovered-entry count rejected");
+    }
+    {
+        Fixture old(&practiceProfile11);
+        put(old.map.data(),0x20,reinterpret_cast<uintptr_t>("game/sp/e1m1_intro/e1m1_intro"));
+        put(old.entries.data(),0xe0+0x78,reinterpret_cast<uintptr_t>("AUTOSAVE1"));
+        put(old.record.data(),8,uint32_t(1)); put(old.record.data(),24,reinterpret_cast<uintptr_t>("AUTOSAVE1"));
+        auto current=old.read(); expect(bool(current)&&current.slot=="GAME-AUTOSAVE1","1.1 main campaign slot 2 accepted with its own ABI");
+        put(reinterpret_cast<void*>(old.system),0x9c38,uint32_t(1)); expect(!old.read(),"1.1 pending request blocks operations"); put(reinterpret_cast<void*>(old.system),0x9c38,uint32_t(0));
+        put(old.ghost.data(),0x40,uint64_t(1)); expect(!old.read(),"1.1 writer list blocks operations"); put(old.ghost.data(),0x40,uint64_t(0));
+        for(size_t i=0;i<5;++i) memcpy(old.image+practiceProfile11.methods[i],practiceProfile11.signatures[i].data(),16);
+        expect(practiceLoaderMatches(WallMemory{},old.base,&practiceProfile11),"1.1 loader method fingerprints accepted");
+        old.image[practiceProfile11.methods[0]]^=1;
+        expect(!practiceLoaderMatches(WallMemory{},old.base,&practiceProfile11),"1.1 changed loader rejected before any game call");
+        expect(practiceStorageKey("GAME-AUTOSAVE1",0)=="GAME-AUTOSAVE1/game.details","Steam storage key binds actual main slot");
+        expect(practiceProfile(&kProfile10)!=nullptr,"statically audited 1.0 save ABI is available");
+    }
+    for(auto adapter:practiceProfiles) {
+        Fixture item(adapter);
+        for(unsigned i=0;i<std::size(practiceSlots);++i) {
+            const auto& slot=practiceSlots[i];
+            const char* map=i<3?"game/sp/e1m1_intro/e1m1_intro":i<6?"game/dlc/e4m1_rig/e4m1_rig":"game/dlc2/e5m1_spear/e5m1_spear";
+            put(item.map.data(),0x20,reinterpret_cast<uintptr_t>(map));
+            put(item.record.data(),8,uint32_t((i*5+3)%9)); put(item.record.data(),24,reinterpret_cast<uintptr_t>(slot.folder));
+            put(item.entries.data(),((i*5+3)%9)*0xe0+0x78,reinterpret_cast<uintptr_t>(slot.folder));
+            auto value=item.read(); expect(bool(value)==(i<adapter->slotCount),"patch-specific DLC/slot availability");
+            if(value)expect(value.slot==slot.slot,"patch-specific slot identity preserved");
+            put(item.entries.data(),i*0xe0+0x78,reinterpret_cast<uintptr_t>(slot.folder));
+            put(item.record.data(),8,uint32_t(i));
+            auto global=item.read();expect(bool(global)==(i<adapter->slotCount),"save-list positions preserve patch DLC boundaries");
+            if(global)expect(global.slot==slot.slot,"save-list position does not select a physical folder");
+            if(i<3) {
+                put(item.map.data(),0x20,reinterpret_cast<uintptr_t>("game/hub/hub"));
+                expect(bool(item.read()),"Fortress of Doom belongs to the main campaign on each supported patch");
+                put(item.map.data(),0x20,reinterpret_cast<uintptr_t>("game/dlc/hub/hub"));
+                expect(!item.read(),"TAG1 hub cannot select a main campaign slot");
+                put(item.map.data(),0x20,reinterpret_cast<uintptr_t>("game/hub/hub/other"));
+                expect(!item.read(),"main hub exception requires the exact map name");
+            }
+        }
+        for(size_t i=0;i<5;++i)memcpy(item.image+adapter->methods[i],adapter->signatures[i].data(),16);
+        expect(practiceLoaderMatches(WallMemory{},item.base,adapter),"audited method entry fingerprints");
+        item.image[adapter->methods[0]]^=1;expect(!practiceLoaderMatches(WallMemory{},item.base,adapter),"changed method rejected");
+    }
     expect(practiceCloudDisabled(0,0),"Cloud disabled globally and per app");
     expect(practiceCloudDisabled(0,1),"global Cloud disable overrides enabled per-app preference");
     expect(practiceCloudDisabled(1,0),"per-app Cloud disable overrides global enable");
     expect(!practiceCloudDisabled(1,1),"Cloud enabled at both levels blocks live operations");
     expect(!practiceCloudDisabled(-1,0)&&!practiceCloudDisabled(0,-1)&&!practiceCloudDisabled(2,0),"unknown/invalid Cloud state blocked");
     Fixture f; expect(bool(f.read()),"idle paused TAG1 slot 3 accepted");
-    put(f.record.data(),8,uint32_t(1)); expect(!f.read(),"wrong slot index blocked"); put(f.record.data(),8,uint32_t(2));
-    put(f.record.data(),24,reinterpret_cast<uintptr_t>("AUTOSAVE4")); expect(!f.read(),"wrong slot name blocked"); put(f.record.data(),24,reinterpret_cast<uintptr_t>("AUTOSAVE5"));
+    put(f.entries.data(),0xe0+0x78,reinterpret_cast<uintptr_t>("AUTOSAVE5"));
+    put(f.record.data(),8,uint32_t(1)); expect(bool(f.read()),"in-range list index need not equal physical slot");
+    put(f.record.data(),8,uint32_t(9)); expect(!f.read(),"out-of-range selected entry blocked"); put(f.record.data(),8,uint32_t(2));
+    put(f.entries.data(),2*0xe0+0x78,reinterpret_cast<uintptr_t>("AUTOSAVE4"));
+    put(f.record.data(),24,reinterpret_cast<uintptr_t>("AUTOSAVE4")); expect(bool(f.read())&&!practiceRequestMatches(f.read(),"DLC1-AUTOSAVE5"),"different current folder blocks requested restore target"); put(f.record.data(),24,reinterpret_cast<uintptr_t>("AUTOSAVE5")); put(f.entries.data(),2*0xe0+0x78,reinterpret_cast<uintptr_t>("AUTOSAVE5"));
     put(f.map.data(),0x20,reinterpret_cast<uintptr_t>("game/dlc/e5m1_spear/e5m1_spear")); expect(!f.read(),"other DLC blocked"); put(f.map.data(),0x20,reinterpret_cast<uintptr_t>("game/dlc/e4m1_rig/e4m1_rig"));
     auto hud=kProfile6663.playerHudOffset+kProfile6663.hudPausedOffset;
     put(f.player.data(),hud,uint8_t(0)); expect(!f.read(),"running game blocked"); put(f.player.data(),hud,uint8_t(1));
@@ -112,11 +173,20 @@ int main(int argc,char** argv) {
     std::array<uintptr_t,3> task{0,1,0}; put(f.ghost.data(),0x60,reinterpret_cast<uintptr_t>(task.data())); expect(!f.read(),"async load blocked"); put(f.ghost.data(),0x60,uintptr_t(0));
     std::array<uintptr_t,2> jobs{0,1}; task[1]=reinterpret_cast<uintptr_t>(jobs.data()); put(f.ghost.data(),0x58,reinterpret_cast<uintptr_t>(task.data())); expect(!f.read(),"active writer blocked"); jobs[1]=0; expect(bool(f.read()),"completed writer queue accepted");
     put(f.master.data(),4,uint32_t(43)); expect(!f.read(),"missing master user blocked"); put(f.master.data(),4,uint32_t(42));
-    expect(!readPracticeRuntime(WallMemory{},f.base,&kProfile66632),"other game revision blocked");
+    auto unknownProfile=kProfile60; unknownProfile.timestamp^=1; expect(!readPracticeRuntime(WallMemory{},f.base,&unknownProfile),"unknown game revision blocked");
     expect(practiceRemote(L"C:\\Steam\\userdata\\10001\\782330\\remote",76561197960275729ULL),"matching Steam folder owner accepted");
     expect(!practiceRemote(L"C:\\Steam\\userdata\\10002\\782330\\remote",76561197960275729ULL),"foreign folder blocked");
     expect(!practiceRemote(L"C:\\Steam\\userdata\\10001\\782330\\..\\remote",76561197960275729ULL),"path traversal blocked");
     expect(!practiceToken("../../escape")&&practiceToken(std::string(32,'a')),"bounded opaque request token");
+    PracticeReloadReadiness ready;
+    expect(!ready.update(true,false,false,100)&&!ready.update(true,false,false,10000),"map identity before Space is not completed loading");
+    expect(!ready.update(true,true,true,11000),"first active-player frame starts stability observation");
+    expect(!ready.update(true,false,true,12999),"paused after Space still needs the stability interval");
+    expect(ready.update(true,false,true,13000),"verified player/session remains ready after a stable interval");
+    expect(!ready.update(false,false,false,14000)&&!ready.sawGameplay,"another transition resets gameplay observation");
+    expect(!ready.update(true,false,true,18000),"a paused loading prompt cannot reuse old gameplay evidence");
+    expect(!ready.update(true,true,true,19000)&&!ready.update(true,false,false,19500),"invalid session interrupts stability");
+    expect(!ready.update(true,false,true,22000)&&ready.update(true,false,true,24000),"verified session must regain a complete stability interval");
     bool transition=false;
     expect(!practiceReloadCompleted(transition,100,true,2,100,true,true)&&!transition,"queued load is not a map transition");
     expect(!practiceReloadCompleted(transition,100,true,2,100,false,true),"queue clearing is not completion");

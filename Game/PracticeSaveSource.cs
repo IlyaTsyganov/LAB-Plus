@@ -5,7 +5,29 @@ namespace LabPlus.Game;
 public static class PracticeSaveSource
 {
     public const string LiveSlot = "DLC1-AUTOSAVE5";
-    public static bool SupportsLive(PracticeSave save) => save.SourceSlot == LiveSlot && save.Build == "Live checkpoint copy; 6.66 Rev 3" && !save.FromBackupPair && save.Files.Count == 4;
+    public static bool SupportsBuild(string build) => build is "1.0" or "1.1" or "2.0" or "2.1" or "3.0" or "3.1" or "4.0" or "4.1" or "5.0" or "5.1" or "6.0" or "6.1" or "6.2" or "6.3" or "6.4" or "6.66" or "6.66 Rev 1" or "6.66 Rev 1.1" or "6.66 Rev 2" or "6.66 Rev 2.2" or "6.66 Rev 3" or "6.66 Rev 3.2";
+    public static int LiveSlotCount(string build) => build switch
+    {
+        "1.0" or "1.1" or "2.0" or "2.1" => 3,
+        "3.0" or "3.1" or "4.0" or "4.1" => 6,
+        _ when SupportsBuild(build) => 9,
+        _ => 0
+    };
+    public static bool SupportsSlot(string build, string slot) => Array.IndexOf(PracticeSaveVault.Slots, slot) is var index && index >= 0 && index < LiveSlotCount(build);
+    public static IEnumerable<string> AvailableLiveSlots(string build) => PracticeSaveVault.Slots.Take(LiveSlotCount(build));
+    public static string ArchiveBuild(string build) => "Live checkpoint copy; " + build;
+    public static string? LiveBuild(PracticeSave save) => save.Build.StartsWith("Live checkpoint copy; ", StringComparison.Ordinal) ? save.Build[22..] : null;
+    public static bool SupportsLive(PracticeSave save) => SupportsSlot(LiveBuild(save) ?? "", save.SourceSlot) && !save.FromBackupPair && save.Files.Count == 4;
+    public static string? RuntimeBuild(int process)
+    {
+        if (process <= 0) return null;
+        try
+        {
+            using var game = System.Diagnostics.Process.GetProcessById(process);
+            return game.MainModule?.FileName is string path ? GameExecutableInfo.Read(path)?.Version : null;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or InvalidOperationException or System.ComponentModel.Win32Exception) { return null; }
+    }
     public static string? Choose(IEnumerable<string> paths, string? runtimeAccount, string? activeAccount)
     {
         var locations = new List<SteamSaveLocation>();

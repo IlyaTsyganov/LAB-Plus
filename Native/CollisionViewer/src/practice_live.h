@@ -1,60 +1,84 @@
 #pragma once
+#include "practice_scope.h"
+#include "practice_profile.h"
 static uint64_t encounterEpochMillis();
 static std::string practiceClean(std::string text) {
     for(char& c:text) if(static_cast<unsigned char>(c)<32||c==127) c=' ';
     if(text.size()>2048) text.resize(2048); return text;
 }
-// Live checkpoint archival/restore experiment, restricted to TAG1 slot 3.
+// Live checkpoint archival/restore through explicit, patch-specific save/load adapters.
 // All Steam/engine calls, fixed-path file writes and quiescence checks run in
 // meathook's frame callback. Account ownership is never changed.
 struct PracticeRuntime {
     uintptr_t system=0,map=0,record=0;
-    uint32_t user=0,index=~0u;
-    std::string folder,level,error;
+    uint32_t user=0,entryIndex=~0u;
+    std::string folder,slot,level,error;
+    const PracticeProfile* adapter=nullptr;
     explicit operator bool() const { return error.empty()&&system&&map&&record; }
 };
 static PracticeRuntime readPracticeRuntime(const WallMemory& memory,uintptr_t base,const GameProfile* profile) {
     PracticeRuntime out;
     auto fail=[&](const char* message) { out.error=message; return out; };
-    if(!profile||profile->timestamp!=kProfile6663.timestamp||profile->imageSize!=kProfile6663.imageSize)
-        return fail("Live experiment requires audited DOOM Eternal 6.66 Rev 3.");
+    const auto* adapter=practiceProfile(profile); out.adapter=adapter;
+    if(!adapter) return fail("In-game saves require an audited save/load adapter for this patch.");
     uint32_t state=0,pending=~0u,type=0; unsigned char requested=1,paused=0,removed=1;
     uintptr_t ghost=0,globalGhost=0,users=0,master=0,shared=0,player=0,vt=0;
-    if(!memory.get(base+profile->gameSystemRva,out.system)||out.system!=base+0x45d82c0||
+    if(!memory.get(base+profile->gameSystemRva,out.system)||out.system!=base+adapter->systemRva||
        !memory.get(out.system+0x44,state)||state!=2||!memory.get(out.system+0x50,out.map)||!out.map)
-        return fail("Load the expendable TAG1 slot 3 first.");
-    if(!memory.get(out.map+0x19c8,type)||type!=1||!memory.get(out.map+0x20,shared)) return fail("Campaign map unavailable.");
+        return fail("Load the selected campaign slot first.");
+    if(!memory.get(out.map+adapter->mapTypeOffset,type)||type!=1||!memory.get(out.map+0x20,shared)) return fail("Campaign map unavailable.");
     out.level=readEntityText(memory,shared,512);
-    if(out.level.rfind("game/dlc/e4m",0)!=0) return fail("This first experiment is restricted to TAG1 maps.");
+
     if(!memory.get(out.map+profile->mapPlayerOffset,player)||!memory.get(player,vt)||vt!=base+profile->playerVtableRva||
        !memory.get(player+0xa4,removed)||removed||!memory.get(player+profile->playerHudOffset+profile->hudPausedOffset,paused)||paused!=1)
-        return fail("Pause the game in the expendable TAG1 slot 3.");
-    if(!memory.get(out.system+0x9ca8,pending)||pending||!memory.get(out.system+0xb8,requested)||requested)
+        return fail("Pause the game in the selected campaign slot.");
+    if(!memory.get(out.system+adapter->pendingOffset,pending)||pending||!memory.get(out.system+0xb8,requested)||requested)
         return fail("Engine save/map-change queue is busy. Wait on pause and retry.");
-    if(!memory.get(out.system+0x9b38,ghost)||!ghost||!memory.get(base+0x45e1df8,globalGhost)||ghost!=globalGhost)
+    if(!memory.get(out.system+adapter->ghostOffset,ghost)||!ghost||!memory.get(base+adapter->ghostRva,globalGhost)||ghost!=globalGhost)
         return fail("Save manager unavailable.");
-    for(auto offset:{0x50u,0x58u,0x60u}) {
-        uintptr_t task=0,object=0,count=0;
-        if(!memory.get(ghost+offset,task)||(task&&!memory.get(task+8,object))) return fail("Cannot read save task state.");
-        if(offset==0x58) {
-            if(object&&(!memory.get(object+8,count)||count)) return fail("Engine is still writing saves.");
-        } else if(object) return fail("Engine save/load task is busy.");
+    if(adapter->slotsOffset==0x68) {
+        // Legacy save manager: outstanding save work is a list, not a shared queue.
+        uint64_t writers=~0ULL;
+        if(!memory.get(ghost+0x40,writers)||writers) return fail("Engine save work is still queued.");
+        for(auto offset:{0x50u,0x58u}) {
+            uintptr_t task=0,object=0;
+            if(!memory.get(ghost+offset,task)||(task&&!memory.get(task+8,object))||object) return fail("Engine save/load task is busy.");
+        }
+    } else {
+        for(auto offset:{0x50u,0x58u,0x60u}) {
+            uintptr_t task=0,object=0,count=0;
+            if(!memory.get(ghost+offset,task)||(task&&!memory.get(task+8,object))) return fail("Cannot read save task state.");
+            if(offset==0x58) {
+                if(object&&(!memory.get(object+8,count)||count)) return fail("Engine is still writing saves.");
+            } else if(object) return fail("Engine save/load task is busy.");
+        }
     }
-    if(!memory.get(base+0x47cb468,users)||!memory.get(users+0x18,shared)||!shared||
+    if(!memory.get(base+adapter->usersRva,users)||!memory.get(users+0x18,shared)||!shared||
        !memory.get(shared+8,master)||!master||!memory.get(master+4,out.user)) return fail("Master local user unavailable.");
     uintptr_t data=0; uint64_t count=0;
-    if(!memory.get(ghost+0x70,data)||!memory.get(ghost+0x78,count)||count>8) return fail("User slot list unavailable.");
+    if(!memory.get(ghost+adapter->slotsOffset,data)||!memory.get(ghost+adapter->slotsOffset+8,count)||count>8) return fail("User slot list unavailable.");
     for(uint64_t i=0;i<count;++i) {
         uintptr_t object=0; uint32_t handle=0;
         if(!memory.get(data+i*8,shared)||!shared||!memory.get(shared+8,object)||!object||!memory.get(object,handle)) return fail("Unreadable user slot record.");
         if(handle!=out.user) continue;
         if(out.record) return fail("Ambiguous master user slot.");
         out.record=object+8;
-        if(!memory.get(out.record,out.index)||!memory.get(out.record+16,shared)) return fail("Current slot unavailable.");
+        if(!memory.get(out.record,out.entryIndex)||!memory.get(out.record+16,shared)) return fail("Current slot unavailable.");
         out.folder=readEntityText(memory,shared,64);
     }
-    if(out.index!=2||out.folder!="AUTOSAVE5") return fail("Current slot must be TAG1 slot 3 (DLC1-AUTOSAVE5).");
+    // This is an index into the user's discovered save entries, not a physical
+    // or campaign-relative slot number. Retail GetCurrentSlotInfo uses +0x80
+    // data / +0x88 count on the user object, with 0xe0-byte entries.
+    uintptr_t entries=0,entryFolder=0; uint32_t entryCount=0;
+    if(!out.record||!memory.get(out.record+0x78,entries)||!entries||!memory.get(out.record+0x80,entryCount)||entryCount>64||out.entryIndex>=entryCount||
+       !memory.get(entries+size_t(out.entryIndex)*0xe0+0x78,entryFolder)||readEntityText(memory,entryFolder,64)!=out.folder) return fail("Selected save-list entry is unavailable.");
+    auto scope=practiceRuntimeSlot(out.folder);
+    if(!scope||!practiceMapMatches(out.level,*scope)||!practiceSlotAvailable(scope->slot,adapter->slotCount)) return fail("Current campaign and slot do not match.");
+    out.slot=scope->slot;
     return out;
+}
+static bool practiceRequestMatches(const PracticeRuntime& state,const std::string& requestedSlot) {
+    return bool(state)&&state.slot==requestedSlot;
 }
 static bool practiceCloudDisabled(int accountEnabled,int appEnabled) {
     return accountEnabled>=0&&accountEnabled<=1&&appEnabled>=0&&appEnabled<=1&&!(accountEnabled&&appEnabled);
@@ -130,51 +154,56 @@ static std::array<std::vector<unsigned char>,4> readPracticeFiles(const std::fil
     return result;
 }
 #include "practice_transaction.h"
-static bool practiceLoaderMatches(const WallMemory& memory,uintptr_t base) {
-    struct Signature { uintptr_t rva; std::array<unsigned char,16> bytes; };
-    static const Signature signatures[]{
-        {0x6682c0,{0x48,0x83,0xec,0x28,0x48,0x8b,0x05,0x9d,0x31,0x16,0x04,0x4c,0x8b,0x40,0x18,0x4d}},
-        {0x3f5c00,{0x48,0x8d,0x05,0xe1,0x2a,0x66,0x02,0xc7,0x41,0x14,0x14,0x00,0x00,0x80,0x48,0x89}},
-        {0x3f6190,{0x48,0x8b,0x52,0x08,0xe9,0x77,0x01,0x00,0x00,0xcc,0xcc,0xcc,0xcc,0xcc,0xcc,0xcc}},
-        {0x3f83c0,{0x40,0x53,0x48,0x83,0xec,0x20,0x45,0x33,0xc9,0x41,0xb0,0x01,0x48,0x8b,0xd9,0x41}},
-        {0x3f5fd0,{0x40,0x53,0x48,0x83,0xec,0x20,0x48,0x8b,0x51,0x08,0x48,0x8d,0x05,0x07,0x27,0x66}}
-    };
-    for(const auto& signature:signatures) { std::array<unsigned char,16> bytes{}; if(!memory.read(base+signature.rva,bytes.data(),bytes.size())||bytes!=signature.bytes) return false; }
+static bool practiceLoaderMatches(const WallMemory& memory,uintptr_t base,const PracticeProfile* adapter=&practiceProfile6663) {
+    if(!adapter)return false;
+    for(size_t i=0;i<adapter->methods.size();++i) { std::array<unsigned char,16> bytes{}; if(!memory.read(base+adapter->methods[i],bytes.data(),bytes.size())||bytes!=adapter->signatures[i]) return false; }
     return true;
 }
 // Mirrors the audited RequestRestartMission parameter construction, with b9=0
 // to load PRIMARY checkpoint files. No patching of game code or save contents.
 static bool requestPracticeReload(const WallMemory& memory,uintptr_t base,const PracticeRuntime& state) {
-    if(!practiceLoaderMatches(memory,base)) return false;
+    auto adapter=state.adapter; if(!practiceLoaderMatches(memory,base,adapter)) return false;
     alignas(16) std::array<unsigned char,192> parms{};
     using StringMethod=void(__fastcall*)(void*); using Assign=void(__fastcall*)(void*,const void*);
-    auto construct=reinterpret_cast<StringMethod>(base+0x3f5c00),destroy=reinterpret_cast<StringMethod>(base+0x3f5fd0);
-    auto clear=reinterpret_cast<StringMethod>(base+0x3f83c0); auto assign=reinterpret_cast<Assign>(base+0x3f6190);
+    auto construct=reinterpret_cast<StringMethod>(base+adapter->methods[1]),destroy=reinterpret_cast<StringMethod>(base+adapter->methods[4]);
+    auto clear=reinterpret_cast<StringMethod>(base+adapter->methods[3]); auto assign=reinterpret_cast<Assign>(base+adapter->methods[2]);
     for(size_t i=0;i<3;++i) construct(parms.data()+i*48);
     assign(parms.data(),reinterpret_cast<void*>(state.record+8)); clear(parms.data()+48);
-    bool valid=memory.read(state.map+0x196c,parms.data()+0x90,8)&&memory.read(state.map+0x19c8,parms.data()+0x98,4)&&memory.read(state.map+0x19d8,parms.data()+0xa0,8);
-    if(valid) reinterpret_cast<void(__fastcall*)(void*,const void*)>(base+0x6682c0)(reinterpret_cast<void*>(state.system),parms.data());
+    bool valid=memory.read(state.map+0x196c,parms.data()+0x90,8)&&memory.read(state.map+adapter->mapTypeOffset,parms.data()+0x98,4)&&(!adapter->mapExtraOffset||memory.read(state.map+adapter->mapExtraOffset,parms.data()+0xa0,8));
+    if(valid) reinterpret_cast<void(__fastcall*)(void*,const void*)>(base+adapter->methods[0])(reinterpret_cast<void*>(state.system),parms.data());
     for(int i=2;i>=0;--i) destroy(parms.data()+size_t(i)*48);
     return valid;
 }
-static bool practiceReloadCompleted(bool& sawTransition,uintptr_t originalMap,bool readable,uint32_t state,uintptr_t map,bool requested,bool validTag1Level) {
+static bool practiceReloadCompleted(bool& sawTransition,uintptr_t originalMap,bool readable,uint32_t state,uintptr_t map,bool requested,bool validCampaignLevel) {
     // A queued request alone does not prove that the previous map unloaded.
     if(readable&&(state!=2||map!=originalMap)) sawTransition=true;
-    return sawTransition&&readable&&state==2&&!requested&&validTag1Level;
+    return sawTransition&&readable&&state==2&&!requested&&validCampaignLevel;
 }
+struct PracticeReloadReadiness {
+    bool sawGameplay=false;
+    ULONGLONG readySince=0;
+    bool update(bool transitioned,bool gameplay,bool verifiedSession,ULONGLONG now) {
+        if(!transitioned) { sawGameplay=false; readySince=0; return false; }
+        if(gameplay) sawGameplay=true;
+        if(!sawGameplay||!verifiedSession) { readySince=0; return false; }
+        if(!readySince) readySince=now;
+        return now-readySince>=2000;
+    }
+};
 class PracticeLiveBridge {
-    std::string seen,token,operation,account,checkpoint,cloudDetail,recoveryDetail; std::filesystem::path remote;
+    std::string seen,token,operation,account,slot,build,checkpoint,cloudDetail,recoveryDetail; std::filesystem::path remote;
     uint64_t requested=0; ULONGLONG idleSince=0,nextPoll=0,loadingSince=0; uintptr_t originalMap=0;
     bool loading=false,sawTransition=false;
+    PracticeReloadReadiness readiness;
     void result(const std::filesystem::path& directory,const std::string& phase,const std::string& detail,const std::string& level="") {
         auto path=directory/(L"practice-live-"+std::to_wstring(GetCurrentProcessId())+L".tsv"),temporary=path; temporary+=L".tmp";
         std::ofstream out(temporary,std::ios::binary|std::ios::trunc);
-        out<<"#LABPLUS_LIVE_PRACTICE_V1\t"<<GetCurrentProcessId()<<'\t'<<token<<'\t'<<encounterEpochMillis()<<'\t'<<phase<<'\t'<<account<<"\tDLC1-AUTOSAVE5\t"<<practiceClean(level)<<'\t'<<practiceClean(checkpoint)<<'\t'<<practiceClean(detail+(cloudDetail.empty()?"":" "+cloudDetail)+recoveryDetail)<<'\n';
+        out<<"#LABPLUS_LIVE_PRACTICE_V2\t"<<GetCurrentProcessId()<<'\t'<<token<<'\t'<<encounterEpochMillis()<<'\t'<<phase<<'\t'<<account<<'\t'<<slot<<'\t'<<practiceClean(level)<<'\t'<<practiceClean(checkpoint)<<'\t'<<practiceClean(detail+(cloudDetail.empty()?"":" "+cloudDetail)+recoveryDetail)<<'\t'<<build<<'\n';
         out.close(); if(out) MoveFileExW(temporary.c_str(),path.c_str(),MOVEFILE_REPLACE_EXISTING);
     }
 public:
     void update(const GameProfile* profile) {
-        if(!labAppAvailable()||GetTickCount64()<nextPoll) return; nextPoll=GetTickCount64()+100;
+        if(!labAppAvailable()||GetTickCount64()<nextPoll) return; nextPoll=GetTickCount64()+(loading?16:100);
         const auto directory=researchDirectory(); if(directory.empty()) return;
         auto base=reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr)); WallMemory memory;
         try {
@@ -182,10 +211,14 @@ public:
                 uintptr_t system=0,map=0; uint32_t state=0; unsigned char change=0;
                 bool readable=profile&&memory.get(base+profile->gameSystemRva,system)&&memory.get(system+0x44,state)&&memory.get(system+0x50,map)&&memory.get(system+0xb8,change);
                 auto level=profile?readLevelIdentity(memory,base,*profile):LevelIdentity{};
-                if(practiceReloadCompleted(sawTransition,originalMap,readable,state,map,change!=0,level&&level.name.rfind("game/dlc/e4m",0)==0)) {
+                bool transitioned=practiceReloadCompleted(sawTransition,originalMap,readable,state,map,change!=0,level&&practiceSlot(slot)&&practiceMapMatches(level.name,*practiceSlot(slot)));
+                bool gameplay=transitioned&&gameplayVisible(memory,base,*profile);
+                auto paused=transitioned&&!gameplay?readPracticeRuntime(memory,base,profile):PracticeRuntime{};
+                bool verified=gameplay||(paused&&paused.map==level.map&&paused.slot==slot);
+                if(readiness.update(transitioned,gameplay,verified,GetTickCount64())) {
                     auto layout=std::atomic_load(&checkpointMetadata);
                     auto loaded=layout?readLoadedCheckpoint(memory,level.map,level.name,*layout):CheckpointObservation{};
-                    checkpoint=loaded.name; result(directory,"reloaded",operation=="restore"?"Archive installed through Steam storage; engine map transition completed.":"Engine map transition completed. No save files were replaced.",level.name); loading=false; token.clear();
+                    checkpoint=loaded.name; result(directory,"reloaded",operation=="restore"?"Archive installed through Steam storage; engine map transition and active-player stability checks completed.":"Engine map transition and active-player stability checks completed. No save files were replaced.",level.name); loading=false; token.clear();
                 } else if(GetTickCount64()-loadingSince>300000) {
                     result(directory,"error",operation=="restore"?"Archive files were installed but engine completion was not observed. Use retained Original if recovery is needed.":"Engine reload was requested but completion was not observed."); loading=false; token.clear();
                 }
@@ -197,18 +230,20 @@ public:
                 std::ifstream in(path,std::ios::binary); std::string line; if(!std::getline(in,line)) return;
                 std::vector<std::string> values; std::istringstream split(line); std::string part;
                 while(std::getline(split,part,'\t')) values.push_back(part);
-                if(values.size()!=8||values[0]!="#LABPLUS_LIVE_PRACTICE_REQUEST_V1"||values[1]!=std::to_string(GetCurrentProcessId())||
-                   !practiceToken(values[2])||values[2]==seen||(values[4]!="archive"&&values[4]!="reload"&&values[4]!="restore")||values[6]!="DLC1-AUTOSAVE5") return;
+                if(values.size()!=9||values[0]!="#LABPLUS_LIVE_PRACTICE_REQUEST_V2"||values[1]!=std::to_string(GetCurrentProcessId())||
+                   !practiceToken(values[2])||values[2]==seen||(values[4]!="archive"&&values[4]!="reload"&&values[4]!="restore")||!practiceSlot(values[6])) return;
                 auto number=[](const std::string& value) { return !value.empty()&&value.size()<=20&&std::all_of(value.begin(),value.end(),[](char c) { return c>='0'&&c<='9'; }); };
                 if(!number(values[3])||!number(values[5])) return;
                 requested=std::stoull(values[3]); auto now=encounterEpochMillis();
                 if(requested>now+2000||now>requested+10000) { seen=values[2]; return; }
-                token=seen=values[2]; operation=values[4]; account=values[5]; checkpoint.clear(); cloudDetail.clear(); recoveryDetail.clear(); idleSince=0;
+                token=seen=values[2]; operation=values[4]; account=values[5]; slot=values[6]; build=practiceProfile(profile)?practiceProfile(profile)->version:"unsupported";
+                if(values[8]!="*"&&values[8]!=build) { result(directory,"error","Archive patch does not match the running game. Original untouched."); token.clear(); return; } checkpoint.clear(); cloudDetail.clear(); recoveryDetail.clear(); idleSince=0;
                 remote=std::filesystem::u8path(values[7]);
             }
             if(encounterEpochMillis()>requested+10000) { result(directory,"error","Checkpoint writing did not become idle while paused within ten seconds."); token.clear(); return; }
             auto state=readPracticeRuntime(memory,base,profile);
             if(!state) { result(directory,"error",state.error); token.clear(); return; }
+            if(!practiceRequestMatches(state,slot)) { result(directory,"error","Requested slot is not the currently loaded campaign slot."); token.clear(); return; }
             auto steam=readPracticeSteam();
             cloudDetail="Steam Cloud flags: account="+std::to_string(steam.cloudAccount)+", app="+std::to_string(steam.cloudApp)+".";
             if(!steam.account||std::to_string(steam.account)!=account||!practiceRemote(remote,steam.account)) {
@@ -221,14 +256,14 @@ public:
             if(!idleSince) { idleSince=GetTickCount64(); originalMap=state.map; result(directory,"waiting","Checking that checkpoint writing stays idle for 500 ms.",state.level); return; }
             if(originalMap!=state.map) { result(directory,"error","Map changed during preparation."); token.clear(); return; }
             if(GetTickCount64()-idleSince<500) return;
-            auto files=readPracticeFiles(remote/L"DLC1-AUTOSAVE5");
+            auto files=readPracticeFiles(remote/std::filesystem::u8path(slot));
             auto after=readPracticeRuntime(memory,base,profile);
-            if(!after||after.map!=state.map||after.record!=state.record||after.user!=state.user) throw std::runtime_error("Engine state changed during checkpoint read.");
+            if(!after||after.map!=state.map||after.record!=state.record||after.user!=state.user||after.slot!=state.slot) throw std::runtime_error("Engine state changed during checkpoint read.");
             auto layout=std::atomic_load(&checkpointMetadata);
             auto loaded=layout?readLoadedCheckpoint(memory,state.map,state.level,*layout):CheckpointObservation{}; checkpoint=loaded.name;
             if(operation=="archive") {
                 practiceAuthenticate(files,account);
-                if(practiceStorageApi().read()!=files) throw std::runtime_error("Steam storage cache and selected disk checkpoint differ. No archive created.");
+                if(practiceStorageApi(slot).read()!=files) throw std::runtime_error("Steam storage cache and selected disk checkpoint differ. No archive created.");
                 auto output=directory/L"live-practice"/std::to_wstring(GetCurrentProcessId())/token/L"slot";
                 practiceNoLinks(output); if(std::filesystem::exists(output)) throw std::runtime_error("Capture destination already exists.");
                 std::filesystem::create_directories(output);
@@ -237,21 +272,21 @@ public:
                 result(directory,"archived","Completed checkpoint copied after native authentication and disk/Steam consistency checks. Companion must verify the copy.",state.level); token.clear();
             } else {
                 if(operation=="restore") {
-                    if(!practiceLoaderMatches(memory,base)) throw std::runtime_error("Audited engine loader signatures did not match; original slot untouched.");
+                    if(!practiceLoaderMatches(memory,base,state.adapter)) throw std::runtime_error("Audited engine loader signatures did not match; original slot untouched.");
                     auto bundle=directory/L"live-practice"/L"restore-pending"/std::to_wstring(GetCurrentProcessId())/token;
-                    auto plan=readPracticeRestorePlan(bundle,account,token,GetCurrentProcessId());
+                    auto plan=readPracticeRestorePlan(bundle,account,token,GetCurrentProcessId(),slot,build);
                     auto incoming=readPracticeFiles(bundle/L"incoming");
                     auto stillIdle=[&] {
                         auto check=readPracticeRuntime(memory,base,profile); auto owner=readPracticeSteam();
-                        return check&&check.map==state.map&&check.record==state.record&&check.user==state.user&&owner.account==steam.account&&owner.cloudDisabled;
+                        return check&&check.map==state.map&&check.record==state.record&&check.user==state.user&&check.slot==slot&&owner.account==steam.account&&owner.cloudDisabled;
                     };
-                    commitPracticeRestore(remote,bundle,incoming,files,plan,account,token,practiceStorageApi(),stillIdle,[&](const char* step) {
+                    commitPracticeRestore(remote,bundle,incoming,files,plan,account,token,practiceStorageApi(slot),stillIdle,[&](const char* step) {
                         if(strcmp(step,"backed_up")==0) recoveryDetail=" Original retained: "+(remote.parent_path()/(L".labplus-live-original-"+std::wstring(token.begin(),token.end()))).u8string()+". Recovery journal: "+(bundle/L"RESTORE_PATHS.txt").u8string()+".";
                     });
                     if(!stillIdle()) throw std::runtime_error("Files installed, but engine/account/Cloud changed before reload. Original retained; do not continue until reviewed.");
                 }
                 if(!requestPracticeReload(memory,base,state)) throw std::runtime_error("Audited engine-loader signatures or load parameters did not match.");
-                loading=true; loadingSince=GetTickCount64(); sawTransition=false; originalMap=state.map;
+                loading=true; loadingSince=GetTickCount64(); sawTransition=false; readiness={}; originalMap=state.map;
                 result(directory,"loading",operation=="restore"?"Archive files installed and verified through Steam storage. Loading PRIMARY checkpoint; press Space in game if loading reaches 100%.":"Requested PRIMARY checkpoint through the engine. No save files replaced. Press Space in game if loading reaches 100%.",state.level);
                 // Keep the request token until asynchronous completion is reported.
             }

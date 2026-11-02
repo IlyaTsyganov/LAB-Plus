@@ -31,14 +31,14 @@ int wmain(int argc,wchar_t** argv) {
         printf("Player body origin valid=%d position=(%.3f, %.3f, %.3f)\n",playerValid,playerPosition.x,playerPosition.y,playerPosition.z);
         if(practiceOnly||practiceFiles) {
             auto state=readPracticeRuntime(memory,base,profile);
-            printf("Live practice read-only guard: valid=%d user=%u index=%u folder=%s map=%s error=%s\n",bool(state),state.user,state.index,state.folder.c_str(),state.level.c_str(),state.error.c_str());
-            bool signatures=practiceLoaderMatches(memory,base); printf("Audited loader signatures: %d\n",signatures);
+            printf("Live practice read-only guard: valid=%d user=%u entryIndex=%u slot=%s folder=%s map=%s error=%s\n",bool(state),state.user,state.entryIndex,state.slot.c_str(),state.folder.c_str(),state.level.c_str(),state.error.c_str());
+            bool signatures=practiceLoaderMatches(memory,base,state.adapter); printf("Audited loader signatures: %d\n",signatures);
             if(!state||!signatures) throw std::runtime_error("Live-practice read-only validation failed");
             if(practiceFiles) {
-                auto files=readPracticeFiles(std::filesystem::path(argv[3])/L"DLC1-AUTOSAVE5");
+                auto files=readPracticeFiles(std::filesystem::path(argv[3])/std::filesystem::u8path(state.slot));
                 printf("Read-only production file reader: %zu / %zu / %zu / %zu bytes. No disk copy or replacement performed.\n",files[0].size(),files[1].size(),files[2].size(),files[3].size());
             }
-            puts(practiceFiles?"PASS: real paused TAG1 slot 3 and its four files read without engine/Steam calls or save changes.":"PASS: real paused TAG1 slot 3 passes production reader and loader fingerprints. No engine/Steam calls and no save-file access.");
+            puts(practiceFiles?"PASS: real paused selected slot and its four files read without engine/Steam calls or save changes.":"PASS: real paused selected slot passes production reader and loader fingerprints. No engine/Steam calls and no save-file access.");
             CloseHandle(process); return 0;
         }
         if(graphOnly||triggerPathsOnly||playerOnly||stateOnly||pointOnly) {

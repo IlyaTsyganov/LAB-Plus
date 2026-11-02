@@ -1,3 +1,11 @@
+# LAB Plus 1.0.1
+
+Minor save/load fixes.
+
+[Validation and known issues](https://github.com/IlyaTsyganov/LAB-Plus/blob/v1.0.1/docs/validation/checkpoint-patch-matrix.md).
+
+---
+
 # LAB Plus 1.0
 
 Updated Windows x64 release of LAB Plus with the latest fixes and stability improvements.

@@ -9,6 +9,20 @@ static void Check(bool condition, string message)
 }
 
 // Explicit acceptance modes. The normal fixture run never calls the game/Steam.
+// Read-only container framing diagnostics; never prints account identifiers or save payload strings.
+if (args.Length == 2 && args[0] == "--archive-layout")
+{
+    string directory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "labplus");
+    var save = new PracticeSaveVault(directory).Verify(args[1]);
+    Console.WriteLine($"Archive layout: {save.Build}; {save.SourceSlot}; {save.Id}");
+    foreach (string name in PracticeSaveVault.RequiredFiles)
+    {
+        byte[] plain = SteamSaveContainer.Open(File.ReadAllBytes(Path.Combine(directory, "practice-saves", save.Id, "slot", name)), save.Account, name);
+        Console.WriteLine($"{name}: plainLength={plain.Length}; header={Convert.ToHexStringLower(plain.AsSpan(0, Math.Min(64, plain.Length)))}");
+    }
+    return 0;
+}
+
 if (args.Length == 2 && args[0] == "--numbers-snapshot")
 {
     var snapshot = InvisibleNumbersSnapshot.Parse(File.ReadAllLines(args[1]));
@@ -33,7 +47,7 @@ if (args.Length == 4 && args[0] is "--live-restore" or "--live-restore-plan" or 
 {
     Check(int.TryParse(args[1], out int process) && process > 0, "Expected running game PID");
     string directory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "labplus"); var vault = new PracticeSaveVault(directory);
-    var plan = vault.PlanLiveRestore(process, args[3], args[2], "DLC1-AUTOSAVE5", true);
+    var plan = vault.PlanLiveRestore(process, args[3], args[2], vault.Verify(args[3]).SourceSlot, true);
     Console.WriteLine(plan.Description); if (args[0] == "--live-restore-plan") { Console.WriteLine("PLAN ONLY: no request sent and no checkpoint files changed."); return 0; }
     vault.StageLiveRestore(directory, plan);
     if (args[0] == "--live-restore-stage") { Console.WriteLine($"STAGE ONLY: token={plan.Token}; account={plan.Account}; bundle={plan.Bundle(directory)}"); return 0; }
@@ -42,13 +56,13 @@ if (args.Length == 4 && args[0] is "--live-restore" or "--live-restore-plan" or 
     Console.WriteLine(result.Detail); Console.WriteLine("Original checkpoint: " + plan.Original); return 0;
 }
 // Explicit live acceptance driver: uses the SAME production protocol as the UI.
-// Restricted by native runtime checks to TAG1 slot 3, Steam owner and Cloud off.
-if (args.Length == 5 && args[0] == "--live-practice")
+// Native runtime pins the active campaign slot, audited patch, Steam owner and Cloud off.
+if (args.Length is 5 or 6 && args[0] == "--live-practice")
 {
     Check(int.TryParse(args[1], out int process) && process > 0, "Expected live game PID");
     Check(args[2] is "archive" or "reload", "Expected archive or reload");
     string directory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "labplus");
-    var result = await LivePracticeBridge.Execute(directory, () => ProcessExists(process) ? process : 0, args[2], args[3], "DLC1-AUTOSAVE5", true);
+    var result = await LivePracticeBridge.Execute(directory, () => ProcessExists(process) ? process : 0, args[2], args[3], args.Length == 6 ? args[5] : "DLC1-AUTOSAVE5", true);
     Console.WriteLine($"Live operation: {result.Phase}; PID {result.Process}; map {result.Map}; loaded checkpoint {result.Checkpoint}; token {result.Token}");
     Console.WriteLine(result.Detail);
     if (args[2] == "archive")
@@ -346,6 +360,7 @@ try
     LevelStateChecks.Run(temporary);
     BookmarkSaveChecks.Run(temporary);
     LivePracticeChecks.Run(temporary);
+    CampaignSaveChecks.Run(temporary);
     FirewallSourceChecks.Run(temporary);
     return 0;
 }

@@ -15,7 +15,8 @@ internal static class LivePracticeChecks
         Check(LivePracticeResult.Parse(response + "another row\n") is null, "Extra response data accepted");
         Reject(() => LivePracticeBridge.RequestText(1234, token, now, "archive", location, "DLC1-AUTOSAVE5", false), "Cloud acknowledgment missing");
         Reject(() => LivePracticeBridge.RequestText(1234, token, now, "restore", location, "DLC1-AUTOSAVE5", true), "Unimplemented live replacement exposed");
-        Reject(() => LivePracticeBridge.RequestText(1234, token, now, "archive", location, "DLC1-AUTOSAVE4", true), "Other training slot accepted");
+        Check(LivePracticeBridge.RequestText(1234, token, now, "archive", location, "GAME-AUTOSAVE1", true).Contains("\tGAME-AUTOSAVE1\t"), "Main campaign request lost slot");
+        Reject(() => LivePracticeBridge.RequestText(1234, token, now, "archive", location, "../escape", true), "Unsafe live slot accepted");
         string request = LivePracticeBridge.RequestText(1234, token, now, "reload", location, "DLC1-AUTOSAVE5", true); Check(request.Contains("\treload\t"), "Reload request malformed");
         string copy = capture.CaptureFolder(directory); Directory.CreateDirectory(copy);
         foreach (string name in PracticeSaveVault.RequiredFiles) File.WriteAllBytes(Path.Combine(copy, name), SteamSaveContainer.Seal(Encoding.UTF8.GetBytes("live fixture " + name), location.Account, name));
@@ -47,6 +48,51 @@ internal static class LivePracticeChecks
         string file = Path.Combine(copy, "game.details"); byte[] changed = File.ReadAllBytes(file); changed[^1] ^= 1; File.WriteAllBytes(file, changed);
         Reject(() => vault.ImportLiveCheckpoint(directory, capture, remote, "x", "y"), "Tampered live checkpoint archived");
         Check(vault.List().Count == 1, "Rejected import left an archive");
+        foreach (var pair in targetBefore) File.WriteAllBytes(Path.Combine(copy, pair.Key), pair.Value);
+        string v2 = response.Replace("#LABPLUS_LIVE_PRACTICE_V1", "#LABPLUS_LIVE_PRACTICE_V2").Replace("DLC1-AUTOSAVE5", "GAME-AUTOSAVE1").TrimEnd('\n') + "\t1.1\n";
+        var main = LivePracticeResult.Parse(v2) ?? throw new Exception("1.1 main campaign V2 response rejected");
+        Check(main.Build == "1.1" && main.Slot == "GAME-AUTOSAVE1", "V2 lost patch/slot identity");
+        Check(LivePracticeResult.Parse(v2.Replace("GAME-AUTOSAVE1", "../escape")) is null, "V2 accepted unsafe slot");
+        string mainTarget = location.SlotPath(main.Slot); Directory.CreateDirectory(mainTarget);
+        foreach (var pair in targetBefore) File.WriteAllBytes(Path.Combine(mainTarget, pair.Key), pair.Value);
+        var mainSave = vault.ImportLiveCheckpoint(directory, main, remote, "1.1 main", "Training");
+        Check(PracticeSaveSource.SupportsLive(mainSave) && PracticeSaveSource.LiveBuild(mainSave) == "1.1", "1.1 archive patch identity lost");
+        var mainPlan = vault.PlanLiveRestore(1234, mainSave.Id, remote, main.Slot, true);
+        Check(mainPlan.Build == "1.1" && mainPlan.Slot == main.Slot, "Restore plan lost patch/slot");
+        vault.StageLiveRestore(directory, mainPlan);
+        string header = File.ReadLines(Path.Combine(mainPlan.Bundle(directory), "plan.tsv")).First();
+        Check(header.Split('\t')[2] == main.Slot && header.EndsWith("\t1.1"), "Native plan did not bind main slot and patch");
+        Reject(() => vault.StageLiveRestore(directory, mainPlan with { Build = "6.66 Rev 3" }), "Restore patch changed after review");
+        Reject(() => vault.ImportLiveCheckpoint(directory, main with { Build = "7.0" }, remote, "unsupported", "Training"), "Unaudited patch imported as live archive");
+        // Exercise the production asynchronous mailbox: a process selection lost
+        // after installation must not return success or discard recovery details.
+        int currentProcess = Environment.ProcessId; bool selected = true;
+        var interrupted = mainPlan with { Process = currentProcess, Token = Guid.NewGuid().ToString("N") };
+        File.WriteAllText(Path.Combine(directory, $"practice-live-{currentProcess}.tsv"),
+            $"#LABPLUS_LIVE_PRACTICE_V2\t{currentProcess}\t{interrupted.Token}\t{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}\tloading\t{location.Account}\t{main.Slot}\t{main.Map}\t{main.Checkpoint}\tFiles installed\t{main.Build}\n");
+        try
+        {
+            LivePracticeBridge.ExecuteRestore(directory, () => selected ? currentProcess : 0, interrupted, true, _ => selected = false).GetAwaiter().GetResult();
+            throw new Exception("Lost process selection reported successful restore");
+        }
+        catch (IOException ex)
+        {
+            Check(ex.Message.Contains("Selected game process changed") && ex.Message.Contains(interrupted.Original), "Interrupted restore lost its original checkpoint recovery path");
+        }
+        using (var child = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("cmd.exe", "/d /c exit 0") { CreateNoWindow = true, UseShellExecute = false })!)
+        {
+            int exitedProcess = child.Id; child.WaitForExit();
+            var closed = mainPlan with { Process = exitedProcess, Token = Guid.NewGuid().ToString("N") };
+            try
+            {
+                LivePracticeBridge.ExecuteRestore(directory, () => exitedProcess, closed, true).GetAwaiter().GetResult();
+                throw new Exception("Exited process reported successful restore");
+            }
+            catch (IOException ex)
+            {
+                Check(ex.Message.Contains("Game closed during live operation") && ex.Message.Contains(closed.Original), "Game exit lost restore recovery information");
+            }
+        }
         Console.WriteLine("PASS: live checkpoint protocol scope, Cloud acknowledgment, authenticated copy import while game/Steam run, stale/foreign/tampered copy rejection; offline restore guards unchanged.");
     }
 }

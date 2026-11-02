@@ -10,6 +10,7 @@
     <EmbeddedResource Include="..\..\Assets\trigger-paths.tsv" LogicalName="LabPlus.TriggerPaths.tsv" />
     <Compile Include="..\..\Game\*.cs" Link="Game\%(Filename)%(Extension)" />
     <Compile Include="..\..\Configuration\*.cs" Link="Configuration\%(Filename)%(Extension)" />
+    <Content Include="..\..\Native\CollisionViewer\src\practice_profile.h" Link="Fixtures\practice_profile.h" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="..\..\Native\CollisionViewer\src\native_profile.h" Link="Fixtures\native_profile.h" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

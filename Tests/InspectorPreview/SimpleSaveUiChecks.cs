@@ -23,6 +23,7 @@ internal static class SimpleSaveUiChecks
         string slot = location.SlotPath(PracticeSaveSource.LiveSlot); Directory.CreateDirectory(slot);
         var originals = PracticeSaveVault.RequiredFiles.ToDictionary(name => name, name => SteamSaveContainer.Seal(Encoding.UTF8.GetBytes("fixture:" + name), location.Account, name));
         foreach (var pair in originals) File.WriteAllBytes(Path.Combine(slot, pair.Key), pair.Value);
+        File.WriteAllText(Path.Combine(directory, "practice-ui.json"), System.Text.Json.JsonSerializer.Serialize(new { Remote = remote, Slot = PracticeSaveSource.LiveSlot, Live = true }));
         var vault = new PracticeSaveVault(directory, () => ["DOOMEternalx64vk", "steam"]); int process = Environment.ProcessId;
         var type = Assembly.Load("labplus").GetType("LabPlus.PracticeSaveForm", true)!;
         using var form = (LabPlusForm)Activator.CreateInstance(type, directory, null, vault, null, (Func<int>)(() => process))!;
@@ -48,7 +49,7 @@ internal static class SimpleSaveUiChecks
         load.PerformClick(); h = Request("restore");
         string bundle = Path.Combine(directory, "live-practice", "restore-pending", process.ToString(), h[2]);
         string[] plan = File.ReadAllLines(Path.Combine(bundle, "plan.tsv"));
-        Check(plan.Length == 9 && plan[0].EndsWith("\t" + archive.Id), "Load staged a different archive or incomplete plan");
+        Check(plan.Length == 9 && plan[0].Split('\t')[5] == archive.Id, "Load staged a different archive or incomplete plan");
         Reply(h[2], "loading"); Pump(() => Field<UiText>(form, "_status").Text.Contains("100%"));
         Reply(h[2], "reloaded"); Pump(() => load.Enabled);
         Check(Field<UiText>(form, "_status").Text.StartsWith("Loaded:"), "One-click load did not finish");
@@ -62,7 +63,25 @@ internal static class SimpleSaveUiChecks
         Check(Error("Pause first. Steam Cloud flags: account=0 app=1").StartsWith("Pause"), "Cloud diagnostic suffix hid real pause error");
         Check(Error("rollback failed; original checkpoint path retained").Contains("Original files"), "Rollback failure hidden");
         Check(Error("Files installed, but engine/account/Cloud changed before reload.").Contains("Files were installed"), "Post-install failure was mistaken for a retryable Cloud guard");
+        Check(Error("Game closed during live operation. Loading was not confirmed. Original checkpoint retained.").Contains("game closed"), "Game exit incorrectly tells the user to press Space");
         form.Close();
+        // The default workflow must work without a running game and expose main-campaign archives.
+        string offlineDirectory = Path.Combine(parent, "offline-save-ui"); Directory.CreateDirectory(offlineDirectory);
+        string mainSlot = location.SlotPath("GAME-AUTOSAVE0"); Directory.CreateDirectory(mainSlot);
+        foreach (var pair in originals) File.WriteAllBytes(Path.Combine(mainSlot, pair.Key), pair.Value);
+        var offlineVault = new PracticeSaveVault(offlineDirectory, () => []);
+        using var offlineForm = (LabPlusForm)Activator.CreateInstance(type, offlineDirectory, null, offlineVault, null, (Func<int>)(() => 0))!;
+        offlineForm.Show(); Field<System.Windows.Forms.Timer>(offlineForm, "_timer").Stop();
+        type.GetMethod("UseSource", Private)!.Invoke(offlineForm, [remote]);
+        Check(Field<UiAction>(offlineForm, "_save").Enabled, "Default offline save requires running game");
+        var offlineCapture = (Task)type.GetMethod("SaveCheckpoint", Private)!.Invoke(offlineForm, null)!;
+        Pump(() => offlineCapture.IsCompleted); offlineCapture.GetAwaiter().GetResult();
+        Check(offlineVault.List().Single().SourceSlot == "GAME-AUTOSAVE0" && Field<UiTable>(offlineForm, "_grid").RowCount == 1
+            && Field<UiAction>(offlineForm, "_load").Enabled, "Main campaign archive hidden or unavailable in default workflow");
+        Check(!Directory.EnumerateFiles(offlineDirectory, "*.request").Any(), "Offline capture submitted a restricted native request");
+        offlineForm.Close();
+        using var reopened = (LabPlusForm)Activator.CreateInstance(type, offlineDirectory, null, offlineVault, null, (Func<int>)(() => 0))!;
+        Check(Field<string>(reopened, "_slot") == "GAME-AUTOSAVE0" && !Field<bool>(reopened, "_live"), "Offline preferences did not survive reopening");
         Console.WriteLine("PASS: simple saves UI uses production archive/restore protocol with isolated encrypted fixtures; blank name, auto-selection, search, one-click load, progress, disabled controls. User saves untouched.");
     }
     private static IEnumerable<UiNode> Descendants(UiNode parent)

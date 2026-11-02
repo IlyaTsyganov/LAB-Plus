@@ -127,7 +127,10 @@ jobs:
           }
           $exe = Join-Path $package 'LABPlus.exe'
           $fileVersion = [Diagnostics.FileVersionInfo]::GetVersionInfo($exe).FileVersion
-          if ($fileVersion -cne "$env:RELEASE_VERSION.0.0") { throw "Unexpected LABPlus.exe FileVersion: $fileVersion" }
+          $versionParts = @($env:RELEASE_VERSION.Split('.'))
+          while ($versionParts.Count -lt 4) { $versionParts += '0' }
+          $expectedFileVersion = $versionParts -join '.'
+          if ($fileVersion -cne $expectedFileVersion) { throw "Unexpected LABPlus.exe FileVersion: $fileVersion" }
           $stream = [IO.File]::OpenRead($exe)
           try {
             $reader = [IO.BinaryReader]::new($stream)

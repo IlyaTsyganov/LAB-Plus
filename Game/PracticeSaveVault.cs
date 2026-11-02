@@ -195,10 +195,10 @@ public sealed partial class PracticeSaveVault
     public PracticeSave ImportLiveCheckpoint(string directory, LivePracticeResult capture, string remote, string name, string category, string map = "")
     {
         var location = SteamSaveLocation.Parse(remote); long now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-        if (capture.Account != location.Account || capture.Slot != "DLC1-AUTOSAVE5" || capture.Phase != "archived" || capture.Captured > now + 2000 || capture.Captured < now - 90000)
+        if (capture.Account != location.Account || !PracticeSaveSource.SupportsSlot(capture.Build, capture.Slot) || capture.Phase != "archived" || capture.Captured > now + 2000 || capture.Captured < now - 90000)
             throw new IOException("Live checkpoint capture is stale, belongs to a different account, or has not completed.");
         var files = ReadSet(capture.CaptureFolder(directory));
-        return Store(files, location.Account, capture.Slot, name, category, map, "Live checkpoint copy; 6.66 Rev 3", false);
+        return Store(files, location.Account, capture.Slot, name, category, string.IsNullOrEmpty(map) ? capture.Map : map, PracticeSaveSource.ArchiveBuild(capture.Build), false);
     }
     public PracticeSave RecoverBackupPair(string remote, string slot, string name, string category)
     {

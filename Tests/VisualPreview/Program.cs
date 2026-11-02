@@ -35,6 +35,10 @@ internal static class Program
                     await CheckScale(numbers,output); numbers.Close();
                     Console.WriteLine("PASS: Invisible numbers controls, rows and DPI scaling.");exit=0;return;
                 }
+                if (args.Contains("--saves-only"))
+                {
+                    await SaveWorkflow(main, data, output); exit = 0; return;
+                }
                 await Settle(main); await CompactChecks.Run(main,data,output); await Capture(main, output, "main-viewer");
                 var checks = new List<object>();
                 checks.Add(await Inspect(main, "main-viewer"));
@@ -92,6 +96,47 @@ internal static class Program
         };
         main.FormClosed+=(_,_)=>context.ExitThread();main.Show();
         Application.Run(context);WorkspaceWindows.Shutdown();return exit;
+    }
+    private static async Task SaveWorkflow(MainForm main, string data, string output)
+    {
+        string remote = Path.Combine(data, "Steam", "userdata", "10001", "782330", "remote");
+        string slot = Path.Combine(remote, "GAME-AUTOSAVE0"); Directory.CreateDirectory(slot);
+        var location = LabPlus.Game.SteamSaveLocation.Parse(remote);
+        var originals = LabPlus.Game.PracticeSaveVault.RequiredFiles.ToDictionary(n => n, n => LabPlus.Game.SteamSaveContainer.Seal(System.Text.Encoding.UTF8.GetBytes("old:" + n), location.Account, n));
+        foreach (var file in originals) File.WriteAllBytes(Path.Combine(slot, file.Key), file.Value);
+        var vault = new LabPlus.Game.PracticeSaveVault(data, () => []);
+        using var form = new PracticeSaveForm(data, vault: vault, gameProcess: () => 0);
+        typeof(PracticeSaveForm).GetMethod("UseSource", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.Invoke(form, [remote]);
+        form.Show(main); await WaitReady(form); await Settle(form);
+        async Task Click(LabPlusForm screen, string label) => await Script(screen, $"[...document.querySelectorAll('button')].find(e=>e.textContent.trim()==={JsonSerializer.Serialize(label)}).click()");
+        async Task Wait(Func<bool> ready) { for (int i=0;i<200&&!ready();i++) await Task.Delay(50); if(!ready()) throw new Exception("Save browser workflow timed out"); }
+        LabPlusForm? Modal() => Application.OpenForms.OfType<WorkspaceHost>().Select(h => h.Screen).FirstOrDefault(s => s is WorkspaceMessageForm);
+        await Click(form, "Save"); await Wait(() => vault.List().Count == 1); await Settle(form);
+        var archive = vault.List().Single(); if (archive.SourceSlot != "GAME-AUTOSAVE0") throw new Exception("Save used the wrong campaign slot");
+        foreach (string name in originals.Keys) File.WriteAllBytes(Path.Combine(slot, name), LabPlus.Game.SteamSaveContainer.Seal(System.Text.Encoding.UTF8.GetBytes("new:" + name), location.Account, name));
+        await Click(form, "Load"); await Wait(() => Modal()?.Workspace?.Ready.IsCompletedSuccessfully == true);
+        var review = Modal()!; await Settle(review); await Inspect(review, "save-restore-review"); await Capture(review, output, "save-restore-review");
+        await Click(review, "OK");
+        await Wait(() => originals.All(f => File.ReadAllBytes(Path.Combine(slot, f.Key)).SequenceEqual(f.Value)));
+        await Settle(form); await Inspect(form, "offline-saves"); await Capture(form, output, "offline-saves"); await CheckScale(form, output);
+        await Click(form, "Advanced…");
+        LabPlusForm? Settings() => Application.OpenForms.OfType<WorkspaceHost>().Select(h => h.Screen).FirstOrDefault(s => s?.Text == "Checkpoint settings");
+        await Wait(() => Settings()?.Workspace?.Ready.IsCompletedSuccessfully == true); var settings = Settings()!; await Settle(settings);
+        await Inspect(settings, "checkpoint-settings"); await Capture(settings, output, "checkpoint-settings"); await CheckScale(settings, output);
+        var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+        foreach (var sample in new[] { (Build: "1.0", Slots: 3), (Build: "3.0", Slots: 6), (Build: "5.0", Slots: 9) })
+        {
+            typeof(PracticeSaveForm).GetField("_buildProcess", flags)!.SetValue(form, 0);
+            typeof(PracticeSaveForm).GetField("_runningBuild", flags)!.SetValue(form, sample.Build);
+            string modeSelector = "[...document.querySelectorAll('select')].find(s=>[...s.options].some(o=>o.textContent.startsWith('In game')))";
+            await Script(settings, $"(()=>{{const e={modeSelector};e.selectedIndex=0;e.dispatchEvent(new Event('change',{{bubbles:true}}));}})()"); await Settle(settings);
+            await Script(settings, $"(()=>{{const e={modeSelector};e.selectedIndex=1;e.dispatchEvent(new Event('change',{{bubbles:true}}));}})()"); await Settle(settings);
+            int count = JsonSerializer.Deserialize<int>(await Script(settings, "[...document.querySelectorAll('select')].find(s=>[...s.options].some(o=>o.textContent==='GAME-AUTOSAVE0')).options.length"));
+            if (count != sample.Slots) throw new Exception("Browser exposed unavailable DLC slots on " + sample.Build);
+        }
+        Console.WriteLine("PASS: browser in-game slot selection exposes 3/6/9 slots at the 3.0 and 5.0 DLC boundaries.");
+        await Click(settings, "Done"); form.Close();
+        Console.WriteLine("PASS: browser Save/Load for main campaign with game closed; confirmed review, exact restored ciphertext, settings and 125/150% scale. Synthetic data only.");
     }
     private static async Task Settle(LabPlusForm form)
     { form.Workspace!.Publish(true); await Task.Delay(350); }
