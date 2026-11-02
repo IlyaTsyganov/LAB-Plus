@@ -30,7 +30,7 @@ internal sealed class ScreenStateAdapter : IDisposable
     {
         control.TabStop = false;
         string id = Id(control); float scale = control.DeviceDpi / 96f;
-        var node = new Dictionary<string, object?> { ["id"] = id, ["kind"] = "column", ["text"] = control.Text, ["enabled"] = control.Enabled, ["width"] = Math.Round(control.Width / scale), ["height"] = Math.Round(control.Height / scale), ["small"] = control.Font.SizeInPoints <= 9.5f, ["fill"]=control.Dock==DockStyle.Fill };
+        var node = new Dictionary<string, object?> { ["id"] = id, ["kind"] = "column", ["text"] = control.Text, ["enabled"] = control.Enabled, ["width"] = Math.Round(control.Width / scale), ["height"] = Math.Round(control.Height / scale), ["small"] = control.Font.SizeInPoints <= 9.5f, ["fill"]=control.Dock==DockStyle.Fill, ["presentation"]=control.Presentation };
         switch (control)
         {
             case UiChoice radio:
@@ -38,10 +38,10 @@ internal sealed class ScreenStateAdapter : IDisposable
             case UiToggle check:
                 node["kind"] = "check"; node["checked"] = check.Checked; break;
             case UiAction button:
-                node["kind"] = "button"; node["primary"] = button is WorkspaceButton { Primary: true }; break;
+                node["kind"] = "button"; node["primary"] = button is WorkspaceButton { Primary: true }; node["icon"] = button.Icon; break;
             case UiText label:
                 node["kind"] = "label"; node["heading"] = label.Font.SizeInPoints >= 15;
-                node["collapsible"] = label.Font.SizeInPoints <= 9.5f && label.Text.Length > 220;
+                node["collapsible"] = label.FindForm() is not PracticeSaveForm && label.Font.SizeInPoints <= 9.5f && label.Text.Length > 220;
                 node["small"] = label.Font.SizeInPoints <= 9.5f || label.Text.Length > 160; break;
             case UiInput text:
                 node["kind"] = text.Multiline ? "textarea" : "text"; node["value"] = text.Text;
@@ -114,11 +114,14 @@ internal sealed class ScreenStateAdapter : IDisposable
         {
             if (grid.Rows[row].IsNewRow) continue;
             var values = columns.Select(c => Convert.ToString(grid.Rows[row].Cells[c.Index].FormattedValue, System.Globalization.CultureInfo.CurrentCulture) ?? "").ToArray();
-            rows.Add(new { index = row, values, titles=columns.Select(c=>grid.CellTip(row,c.Index)).ToArray(), selected = grid.Rows[row].Selected });
+            rows.Add(new { index = row, values, titles=columns.Select(c=>grid.CellTip(row,c.Index)).ToArray(), selected = grid.Rows[row].Selected,
+                subtitle=grid.Rows[row].Subtitle, note=grid.Rows[row].Note, unavailable=grid.Rows[row].Unavailable });
         }
         node["rows"] = rows; node["total"] = grid.RowCount;
         node["selected"] = grid.CurrentCell?.RowIndex ?? -1;
-        node["empty"] = grid.FindForm() is PracticeSaveForm ? "No checkpoints match this account, slot and search. Save a checkpoint to add one." : "No data yet.";
+        node["checks"] = grid.MultiSelect && grid.ShowSelectionChecks;
+        node["selectionCount"] = grid.SelectedIndices.Count;
+        node["empty"] = grid.FindForm() is PracticeSaveForm ? "No checkpoints match this account, category and search. Save a checkpoint to add one." : "No data yet.";
     }
     private object[] CaptureTree(UiTreeNodes nodes) => nodes.Cast<UiTreeNode>().Select(n => new
     { id = Id(n), text = n.Text, check = n.Checked, expanded = n.IsExpanded, hasChildren = n.Nodes.Count > 0, nodes = n.IsExpanded ? CaptureTree(n.Nodes) : [] }).Cast<object>().ToArray();
@@ -178,9 +181,17 @@ internal sealed class ScreenStateAdapter : IDisposable
                 int row = message.GetProperty("row").GetInt32();
                 int column = message.TryGetProperty("column", out var c) ? c.GetInt32() : 0;
                 if (row < 0 || row >= grid.RowCount || column < 0 || column >= grid.ColumnCount) return;
-                grid.CurrentCell = grid.Rows[row].Cells[column]; grid.Rows[row].Selected = true;
+                if (grid.MultiSelect && grid.ShowSelectionChecks)
+                    grid.SelectRow(row, column, message.TryGetProperty("ctrl", out var toggle) && toggle.GetBoolean(), message.TryGetProperty("shift", out var range) && range.GetBoolean());
+                else { grid.CurrentCell = grid.Rows[row].Cells[column]; grid.Rows[row].Selected = true; }
                 if (action == "row-double") grid.DoubleClickCell(row,column);
                 break;
+            case "row-check" when control is UiTable { MultiSelect: true, ShowSelectionChecks: true } checkGrid:
+                int checkedRow = message.GetProperty("row").GetInt32();
+                if (checkedRow >= 0 && checkedRow < checkGrid.RowCount) checkGrid.SelectRow(checkedRow, 0, toggle: true);
+                break;
+            case "rows-all" when control is UiTable { MultiSelect: true, ShowSelectionChecks: true } allGrid:
+                allGrid.SelectAllRows(); break;
             case "more" when control is UiTable grid: _limits[grid] = Math.Min(grid.RowCount, _limits.GetValueOrDefault(grid, 200) + 200); break;
             case "mouse" when control is MotionPlot or EntityGraphCanvas or PlaneProjection:
                 Mouse(control, message); break;

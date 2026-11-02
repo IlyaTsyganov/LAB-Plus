@@ -80,6 +80,7 @@ Saved preferences replace fresh values. Where native cvars are available, enteri
 | Command | Arguments | Action |
 | --- | --- | --- |
 | `labplus_commands_list` | None | List available controls |
+| `labplus_load_last_save` | None | Load the last LAB Plus archive for the current account, patch and campaign into the current slot. If that archive was deleted or is damaged, stop and report it; do not fall back to an older archive. |
 | `labplus_encounters_list` | None | Print observed active managers |
 | `labplus_recording_start` | None | Start/resume the research journal |
 | `labplus_recording_stop` | None | Stop the research journal |

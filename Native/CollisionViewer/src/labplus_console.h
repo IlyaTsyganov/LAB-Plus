@@ -1,4 +1,6 @@
 #pragma once
+#include <bcrypt.h>
+#pragma comment(lib,"bcrypt.lib")
 static void printActiveEncounters(const MeathookHudApi& api);
 
 struct LabCommandDefinition { const char* name; const char* usage; bool legacy=false; };
@@ -7,6 +9,7 @@ static constexpr LabCommandDefinition labCommandDefinitions[]{
     {"labplus_commands_list","List LAB Plus cvars and action commands"},
     {"labplus_encounters_list","List active encounter managers with reference names"},
     {"labplus_debughud_scale","[0.5..3] - query or set DebugHUD text scale"},
+    {"labplus_load_last_save","Load the last LAB Plus archive for the current account, patch and campaign"},
     {"labplus_enemies","0|1 - living enemies and health HUD"},
     {"labplus_enemy_hp_bars","0|1 - world enemy health bars"},
     {"labplus_timers","0|1 - engine countdown HUD"},
@@ -45,7 +48,7 @@ static bool validLabArguments(const std::vector<std::string>& input) {
     if(command=="labplus_debughud_scale") {
         float value=1; return args.size()==1||(args.size()==2&&parseDebugHudScale(args[1],value));
     }
-    if(command=="labplus_help"||command=="labplus_clear") return args.size()==1;
+    if(command=="labplus_help"||command=="labplus_clear"||command=="labplus_load_last_save") return args.size()==1;
     if(command=="labplus_encounters") return args.size()==1||(args.size()==2&&(args[1]=="0"||args[1]=="1"));
     if(command=="labplus_mark") return args.size()>1;
     if(command=="labplus_trigger") return args.size()==3&&validTriggerClassName(args[1])&&(args[2]=="0"||args[2]=="1");
@@ -74,6 +77,26 @@ static bool sendLabRequest(const std::vector<std::string>& args) {
     if(pipe==INVALID_HANDLE_VALUE) return false;
     DWORD written=0; bool success=WriteFile(pipe,request.data(),static_cast<DWORD>(request.size()),&written,nullptr)&&written==request.size();
     CloseHandle(pipe); return success;
+}
+static bool saveCommandTokenValid(const std::string& token) {
+    return token.size()==32&&std::all_of(token.begin(),token.end(),[](char c) { return (c>='0'&&c<='9')||(c>='a'&&c<='f'); });
+}
+static std::string newSaveCommandToken() {
+    std::array<unsigned char,16> bytes{};
+    if(BCryptGenRandom(nullptr,bytes.data(),static_cast<ULONG>(bytes.size()),BCRYPT_USE_SYSTEM_PREFERRED_RNG)<0) return {};
+    std::string token; const char hex[]="0123456789abcdef";
+    for(auto byte:bytes) { token+=hex[byte>>4]; token+=hex[byte&15]; } return token;
+}
+static std::string readSaveCommandReply(const std::filesystem::path& path,DWORD process,const std::string& token) {
+    if(!saveCommandTokenValid(token)) return {};
+    std::error_code error; auto length=std::filesystem::file_size(path,error); if(error||length>4096) return {};
+    std::ifstream file(path,std::ios::binary); std::string line,extra; if(!std::getline(file,line)||std::getline(file,extra)) return {};
+    std::istringstream stream(line); std::vector<std::string> fields; std::string part;
+    while(std::getline(stream,part,'\t')) fields.push_back(part);
+    if(fields.size()!=5||fields[0]!="#LABPLUS_SAVE_COMMAND_V1"||fields[1]!=std::to_string(process)||fields[2]!=token||
+       (fields[3]!="ok"&&fields[3]!="error")||fields[4].empty()||fields[4].size()>3072) return {};
+    for(auto c:fields[4]) if(static_cast<unsigned char>(c)<32||c==127) return {};
+    return fields[4];
 }
 
 struct LabCommandSystem { uintptr_t object=0,add=0,exists=0,slot=0; explicit operator bool() const { return object&&add&&exists; } };
@@ -113,6 +136,8 @@ class LabConsole {
     ULONGLONG cvarsRetryAt=0;
     LabCommandSystem commandSystem;
     LabCvarBridge cvars;
+    std::string saveToken;
+    ULONGLONG saveStarted=0,saveReplyPoll=0;
     static LabConsole*& instance() { static LabConsole* value=nullptr; return value; }
     static void callback(void* self) { static_cast<LabConsole*>(self)->frame(); }
     static void command(void* raw) {
@@ -130,7 +155,14 @@ class LabConsole {
         }
         if(!validLabArguments(args)) { self->api->consolePrint("%s","labplus_: invalid arguments. Use labplus_commands_list.\n"); return; }
         args=normalizeLabArguments(args);
-        if(funMode().command(*self->api,self->commandSystem,args)) {}
+        if(args[0]=="labplus_load_last_save") {
+            if(!self->saveToken.empty()) { self->api->consolePrint("%s","labplus_load_last_save: a save operation is already pending.\n"); return; }
+            auto token=newSaveCommandToken();
+            if(token.empty()||!sendLabRequest({args[0],token})) { self->api->consolePrint("%s","labplus_load_last_save: LAB Plus is unavailable or busy; retry.\n"); return; }
+            self->saveToken=token; self->saveStarted=GetTickCount64(); self->saveReplyPoll=0;
+            self->api->consolePrint("%s","labplus_load_last_save: request sent to LAB Plus.\n");
+        }
+        else if(funMode().command(*self->api,self->commandSystem,args)) {}
         else if(printDebugHudScaleQuery(*self->api,args)) {}
         else if(args[0]=="labplus_encounters"&&args.size()==1) { printActiveEncounters(*self->api); }
         else if(args[0]=="labplus_help") {
@@ -141,6 +173,14 @@ class LabConsole {
     void frame() {
         funMode().frame();
         bool available=labAppAvailable();
+        if(!available) saveToken.clear();
+        if(!saveToken.empty()&&GetTickCount64()>=saveReplyPoll) {
+            saveReplyPoll=GetTickCount64()+100;
+            auto directory=researchDirectory();
+            auto reply=readSaveCommandReply(directory/(L"practice-command-"+std::to_wstring(GetCurrentProcessId())+L".tsv"),GetCurrentProcessId(),saveToken);
+            if(!reply.empty()) { api->consolePrint("labplus_load_last_save: %s\n",reply.c_str()); saveToken.clear(); }
+            else if(GetTickCount64()-saveStarted>390000) { api->consolePrint("%s","labplus_load_last_save: completion was not confirmed. Check Saves in LAB Plus.\n"); saveToken.clear(); }
+        }
         const auto* profile=currentGameProfile(); if(!profile) return;
         if(commandsRegistered) {
             if(available&&!cvars.ready()&&!cvars.blocked()&&GetTickCount64()>=cvarsRetryAt) {

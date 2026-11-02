@@ -47,13 +47,16 @@
     e.dataset.control=n.id;e.dataset.kind=n.kind;nodes.set(n.id,e);return e;
   }
   function render(n) {
-    const e=nodes.get(n.id)||create(n);e.classList.add('control-node');
+    const e=nodes.get(n.id)||create(n);e.classList.add('control-node');e.dataset.presentation=n.presentation||'';
     e.setAttribute('aria-disabled',String(!n.enabled));
     if(n.column)e.style.gridColumn=n.column+' / span '+(n.span||1);
     if(n.row)e.style.gridRow=n.row;
     if('disabled' in e)e.disabled=!n.enabled;
     switch(n.kind) {
-      case 'button':text(e,n.text);e.classList.toggle('lr-primary',!!n.primary);break;
+      case 'button':
+        if(n.icon==='folder'){if(e.dataset.icon!=='folder'){const icon=element('span','lr-folder-icon');icon.setAttribute('aria-hidden','true');e.replaceChildren(icon);}e.setAttribute('aria-label',n.text);e.title=n.text;}
+        else{text(e,n.text);e.removeAttribute('aria-label');e.removeAttribute('title');}
+        e.dataset.icon=n.icon||'';e.classList.toggle('lr-primary',!!n.primary);break;
       case 'label':
         if(n.collapsible){if(!e.firstChild||e.firstChild.tagName!=='DETAILS'){const details=element('details'),summary=element('summary'),body=element('div','control-caption');text(summary,'Notes and limits');details.append(summary,body);e.replaceChildren(details);}text(e.firstChild.lastChild,n.text);e.className='control-node control-notes';}
         else{text(e,n.text);e.className='control-node '+(n.heading?'control-title':n.small?'control-caption':'control-label');}break;
@@ -89,15 +92,25 @@
     return e;
   }
   function renderTable(e,n) {
-    const signature=JSON.stringify([n.columns,n.rows.map(row=>[row.index,row.values]),n.total]);
-    if(e.dataset.signature===signature){Array.from(e.querySelectorAll('tbody tr')).forEach((tr,i)=>tr.classList.toggle('selected',!!n.rows[i]?.selected));return;}
+    function selection(){
+      Array.from(e.querySelectorAll('tbody tr[data-row]')).forEach((tr,i)=>{tr.classList.toggle('selected',!!n.rows[i]?.selected);const check=tr.querySelector('input[type=checkbox]');if(check){check.checked=!!n.rows[i]?.selected;check.disabled=!n.enabled;}});
+      const all=e.querySelector('thead input');if(all){all.checked=n.total>0&&n.selectionCount===n.total;all.indeterminate=n.selectionCount>0&&!all.checked;all.disabled=!n.enabled||!n.total;}
+    }
+    const signature=JSON.stringify([n.columns,n.checks,n.rows.map(row=>[row.index,row.values,row.subtitle,row.note,row.unavailable]),n.total]);
+    if(e.dataset.signature===signature){selection();return;}
     const top=e.scrollTop,left=e.scrollLeft;const table=element('table'),head=element('thead'),hr=element('tr'),body=element('tbody');
+    if(n.checks){const th=element('th','table-check-cell'),check=element('input');check.type='checkbox';check.setAttribute('aria-label','Select all checkpoints');check.addEventListener('change',()=>control(n.id,'rows-all'));th.append(check);hr.append(th);}
     n.columns.forEach(c=>{const th=element('th');text(th,c.text);hr.append(th);});head.append(hr);table.append(head,body);
-    n.rows.forEach(row=>{const tr=element('tr');tr.tabIndex=0;tr.classList.toggle('selected',row.selected);tr.addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();control(n.id,'row-double',{row:row.index,column:n.columns[0].index});}else if(event.key==='ArrowDown'||event.key==='ArrowUp'){const next=event.key==='ArrowDown'?tr.nextElementSibling:tr.previousElementSibling;if(next){event.preventDefault();next.focus();control(n.id,'row',{row:n.rows[Array.from(body.children).indexOf(next)].index,column:n.columns[0].index});}}});row.values.forEach((cell,i)=>{const td=element('td');text(td,cell);td.title=String(cell);td.addEventListener('click',()=>control(n.id,'row',{row:row.index,column:n.columns[i].index}));td.addEventListener('dblclick',()=>control(n.id,'row-double',{row:row.index,column:n.columns[i].index}));tr.append(td);});body.append(tr);});
-    if(!n.rows.length){const row=element('tr','empty-row'),cell=element('td');cell.colSpan=Math.max(1,n.columns.length);text(cell,n.empty);row.append(cell);body.append(row);}
+    n.rows.forEach(row=>{
+      const tr=element('tr');tr.tabIndex=0;tr.dataset.row=row.index;tr.classList.toggle('unavailable',!!row.unavailable);
+      tr.addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();control(n.id,'row-double',{row:row.index,column:n.columns[0].index});}else if(event.key==='ArrowDown'||event.key==='ArrowUp'){const next=event.key==='ArrowDown'?tr.nextElementSibling:tr.previousElementSibling;if(next){event.preventDefault();next.focus();control(n.id,'row',{row:Number(next.dataset.row),column:n.columns[0].index,ctrl:event.ctrlKey||event.metaKey,shift:event.shiftKey});}}});
+      if(n.checks){const td=element('td','table-check-cell'),check=element('input');check.type='checkbox';check.setAttribute('aria-label','Select '+row.values[0]);check.addEventListener('change',()=>control(n.id,'row-check',{row:row.index}));td.append(check);tr.append(td);}
+      row.values.forEach((cell,i)=>{const td=element('td');text(td,cell);td.title=String(cell);if(i===0&&row.subtitle){const small=element('small','table-subtitle');text(small,row.subtitle);td.append(small);}if(i===1&&row.note){const small=element('small','table-subtitle');text(small,row.note);td.append(small);}td.addEventListener('click',event=>control(n.id,'row',{row:row.index,column:n.columns[i].index,ctrl:event.ctrlKey||event.metaKey,shift:event.shiftKey}));td.addEventListener('dblclick',()=>control(n.id,'row-double',{row:row.index,column:n.columns[i].index}));tr.append(td);});body.append(tr);
+    });
+    if(!n.rows.length){const row=element('tr','empty-row'),cell=element('td');cell.colSpan=Math.max(1,n.columns.length)+(n.checks?1:0);text(cell,n.empty);row.append(cell);body.append(row);}
     e.replaceChildren(table);
     if(n.total>n.rows.length){const more=element('button','lr-btn');more.type='button';text(more,`Show more (${n.rows.length} of ${n.total})`);more.addEventListener('click',()=>control(n.id,'more'));e.append(more);}
-    e.dataset.signature=signature;e.scrollTop=top;e.scrollLeft=left;
+    e.dataset.signature=signature;selection();e.scrollTop=top;e.scrollLeft=left;
   }
   function renderList(e,n) {
     const signature=JSON.stringify([n.items,n.checks,n.selected]);if(e.dataset.signature===signature)return;const scroll=e.scrollTop;

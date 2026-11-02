@@ -16,8 +16,14 @@ internal sealed partial class MainForm
     private void ShowPage(string page)
     {
         _page=page;
-        if(page=="Saves"&&_practiceSaves is null)
-        { _practiceSaves=new PracticeSaveForm(_settingsStore.SettingsDirectory,gameProcess:SelectedGameProcess){TopLevel=false};Controls.Add(_practiceSaves);_practiceSaves.Show(); }
+        if(page=="Saves") EnsurePracticeSaves();
+        _practiceSaves?.SetRuntimePolling(page == "Saves");
+    }
+    private PracticeSaveForm EnsurePracticeSaves()
+    {
+        if(_practiceSaves is null)
+        { _practiceSaves=new PracticeSaveForm(_settingsStore.SettingsDirectory,gameProcess:SelectedGameProcess){TopLevel=false};Controls.Add(_practiceSaves);_practiceSaves.Show();_practiceSaves.SetRuntimePolling(_page=="Saves"); }
+        return _practiceSaves;
     }
     private void OpenResearchTool(string name)
     {

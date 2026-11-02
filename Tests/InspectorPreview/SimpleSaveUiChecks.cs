@@ -1,8 +1,7 @@
 using LabPlus;
-using System.Drawing.Imaging;
+using LabPlus.Game;
 using System.Reflection;
 using System.Text;
-using LabPlus.Game;
 
 internal static class SimpleSaveUiChecks
 {
@@ -13,76 +12,83 @@ internal static class SimpleSaveUiChecks
     {
         long end = Environment.TickCount64 + 6000;
         while (!ready() && Environment.TickCount64 < end) { Application.DoEvents(); Thread.Sleep(5); }
-        Check(ready(), "Simple save UI fixture timed out");
+        Check(ready(), "Saves fixture timed out");
     }
-
     internal static void Run(string parent, string previews)
     {
-        string directory = Path.Combine(parent, "simple-save-ui"), remote = Path.Combine(directory, "Steam", "userdata", "10001", "782330", "remote");
-        Directory.CreateDirectory(remote); var location = SteamSaveLocation.Parse(remote);
-        string slot = location.SlotPath(PracticeSaveSource.LiveSlot); Directory.CreateDirectory(slot);
-        var originals = PracticeSaveVault.RequiredFiles.ToDictionary(name => name, name => SteamSaveContainer.Seal(Encoding.UTF8.GetBytes("fixture:" + name), location.Account, name));
-        foreach (var pair in originals) File.WriteAllBytes(Path.Combine(slot, pair.Key), pair.Value);
-        File.WriteAllText(Path.Combine(directory, "practice-ui.json"), System.Text.Json.JsonSerializer.Serialize(new { Remote = remote, Slot = PracticeSaveSource.LiveSlot, Live = true }));
-        var vault = new PracticeSaveVault(directory, () => ["DOOMEternalx64vk", "steam"]); int process = Environment.ProcessId;
+        string directory = Path.Combine(parent, "simple-save-ui"), remote = Path.Combine(directory, "Steam", "userdata", "10001", "782330", "remote"); Directory.CreateDirectory(remote);
+        var location = SteamSaveLocation.Parse(remote); int process = Environment.ProcessId;
+        var originals = PracticeSaveVault.RequiredFiles.ToDictionary(n => n, n => SteamSaveContainer.Seal(Encoding.UTF8.GetBytes("fixture:" + n), location.Account, n));
+        foreach (string slot in new[] { "GAME-AUTOSAVE0", "GAME-AUTOSAVE2", "DLC1-AUTOSAVE5", "DLC2-AUTOSAVE8" })
+        { Directory.CreateDirectory(location.SlotPath(slot)); foreach (var f in originals) File.WriteAllBytes(Path.Combine(location.SlotPath(slot), f.Key), f.Value); }
+        var vault = new PracticeSaveVault(directory, () => []);
+        var source = vault.Capture(remote, "GAME-AUTOSAVE2", "From slot three", "Practice", build: PracticeSaveSource.ArchiveBuild("1.1"));
+        var tag1 = vault.Capture(remote, "DLC1-AUTOSAVE5", "TAG1 route", "DLC", build: PracticeSaveSource.ArchiveBuild("3.0"));
+        var tag2 = vault.Capture(remote, "DLC2-AUTOSAVE8", "TAG2 route", "DLC", build: PracticeSaveSource.ArchiveBuild("5.0"));
+        // Old offline preferences must not reintroduce a mode switch or slot filter.
+        File.WriteAllText(Path.Combine(directory, "practice-ui.json"), System.Text.Json.JsonSerializer.Serialize(new { Remote = remote, Slot = "DLC1-AUTOSAVE5", Live = false }));
         var type = Assembly.Load("labplus").GetType("LabPlus.PracticeSaveForm", true)!;
         using var form = (LabPlusForm)Activator.CreateInstance(type, directory, null, vault, null, (Func<int>)(() => process))!;
-        form.Show(); Application.DoEvents(); Field<System.Windows.Forms.Timer>(form, "_timer").Stop();
-        type.GetMethod("UseSource", Private)!.Invoke(form, [remote]);
-        var save = Field<UiAction>(form, "_save"); var load = Field<UiAction>(form, "_load"); var grid = Field<UiTable>(form, "_grid");
-        Check(save.Enabled && !load.Enabled, "Empty state enables load or disables save");
+        form.Show(); Application.DoEvents(); Field<System.Windows.Forms.Timer>(form, "_timer").Stop(); type.GetMethod("UseSource", Private)!.Invoke(form, [remote]);
+        var save = Field<UiAction>(form, "_save"); var load = Field<UiAction>(form, "_load"); var delete = Field<UiAction>(form, "_delete"); var grid = Field<UiTable>(form, "_grid");
+        Check(save.Size == load.Size && save.Size == delete.Size && delete.Primary, "Save/Load/Delete size or style differs");
+        Check(grid.RowCount == 3 && !load.Enabled && !delete.Enabled && !save.Enabled, "Initial list filtered slots, selected an archive or skipped runtime discovery");
+        Check(!Descendants(form).OfType<UiSelect>().Any() && !Field<UiAction>(form, "_tools").Visible && type.GetMethod("OpenSettings", Private) is null, "Settings/mode picker or tools remain visible");
+        Check(Field<UiAction>(form, "_chooseFolder").Icon == "folder", "Folder button does not use Viewer folder icon");
         string stem = Path.Combine(directory, $"practice-live-{process}"), request = stem + ".request";
         Task Call(string method) => (Task)type.GetMethod(method, Private)!.Invoke(form, null)!;
         string[] Request(string op) { Pump(() => File.Exists(request) && File.ReadAllText(request).Contains("\t" + op + "\t")); return File.ReadAllText(request).TrimEnd().Split('\t'); }
-        void Reply(string token, string phase, string detail = "fixture checkpoint result") => File.WriteAllText(stem + ".tsv",
-            $"#LABPLUS_LIVE_PRACTICE_V1\t{process}\t{token}\t{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}\t{phase}\t{location.Account}\tDLC1-AUTOSAVE5\tgame/dlc/e4m1_rig/e4m1_rig\tcp_01a\t{detail}");
-        var capture = Call("SaveCheckpoint"); var h = Request("archive");
-        Check(!save.Enabled && !load.Enabled && !grid.Enabled, "Controls enabled during capture");
-        string captureFolder = Path.Combine(directory, "live-practice", process.ToString(), h[2], "slot"); Directory.CreateDirectory(captureFolder);
-        foreach (var pair in originals) File.WriteAllBytes(Path.Combine(captureFolder, pair.Key), pair.Value);
+        void Reply(string token, string phase) => File.WriteAllText(stem + ".tsv", $"#LABPLUS_LIVE_PRACTICE_V2\t{process}\t{token}\t{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}\t{phase}\t{location.Account}\tGAME-AUTOSAVE0\tgame/sp/e1m1_intro/e1m1_intro\tcp_01a\tFixture result\t1.1\n");
+        var status = Call("RefreshRuntime"); var h = Request("status"); Check(h[6] == "*", "Status did not discover current slot"); Reply(h[2], "ready"); Pump(() => status.IsCompleted); status.GetAwaiter().GetResult();
+        Check(save.Enabled && Field<string>(form, "_slot") == "GAME-AUTOSAVE0", "In-game default did not resolve current slot");
+        int Row(string name) => Enumerable.Range(0, grid.RowCount).Single(i => grid.Rows[i].Cells[0].Value?.ToString() == name);
+        Check(grid.Rows[Row(source.Name)].Cells[1].Value?.ToString() == "Main", "Main campaign label is incorrect");
+        grid.CurrentCell = grid.Rows[Row(source.Name)].Cells[0]; Check(load.Enabled && delete.Enabled, "Archive from slot 3 cannot load into slot 1");
+        grid.CurrentCell = grid.Rows[Row(tag1.Name)].Cells[0]; Check(!load.Enabled && delete.Enabled && grid.Rows[Row(tag1.Name)].Unavailable, "TAG1 on 1.1 can load or cannot be deleted");
+        grid.CurrentCell = grid.Rows[Row(tag2.Name)].Cells[0]; Check(!load.Enabled && delete.Enabled && grid.Rows[Row(tag2.Name)].Unavailable, "TAG2 on 1.1 can load or cannot be deleted");
+        grid.SetSelectedRows([Row(source.Name), Row(tag1.Name)]); Check(!load.Enabled && delete.Enabled, "Multiple selection allows loading or prevents deletion");
+        Field<UiInput>(form, "_search").Text = "no match"; Check(grid.RowCount == 0 && !load.Enabled && !delete.Enabled, "Search retained an invisible selection"); Field<UiInput>(form, "_search").Clear();
+        grid.CurrentCell = grid.Rows[Row(source.Name)].Cells[0]; File.Delete(request);
+        load.PerformClick(); h = Request("prepare"); Reply(h[2], "waiting");
+        Pump(() => Field<UiText>(form, "_status").Text.StartsWith("Fixture result")); Reply(h[2], "ready"); h = Request("restore");
+        Check(h[6] == "GAME-AUTOSAVE0", "Load targeted the archive's original slot instead of the current game slot");
+        string bundle = Path.Combine(directory, "live-practice", "restore-pending", process.ToString(), h[2]); var plan = File.ReadAllLines(Path.Combine(bundle, "plan.tsv"));
+        Check(plan[0].Split('\t')[2] == "GAME-AUTOSAVE0" && plan[0].Split('\t')[5] == source.Id, "Cross-slot load staged another archive or target");
+        Reply(h[2], "loading"); Pump(() => Field<UiText>(form, "_status").Text.Contains("100%")); Reply(h[2], "reloaded"); Pump(() => load.Enabled);
+        Check(Field<UiText>(form, "_status").Text.StartsWith("Loaded:"), "Load did not finish");
+        File.Delete(request); var capture = Call("SaveCheckpoint"); h = Request("archive");
+        Check(!save.Enabled && !delete.Enabled && !grid.Enabled, "Busy operation left actions enabled");
+        string copy = Path.Combine(directory, "live-practice", process.ToString(), h[2], "slot"); Directory.CreateDirectory(copy);
+        foreach (var f in originals) File.WriteAllBytes(Path.Combine(copy, f.Key), f.Value);
         Reply(h[2], "archived"); Pump(() => capture.IsCompleted); capture.GetAwaiter().GetResult();
-        var archive = vault.List().Single();
-        Check(archive.Name.StartsWith("Checkpoint — ") && grid.RowCount == 1 && load.Enabled && grid.CurrentCell?.RowIndex == 0, "Captured save was not named and selected automatically");
-        Field<UiInput>(form, "_search").Text = "no matching save"; Check(grid.RowCount == 0 && !load.Enabled, "Empty search left load enabled"); Field<UiInput>(form, "_search").Clear();
-        File.Delete(request);
-        // Real click must immediately submit restore, with no intermediate confirmation dialog.
-        load.PerformClick(); h = Request("restore");
-        string bundle = Path.Combine(directory, "live-practice", "restore-pending", process.ToString(), h[2]);
-        string[] plan = File.ReadAllLines(Path.Combine(bundle, "plan.tsv"));
-        Check(plan.Length == 9 && plan[0].Split('\t')[5] == archive.Id, "Load staged a different archive or incomplete plan");
-        Reply(h[2], "loading"); Pump(() => Field<UiText>(form, "_status").Text.Contains("100%"));
-        Reply(h[2], "reloaded"); Pump(() => load.Enabled);
-        Check(Field<UiText>(form, "_status").Text.StartsWith("Loaded:"), "One-click load did not finish");
-        foreach (var pair in originals) Check(File.ReadAllBytes(Path.Combine(slot, pair.Key)).SequenceEqual(pair.Value), "UI fixture unexpectedly changed target checkpoint");
-        Application.DoEvents(); form.Refresh();
-        Check(grid.Visible && grid.Parent!.Visible, "Saved entries are absent from screen state");
-
-        form.Size = form.MinimumSize; Application.DoEvents();
-                process = 0; type.GetMethod("RefreshState", Private)!.Invoke(form, null); Check(!save.Enabled && !load.Enabled, "No-game state allowed save/load");
-        string Error(string text) => (string)type.GetMethod("FriendlyError", BindingFlags.NonPublic | BindingFlags.Static)!.Invoke(null, [text])!;
-        Check(Error("Pause first. Steam Cloud flags: account=0 app=1").StartsWith("Pause"), "Cloud diagnostic suffix hid real pause error");
-        Check(Error("rollback failed; original checkpoint path retained").Contains("Original files"), "Rollback failure hidden");
-        Check(Error("Files installed, but engine/account/Cloud changed before reload.").Contains("Files were installed"), "Post-install failure was mistaken for a retryable Cloud guard");
-        Check(Error("Game closed during live operation. Loading was not confirmed. Original checkpoint retained.").Contains("game closed"), "Game exit incorrectly tells the user to press Space");
+        Check(vault.List().Count == 4 && grid.RowCount == 4 && load.Enabled, "Capture did not use live mode or select the new archive");
+        Check(vault.List().Single(s => s.Id != source.Id && s.Id != tag1.Id && s.Id != tag2.Id).Category == "Uncategorized", "All-checkpoints view did not assign the default category");
+        grid.SetSelectedRows([Row(source.Name), Row(tag1.Name)]);
+        Check(Field<UiAction>(form, "_moveCategory").Enabled, "Multiple selection cannot move between categories");
+        var transfer = (Task)type.GetMethod("TransferSelected", Private)!.Invoke(form, ["Moved route"])!; Pump(() => transfer.IsCompleted); transfer.GetAwaiter().GetResult();
+        Check(grid.RowCount == 2 && grid.SelectedIndices.Count == 2 && !load.Enabled && delete.Enabled, "Transferred rows did not appear selected in their destination category");
+        Check(new PracticeSaveLibrary(directory).Categorized(vault.List()).Count(s => s.Category == "Moved route") == 2, "UI transfer did not persist");
+        var last = vault.List().Single(s => s.Id != source.Id && s.Id != tag1.Id && s.Id != tag2.Id);
+        Task<(bool Success, string Message)> Command() => (Task<(bool, string)>)type.GetMethod("LoadLastCheckpointFromCommand", Private)!.Invoke(form, [process])!;
+        File.Delete(request); var command = Command(); h = Request("status"); Reply(h[2], "ready"); h = Request("prepare"); Reply(h[2], "ready"); h = Request("restore");
+        string commandPlan = Path.Combine(directory, "live-practice", "restore-pending", process.ToString(), h[2], "plan.tsv");
+        Check(File.ReadAllLines(commandPlan)[0].Split('\t')[5] == last.Id && h[6] == "GAME-AUTOSAVE0", "Console command used UI selection/category instead of the last compatible archive and current slot");
+        Reply(h[2], "reloaded"); Pump(() => command.IsCompleted); Check(command.GetAwaiter().GetResult().Success, "Valid console load failed");
+        vault.DeleteArchives([last.Id]); File.Delete(request); command = Command(); h = Request("status"); Reply(h[2], "ready"); Pump(() => command.IsCompleted);
+        var missing = command.GetAwaiter().GetResult();
+        Check(!missing.Success && missing.Message.Contains("deleted") && File.ReadAllText(request).Contains("\tstatus\t"), "Deleted latest archive sent another load request or silently selected an older save");
+        File.Delete(request); var menuStatus = Call("RefreshRuntime"); h = Request("status");
+        File.WriteAllText(stem + ".tsv", $"#LABPLUS_LIVE_PRACTICE_V2\t{process}\t{h[2]}\t{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}\terror\t{location.Account}\t*\t\t\tLoad the selected campaign slot first.\t1.1\n");
+        Pump(() => menuStatus.IsCompleted); menuStatus.GetAwaiter().GetResult();
+        Check(!save.Enabled && !load.Enabled && !grid.Rows[Row(source.Name)].Unavailable && grid.Rows[Row(tag1.Name)].Unavailable
+            && Field<UiText>(form, "_connection").Text.Contains("destination"), "Main-menu target discovery failure mislabels compatible old saves as incompatible");
+        foreach (var f in originals) Check(File.ReadAllBytes(Path.Combine(location.SlotPath("GAME-AUTOSAVE0"), f.Key)).SequenceEqual(f.Value), "UI fixture modified game files");
+        process = 0; type.GetMethod("RefreshState", Private)!.Invoke(form, null);
+        Check(!save.Enabled && !load.Enabled && delete.Enabled, "Closed-game state blocks archive deletion or permits live operations");
         form.Close();
-        // The default workflow must work without a running game and expose main-campaign archives.
-        string offlineDirectory = Path.Combine(parent, "offline-save-ui"); Directory.CreateDirectory(offlineDirectory);
-        string mainSlot = location.SlotPath("GAME-AUTOSAVE0"); Directory.CreateDirectory(mainSlot);
-        foreach (var pair in originals) File.WriteAllBytes(Path.Combine(mainSlot, pair.Key), pair.Value);
-        var offlineVault = new PracticeSaveVault(offlineDirectory, () => []);
-        using var offlineForm = (LabPlusForm)Activator.CreateInstance(type, offlineDirectory, null, offlineVault, null, (Func<int>)(() => 0))!;
-        offlineForm.Show(); Field<System.Windows.Forms.Timer>(offlineForm, "_timer").Stop();
-        type.GetMethod("UseSource", Private)!.Invoke(offlineForm, [remote]);
-        Check(Field<UiAction>(offlineForm, "_save").Enabled, "Default offline save requires running game");
-        var offlineCapture = (Task)type.GetMethod("SaveCheckpoint", Private)!.Invoke(offlineForm, null)!;
-        Pump(() => offlineCapture.IsCompleted); offlineCapture.GetAwaiter().GetResult();
-        Check(offlineVault.List().Single().SourceSlot == "GAME-AUTOSAVE0" && Field<UiTable>(offlineForm, "_grid").RowCount == 1
-            && Field<UiAction>(offlineForm, "_load").Enabled, "Main campaign archive hidden or unavailable in default workflow");
-        Check(!Directory.EnumerateFiles(offlineDirectory, "*.request").Any(), "Offline capture submitted a restricted native request");
-        offlineForm.Close();
-        using var reopened = (LabPlusForm)Activator.CreateInstance(type, offlineDirectory, null, offlineVault, null, (Func<int>)(() => 0))!;
-        Check(Field<string>(reopened, "_slot") == "GAME-AUTOSAVE0" && !Field<bool>(reopened, "_live"), "Offline preferences did not survive reopening");
-        Console.WriteLine("PASS: simple saves UI uses production archive/restore protocol with isolated encrypted fixtures; blank name, auto-selection, search, one-click load, progress, disabled controls. User saves untouched.");
+        using var reopened = (LabPlusForm)Activator.CreateInstance(type, directory, null, vault, null, (Func<int>)(() => 0))!;
+        Check(Field<UiTable>(reopened, "_grid").RowCount == 2 && !Field<UiAction>(reopened, "_save").Enabled, "Reopening lost transferred category or restored obsolete filtering");
+        Console.WriteLine("PASS: Saves UI discovers the live target, restores slot 3 into slot 1, preserves all categories/slots, disables unavailable DLC and multi-load, retains Delete without a game, and shares action button sizes.");
     }
     private static IEnumerable<UiNode> Descendants(UiNode parent)
     { foreach (UiNode child in parent.Controls) { yield return child; foreach (var nested in Descendants(child)) yield return nested; } }

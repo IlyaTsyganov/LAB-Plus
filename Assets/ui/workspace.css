@@ -194,6 +194,47 @@ body{font-family:'LP UI';font-size:16px}
 #labplus-refined .lr-tabbed .lr-appbar{border-bottom:1px solid var(--lr-line)}
 #labplus-refined .lr-folder-icon{display:block;width:14px;height:10px;border:1px solid currentColor;border-radius:1px;position:relative;margin-top:3px}
 #labplus-refined .lr-folder-icon:before{content:"";position:absolute;top:-4px;left:-1px;width:6px;height:4px;border:1px solid currentColor;border-bottom:0;background:var(--lr-panel)}
+
+/* Saves uses the same assets and button geometry as Viewer. */
+#labplus-refined [data-presentation="saves-layout"]{--saves-action-width:170px;gap:12px}
+#labplus-refined [data-presentation="saves-create"].control-grid,#labplus-refined [data-presentation="saves-filters"].control-grid{grid-template-columns:minmax(0,1fr) var(--saves-action-width)!important;align-items:stretch}
+#labplus-refined [data-presentation="saves-primary"]{width:var(--saves-action-width);height:42px;min-height:42px;max-width:100%;padding:8px 16px;justify-self:end;font-family:'LP Battle'!important}
+#labplus-refined [data-presentation="saves-category-anchor"]{position:relative;min-width:0}
+#labplus-refined [data-presentation="saves-category-anchor"]>.lr-btn{width:100%;height:42px}
+#labplus-refined [data-presentation="saves-category-menu"]{position:absolute;right:0;top:calc(100% + 6px);width:280px;max-width:calc(100vw - 48px);max-height:440px;overflow:auto;background:var(--lr-panel);border:1px solid var(--lr-line);padding:12px;z-index:20;box-shadow:0 10px 28px #0005;gap:8px}
+#labplus-refined [data-presentation="saves-category-menu"] .lr-btn{white-space:normal;overflow-wrap:anywhere}
+#labplus-refined [data-presentation="saves-category-option"],#labplus-refined [data-presentation="saves-category-active"]{text-align:left;justify-content:flex-start;border-color:transparent;width:100%}
+#labplus-refined [data-presentation="saves-category-active"]{background:var(--lr-elevated);color:var(--lr-gold)}
+#labplus-refined [data-presentation="saves-add-category"].control-grid{grid-template-columns:minmax(0,1fr) 38px!important;border-top:1px solid var(--lr-line);padding-top:10px}
+#labplus-refined [data-presentation="saves-add-category"] .lr-btn{padding:5px}
+#labplus-refined [data-presentation="saves-category-heading"]{color:var(--lr-gold);font-size:13px}
+#labplus-refined [data-presentation="saves-table"] table{table-layout:fixed}
+#labplus-refined [data-presentation="saves-table"] .table-check-cell{width:38px;padding:8px 10px;text-align:center}
+#labplus-refined [data-presentation="saves-table"] th:nth-child(2){width:48%}
+#labplus-refined [data-presentation="saves-table"] th:nth-child(3){width:23%}
+#labplus-refined [data-presentation="saves-table"] th:last-child{width:29%}
+#labplus-refined [data-presentation="saves-table"] td{white-space:normal;overflow-wrap:anywhere}
+#labplus-refined .table-subtitle{display:block;font:12px/1.4 'LP UI';color:var(--lr-muted);margin-top:4px;white-space:normal;overflow-wrap:anywhere}
+#labplus-refined [data-presentation="saves-table"] tr.unavailable td:not(.table-check-cell){opacity:.5}
+#labplus-refined .table-check-cell input[type=checkbox]{appearance:none;display:inline-block;position:relative;width:15px;height:15px;min-height:15px;margin:0;padding:0;border:1px solid var(--lr-muted);border-radius:0;vertical-align:middle;background:var(--lr-bg)}
+#labplus-refined .table-check-cell input:checked{background:var(--lr-action);border-color:var(--lr-action)}
+#labplus-refined .table-check-cell input:checked:after{content:"";position:absolute;left:4px;top:1px;width:4px;height:8px;border:solid var(--lr-ink);border-width:0 2px 2px 0;transform:rotate(45deg)}
+#labplus-refined .table-check-cell input:indeterminate:after{content:"";position:absolute;left:3px;right:3px;top:6px;height:1px;background:var(--lr-action)}
+#labplus-refined [data-presentation="saves-actions"].control-grid{grid-template-columns:minmax(0,1fr) var(--saves-action-width) var(--saves-action-width)!important;align-items:center}
+#labplus-refined [data-presentation="saves-order"].control-toolbar{padding:0;border:0;background:transparent;gap:8px}
+#labplus-refined [data-presentation="saves-order"] .lr-btn{min-width:62px}
+#labplus-refined [data-presentation="saves-destination"]{font-size:13px;color:var(--lr-muted);overflow-wrap:anywhere}
+#labplus-refined [data-presentation="saves-folder-area"]{border-top:1px solid var(--lr-line);padding-top:16px;margin-top:6px;gap:8px}
+#labplus-refined [data-presentation="saves-folder-area"]>.control-label{font-size:13px;color:var(--lr-muted)}
+#labplus-refined [data-presentation="saves-folder-row"].control-grid{grid-template-columns:minmax(0,1fr) 42px!important;gap:8px}
+#labplus-refined [data-presentation="saves-folder-row"] .lr-btn{width:42px;min-height:34px;padding:0}
+@media(max-width:570px){
+  #labplus-refined [data-presentation="saves-layout"]{--saves-action-width:min(170px,calc((100vw - 64px)/2))}
+  #labplus-refined [data-presentation="saves-actions"].control-grid{grid-template-columns:var(--saves-action-width) var(--saves-action-width)!important;justify-content:space-between}
+  #labplus-refined [data-presentation="saves-order"]{grid-column:1/-1!important;grid-row:1!important}
+  #labplus-refined [data-presentation="saves-actions"]>[data-presentation="saves-primary"]:nth-child(2){grid-column:1!important;grid-row:2!important}
+  #labplus-refined [data-presentation="saves-actions"]>[data-presentation="saves-primary"]:nth-child(3){grid-column:2!important;grid-row:2!important}
+}
 #labplus-refined [data-action=choose]{width:40px}
 #labplus-refined .lr-trigger-actions{display:flex;justify-content:flex-end;margin-top:8px}
 #labplus-refined .lr-trigger-actions .lr-btn{min-height:28px;padding:3px 12px;font-size:12px!important}

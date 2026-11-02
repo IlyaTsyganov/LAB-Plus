@@ -25,7 +25,9 @@ internal static class LivePracticeChecks
         string target = location.SlotPath("DLC1-AUTOSAVE5"); Directory.CreateDirectory(target);
         foreach (string name in PracticeSaveVault.RequiredFiles) File.Copy(Path.Combine(copy, name), Path.Combine(target, name));
         Reject(() => vault.PlanLiveRestore(1234, saved.Id, remote, "DLC1-AUTOSAVE5", false), "Live restore missing Cloud acknowledgment");
-        Reject(() => vault.PlanLiveRestore(1234, saved.Id, remote, "DLC1-AUTOSAVE4", true), "Other slot allowed in live restore");
+        string alternate = location.SlotPath("DLC1-AUTOSAVE4"); Directory.CreateDirectory(alternate);
+        foreach (string name in PracticeSaveVault.RequiredFiles) File.Copy(Path.Combine(copy, name), Path.Combine(alternate, name));
+        Check(vault.PlanLiveRestore(1234, saved.Id, remote, "DLC1-AUTOSAVE4", true).Slot == "DLC1-AUTOSAVE4", "Same-campaign restore to a different slot blocked");
         var plan = vault.PlanLiveRestore(1234, saved.Id, remote, "DLC1-AUTOSAVE5", true);
         var targetBefore = Directory.GetFiles(target).ToDictionary(p => Path.GetFileName(p)!, File.ReadAllBytes);
         vault.StageLiveRestore(directory, plan);

@@ -10,7 +10,7 @@
     <AssemblyName>LABPlus</AssemblyName>
     <Product>LAB Plus</Product>
     <AssemblyTitle>LAB Plus</AssemblyTitle>
-    <Version>1.0.1</Version>
+    <Version>1.0.2</Version>
     <RootNamespace>LabPlus</RootNamespace>
     <PlatformTarget>x64</PlatformTarget>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>

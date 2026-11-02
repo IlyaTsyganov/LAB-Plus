@@ -10,6 +10,18 @@ static void Check(bool condition, string message)
 
 // Explicit acceptance modes. The normal fixture run never calls the game/Steam.
 // Read-only container framing diagnostics; never prints account identifiers or save payload strings.
+if (args.Length == 3 && args[0] == "--check-live-archives")
+{
+    string directory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "labplus"); var vault = new PracticeSaveVault(directory);
+    foreach (var save in vault.List())
+    {
+        string reason = PracticeSaveSource.LoadBlockReason(save, args[1], args[2]) ?? "compatible";
+        try { _ = vault.Verify(save.Id); Console.WriteLine($"{save.Name}: {reason}; four-file integrity OK"); }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Text.Json.JsonException or System.Security.Cryptography.CryptographicException)
+        { Console.WriteLine($"{save.Name}: archive unavailable/damaged ({ex.GetType().Name})"); }
+    }
+    return 0;
+}
 if (args.Length == 2 && args[0] == "--archive-layout")
 {
     string directory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "labplus");
@@ -47,6 +59,8 @@ if (args.Length == 4 && args[0] is "--live-restore" or "--live-restore-plan" or 
 {
     Check(int.TryParse(args[1], out int process) && process > 0, "Expected running game PID");
     string directory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "labplus"); var vault = new PracticeSaveVault(directory);
+    if (args[0] == "--live-restore")
+        await LivePracticeBridge.Execute(directory, () => ProcessExists(process) ? process : 0, "prepare", args[2], vault.Verify(args[3]).SourceSlot, true);
     var plan = vault.PlanLiveRestore(process, args[3], args[2], vault.Verify(args[3]).SourceSlot, true);
     Console.WriteLine(plan.Description); if (args[0] == "--live-restore-plan") { Console.WriteLine("PLAN ONLY: no request sent and no checkpoint files changed."); return 0; }
     vault.StageLiveRestore(directory, plan);
@@ -60,7 +74,7 @@ if (args.Length == 4 && args[0] is "--live-restore" or "--live-restore-plan" or 
 if (args.Length is 5 or 6 && args[0] == "--live-practice")
 {
     Check(int.TryParse(args[1], out int process) && process > 0, "Expected live game PID");
-    Check(args[2] is "archive" or "reload", "Expected archive or reload");
+    Check(args[2] is "status" or "prepare" or "archive" or "reload", "Expected status, prepare, archive or reload");
     string directory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "labplus");
     var result = await LivePracticeBridge.Execute(directory, () => ProcessExists(process) ? process : 0, args[2], args[3], args.Length == 6 ? args[5] : "DLC1-AUTOSAVE5", true);
     Console.WriteLine($"Live operation: {result.Phase}; PID {result.Process}; map {result.Map}; loaded checkpoint {result.Checkpoint}; token {result.Token}");
@@ -361,6 +375,8 @@ try
     BookmarkSaveChecks.Run(temporary);
     LivePracticeChecks.Run(temporary);
     CampaignSaveChecks.Run(temporary);
+    SaveLibraryChecks.Run(temporary);
+    LatestSaveChecks.Run(temporary);
     FirewallSourceChecks.Run(temporary);
     return 0;
 }

@@ -99,45 +99,95 @@ internal static class Program
     }
     private static async Task SaveWorkflow(MainForm main, string data, string output)
     {
-        string remote = Path.Combine(data, "Steam", "userdata", "10001", "782330", "remote");
-        string slot = Path.Combine(remote, "GAME-AUTOSAVE0"); Directory.CreateDirectory(slot);
-        var location = LabPlus.Game.SteamSaveLocation.Parse(remote);
-        var originals = LabPlus.Game.PracticeSaveVault.RequiredFiles.ToDictionary(n => n, n => LabPlus.Game.SteamSaveContainer.Seal(System.Text.Encoding.UTF8.GetBytes("old:" + n), location.Account, n));
-        foreach (var file in originals) File.WriteAllBytes(Path.Combine(slot, file.Key), file.Value);
+        string remote = Path.Combine(data, "Steam", "userdata", "10001", "782330", "remote"); Directory.CreateDirectory(remote);
+        var location = LabPlus.Game.SteamSaveLocation.Parse(remote); int process = Environment.ProcessId;
+        var originals = LabPlus.Game.PracticeSaveVault.RequiredFiles.ToDictionary(n => n, n => LabPlus.Game.SteamSaveContainer.Seal(System.Text.Encoding.UTF8.GetBytes("fixture:" + n), location.Account, n));
+        foreach (string slot in new[] { "GAME-AUTOSAVE0", "GAME-AUTOSAVE2", "DLC1-AUTOSAVE5", "DLC2-AUTOSAVE8" })
+        { Directory.CreateDirectory(location.SlotPath(slot)); foreach (var f in originals) File.WriteAllBytes(Path.Combine(location.SlotPath(slot), f.Key), f.Value); }
         var vault = new LabPlus.Game.PracticeSaveVault(data, () => []);
-        using var form = new PracticeSaveForm(data, vault: vault, gameProcess: () => 0);
-        typeof(PracticeSaveForm).GetMethod("UseSource", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.Invoke(form, [remote]);
-        form.Show(main); await WaitReady(form); await Settle(form);
+        var source = vault.Capture(remote, "GAME-AUTOSAVE2", "From third slot", "Practice", build: LabPlus.Game.PracticeSaveSource.ArchiveBuild("1.1"));
+        vault.Capture(remote, "GAME-AUTOSAVE2", "Another checkpoint", "Practice", build: LabPlus.Game.PracticeSaveSource.ArchiveBuild("1.1"));
+        vault.Capture(remote, "DLC1-AUTOSAVE5", "TAG1 checkpoint", "DLC", build: LabPlus.Game.PracticeSaveSource.ArchiveBuild("3.0"));
+        vault.Capture(remote, "DLC2-AUTOSAVE8", "TAG2 checkpoint", "DLC", build: LabPlus.Game.PracticeSaveSource.ArchiveBuild("5.0"));
+        var flags = System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance;
+        using var form = new PracticeSaveForm(data, vault: vault, gameProcess: () => process) { TopLevel = false };
+        main.Controls.Add(form); typeof(MainForm).GetField("_practiceSaves", flags)!.SetValue(main, form); form.Show();
+        T Field<T>(string name) => (T)typeof(PracticeSaveForm).GetField(name, flags)!.GetValue(form)!;
+        Field<System.Windows.Forms.Timer>("_timer").Stop(); typeof(PracticeSaveForm).GetMethod("UseSource", flags)!.Invoke(form, [remote]);
+        await Script(main, "document.querySelector('[data-screen=Saves]').click()"); await Settle(main);
         async Task Click(LabPlusForm screen, string label) => await Script(screen, $"[...document.querySelectorAll('button')].find(e=>e.textContent.trim()==={JsonSerializer.Serialize(label)}).click()");
-        async Task Wait(Func<bool> ready) { for (int i=0;i<200&&!ready();i++) await Task.Delay(50); if(!ready()) throw new Exception("Save browser workflow timed out"); }
-        LabPlusForm? Modal() => Application.OpenForms.OfType<WorkspaceHost>().Select(h => h.Screen).FirstOrDefault(s => s is WorkspaceMessageForm);
-        await Click(form, "Save"); await Wait(() => vault.List().Count == 1); await Settle(form);
-        var archive = vault.List().Single(); if (archive.SourceSlot != "GAME-AUTOSAVE0") throw new Exception("Save used the wrong campaign slot");
-        foreach (string name in originals.Keys) File.WriteAllBytes(Path.Combine(slot, name), LabPlus.Game.SteamSaveContainer.Seal(System.Text.Encoding.UTF8.GetBytes("new:" + name), location.Account, name));
-        await Click(form, "Load"); await Wait(() => Modal()?.Workspace?.Ready.IsCompletedSuccessfully == true);
-        var review = Modal()!; await Settle(review); await Inspect(review, "save-restore-review"); await Capture(review, output, "save-restore-review");
-        await Click(review, "OK");
-        await Wait(() => originals.All(f => File.ReadAllBytes(Path.Combine(slot, f.Key)).SequenceEqual(f.Value)));
-        await Settle(form); await Inspect(form, "offline-saves"); await Capture(form, output, "offline-saves"); await CheckScale(form, output);
-        await Click(form, "Advanced…");
-        LabPlusForm? Settings() => Application.OpenForms.OfType<WorkspaceHost>().Select(h => h.Screen).FirstOrDefault(s => s?.Text == "Checkpoint settings");
-        await Wait(() => Settings()?.Workspace?.Ready.IsCompletedSuccessfully == true); var settings = Settings()!; await Settle(settings);
-        await Inspect(settings, "checkpoint-settings"); await Capture(settings, output, "checkpoint-settings"); await CheckScale(settings, output);
-        var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
-        foreach (var sample in new[] { (Build: "1.0", Slots: 3), (Build: "3.0", Slots: 6), (Build: "5.0", Slots: 9) })
+        async Task Wait(Func<bool> ready) { for (int i = 0; i < 200 && !ready(); i++) await Task.Delay(50); if (!ready()) throw new Exception("Saves browser workflow timed out"); }
+        string stem = Path.Combine(data, $"practice-live-{process}");
+        async Task<string[]> Request(string op)
         {
-            typeof(PracticeSaveForm).GetField("_buildProcess", flags)!.SetValue(form, 0);
-            typeof(PracticeSaveForm).GetField("_runningBuild", flags)!.SetValue(form, sample.Build);
-            string modeSelector = "[...document.querySelectorAll('select')].find(s=>[...s.options].some(o=>o.textContent.startsWith('In game')))";
-            await Script(settings, $"(()=>{{const e={modeSelector};e.selectedIndex=0;e.dispatchEvent(new Event('change',{{bubbles:true}}));}})()"); await Settle(settings);
-            await Script(settings, $"(()=>{{const e={modeSelector};e.selectedIndex=1;e.dispatchEvent(new Event('change',{{bubbles:true}}));}})()"); await Settle(settings);
-            int count = JsonSerializer.Deserialize<int>(await Script(settings, "[...document.querySelectorAll('select')].find(s=>[...s.options].some(o=>o.textContent==='GAME-AUTOSAVE0')).options.length"));
-            if (count != sample.Slots) throw new Exception("Browser exposed unavailable DLC slots on " + sample.Build);
+            await Wait(() => File.Exists(stem + ".request") && File.ReadAllText(stem + ".request").Contains("\t" + op + "\t"));
+            return File.ReadAllText(stem + ".request").TrimEnd().Split('\t');
         }
-        Console.WriteLine("PASS: browser in-game slot selection exposes 3/6/9 slots at the 3.0 and 5.0 DLC boundaries.");
-        await Click(settings, "Done"); form.Close();
-        Console.WriteLine("PASS: browser Save/Load for main campaign with game closed; confirmed review, exact restored ciphertext, settings and 125/150% scale. Synthetic data only.");
+        void Reply(string token, string phase) => File.WriteAllText(stem + ".tsv", $"#LABPLUS_LIVE_PRACTICE_V2\t{process}\t{token}\t{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}\t{phase}\t{location.Account}\tGAME-AUTOSAVE0\tgame/sp/e1m1_intro/e1m1_intro\tcp_test\tBrowser fixture\t1.1\n");
+        var status = (Task)typeof(PracticeSaveForm).GetMethod("RefreshRuntime", flags)!.Invoke(form, null)!;
+        var request = await Request("status"); Reply(request[2], "ready"); await status; await Settle(main);
+        async Task Row(string name) { await Script(main, $"[...document.querySelectorAll('[data-presentation=saves-table] tbody tr')].find(r=>r.cells[1].textContent.includes({JsonSerializer.Serialize(name)})).cells[1].click()"); await Settle(main); }
+        await Row(source.Name); await Click(main, "Load"); request = await Request("prepare"); Reply(request[2], "ready"); request = await Request("restore");
+        if (request[6] != "GAME-AUTOSAVE0") throw new Exception("Browser load targeted source slot 3 instead of current slot 1");
+        string bundle = Path.Combine(data, "live-practice", "restore-pending", process.ToString(), request[2]);
+        if (File.ReadAllLines(Path.Combine(bundle, "plan.tsv"))[0].Split('\t')[5] != source.Id) throw new Exception("Browser staged another checkpoint");
+        Reply(request[2], "loading"); await Wait(() => Field<UiText>("_status").Text.Contains("100%")); Reply(request[2], "reloaded");
+        await Wait(() => Field<UiAction>("_load").Enabled); await Settle(main);
+        await Row("TAG1 checkpoint"); if (Field<UiAction>("_load").Enabled || !Field<UiAction>("_delete").Enabled) throw new Exception("TAG1 on 1.1 can load or cannot be deleted");
+        await Row("TAG2 checkpoint"); if (Field<UiAction>("_load").Enabled || !Field<UiAction>("_delete").Enabled) throw new Exception("TAG2 on 1.1 can load or cannot be deleted");
+        if (!JsonSerializer.Deserialize<bool>(await Script(main, "document.querySelector('[data-presentation=saves-table] tr.unavailable input').disabled===false"))) throw new Exception("Unavailable DLC row cannot be selected");
+        // Real browser checkboxes must reach the controller, including select all.
+        await Script(main, "document.querySelector('[data-presentation=saves-table] thead input').click()"); await Settle(main);
+        if (Field<UiTable>("_grid").SelectedIndices.Count != 4) throw new Exception("Select all did not reach the controller");
+        await Script(main, "document.querySelector('[data-presentation=saves-table] thead input').click()"); await Settle(main);
+        string list = "[...document.querySelectorAll('[data-presentation=saves-table] tbody tr')].map(r=>r.cells[1].childNodes[0].textContent)";
+        string[] before = JsonSerializer.Deserialize<string[]>(await Script(main, list))!;
+        await Script(main, "document.querySelectorAll('[data-presentation=saves-table] tbody input')[0].click()"); await Settle(main);
+        await Script(main, "document.querySelectorAll('[data-presentation=saves-table] tbody input')[1].click()"); await Settle(main);
+        if (Field<UiAction>("_load").Enabled || !Field<UiAction>("_delete").Enabled) throw new Exception("Multi-selection allows load or prevents deletion");
+        await Click(main, "Down"); await Settle(main);
+        string[] after = JsonSerializer.Deserialize<string[]>(await Script(main, list))!;
+        if (!after.Take(3).SequenceEqual(new[] { before[2], before[0], before[1] })) throw new Exception("Browser reorder lost selected block order");
+        await Click(main, "Move to…"); await Settle(main);
+        if (JsonSerializer.Deserialize<bool>(await Script(main, "document.querySelector('[data-presentation=saves-category-menu]').innerText.includes('All checkpoints')"))) throw new Exception("Aggregate view offered as transfer destination");
+        await Script(main, "[...document.querySelectorAll('[data-presentation=saves-category-menu] button')].find(e=>e.textContent.startsWith('DLC (')).click()"); await Settle(main);
+        var moved = new LabPlus.Game.PracticeSaveLibrary(data).Categorized(vault.List());
+        if (Field<UiTable>("_grid").SelectedIndices.Count != 2 || moved.Count(s => s.Category == "DLC") < 2) throw new Exception("Browser batch category transfer lost selection or persistence");
+        await Click(main, "Categories"); await Settle(main);
+        await Script(main, "[...document.querySelectorAll('[data-presentation=saves-category-menu] button')].find(e=>e.textContent.startsWith('All checkpoints (')).click()"); await Settle(main);
+        await Script(main, "document.querySelectorAll('[data-presentation=saves-table] tbody input')[1].click()"); await Settle(main);
+        await Script(main, "document.querySelectorAll('[data-presentation=saves-table] tbody input')[2].click()"); await Settle(main);
+        var modal = new Func<LabPlusForm?>(() => Application.OpenForms.OfType<WorkspaceHost>().Select(h => h.Screen).FirstOrDefault(s => s is WorkspaceMessageForm));
+        int count = vault.List().Count; await Click(main, "Delete"); await Wait(() => modal()?.Workspace?.Ready.IsCompletedSuccessfully == true);
+        var review = modal()!; await Settle(review); await Click(review, "Cancel"); await Wait(() => !Field<bool>("_busy"));
+        if (vault.List().Count != count) throw new Exception("Cancelled deletion removed archives");
+        await Click(main, "Delete"); await Wait(() => modal()?.Workspace?.Ready.IsCompletedSuccessfully == true); review = modal()!;
+        await Settle(review); await Click(review, "Delete"); await Wait(() => vault.List().Count == count - 2 && !Field<bool>("_busy")); await Settle(main);
+        if (Field<UiAction>("_delete").Enabled) throw new Exception("Deleted entries remain selected");
+        // Categories are in the main screen; no settings/mode dialog is involved.
+        await Click(main, "Categories"); await Settle(main);
+        await Script(main, "(()=>{const e=document.querySelector('input[placeholder=\"New category\"]');e.value='My route';e.dispatchEvent(new Event('change',{bubbles:true}));})()"); await Settle(main);
+        await Click(main, "+"); await Settle(main);
+        if (Field<UiTable>("_grid").RowCount != 0 || new LabPlus.Game.PracticeSaveLibrary(data).Category != "My route") throw new Exception("Creating/selecting an empty category failed");
+        File.Delete(stem + ".request"); await Click(main, "Save"); request = await Request("archive");
+        string copy = Path.Combine(data, "live-practice", process.ToString(), request[2], "slot"); Directory.CreateDirectory(copy);
+        foreach (var f in originals) File.WriteAllBytes(Path.Combine(copy, f.Key), f.Value); Reply(request[2], "archived");
+        await Wait(() => vault.List().Any(s => s.Category == "My route") && !Field<bool>("_busy")); await Settle(main);
+        await Click(main, "Move to…"); await Settle(main);
+        await Script(main, "(()=>{const e=document.querySelector('input[placeholder=\"New category\"]');e.value='Moved route';e.dispatchEvent(new Event('change',{bubbles:true}));})()"); await Settle(main);
+        await Click(main, "+"); await Settle(main);
+        var transferred = new LabPlus.Game.PracticeSaveLibrary(data);
+        if (transferred.Category != "Moved route" || Field<UiTable>("_grid").RowCount != 1 || transferred.Categorized(vault.List()).Count(s => s.Category == "Moved route") != 1) throw new Exception("Browser transfer into a new category failed");
+        if (!JsonSerializer.Deserialize<bool>(await Script(main, "(()=>{const b=['Save','Load','Delete'].map(t=>[...document.querySelectorAll('button')].find(e=>e.textContent.trim()===t));const r=b.map(e=>e.getBoundingClientRect());return r.every(e=>Math.abs(e.width-r[0].width)<1&&Math.abs(e.height-r[0].height)<1)})()"))) throw new Exception("Save/Load/Delete rendered sizes differ");
+        string audit = await Script(main, "JSON.stringify([...document.querySelectorAll('#labplus-refined *')].filter(e=>e.getClientRects().length&&([...e.childNodes].some(n=>n.nodeType===3&&n.textContent.trim())||e.matches('input'))).map(e=>getComputedStyle(e).fontFamily))");
+        if (JsonSerializer.Deserialize<string[]>(JsonSerializer.Deserialize<string>(audit)!)!.Any(f => f is not ("\"LP UI\"" or "\"LP Battle\""))) throw new Exception("Non-asset font in Saves");
+        if (JsonSerializer.Deserialize<bool>(await Script(main, "(()=>{const root=document.querySelector('[data-presentation=saves-layout]');return !!root.querySelector('details')||root.innerText.includes('Tools and diagnostics')||!!root.querySelector('select')})()"))) throw new Exception("Details, tools or mode picker visible in Saves");
+        if (!JsonSerializer.Deserialize<bool>(await Script(main, "!!document.querySelector('[data-presentation=saves-folder-row] .lr-folder-icon')"))) throw new Exception("Folder icon differs from Viewer");
+        await Inspect(main, "saves-library"); await Capture(main, output, "saves-library"); await CheckScale(main, output);
+        foreach (var f in originals) if (!File.ReadAllBytes(Path.Combine(location.SlotPath("GAME-AUTOSAVE0"), f.Key)).SequenceEqual(f.Value)) throw new Exception("UI fixtures changed the game slot");
+        Console.WriteLine("PASS: real main Saves browser: live current-slot protocol, slot 3 to 1 staging, DLC restrictions, multi-select, ordered moves, cancel/confirm bulk delete, categories, save, equal button sizes, asset fonts, folder icon, hidden tools and 125/150% scaling.");
     }
+
     private static async Task Settle(LabPlusForm form)
     { form.Workspace!.Publish(true); await Task.Delay(350); }
     private static Task<string> Script(LabPlusForm form, string script) => form.Workspace!.Browser.ExecuteScriptAsync(script);

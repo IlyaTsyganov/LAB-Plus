@@ -62,6 +62,9 @@ internal static class CompactChecks
         start.Environment["VK_INSTANCE_LAYERS"]="VK_LAYER_LABPLUS_lighting";
         start.Environment["LABPLUS_HUD_LIGHTING_FIX"]="1";
         typeof(MainForm).GetMethod("ConfigureLabLaunch",privateFlags)!.Invoke(main,[start]);
+        // GameLauncher.Start applies collision registration after the optional
+        // lighting callback. Reproduce that order without starting a game.
+        new LabPlus.Game.VulkanLayerRegistration(new SettingsStore(data)).ConfigureLaunch(start);
         if(start.Environment["LABPLUS_LIGHTING_FIX"]!="0"||start.Environment["LABPLUS_HUD_LIGHTING_FIX"]!="0"||start.Environment["VK_INSTANCE_LAYERS"]!.Contains("VK_LAYER_LABPLUS_lighting")||!File.ReadAllText(Path.Combine(hudStore.DirectoryPath,"lighting.ini")).Contains("Enabled=0"))throw new Exception("An unsupported executable inherited a lighting opt-in.");
         if(!start.Environment["VK_INSTANCE_LAYERS"]!.Contains("VK_LAYER_LABPLUS_collision")||!start.Environment["VK_LAYER_PATH"]!.Split(';').Any(p=>Path.GetFullPath(p).Equals(Path.GetFullPath(LabPlus.Hud.Runtime.GameLauncher.LoaderPath(Path.Combine(data,"viewer-runtime"))),StringComparison.OrdinalIgnoreCase)))throw new Exception("Combined launch hid the collision manifest from the Vulkan loader.");
         string probe=Path.GetFullPath(Path.Combine(AppContext.BaseDirectory,"../../../../../Native/CollisionViewer/bin/LayerLoaderProbe.exe"));

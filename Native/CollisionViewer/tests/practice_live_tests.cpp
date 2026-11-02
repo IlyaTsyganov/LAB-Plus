@@ -100,6 +100,18 @@ int main(int argc,char** argv) {
         } catch(const std::exception& error) { fprintf(stderr,"FAIL: %s\n",error.what()); return 1; }
     }
     transactionTests();
+    expect(validLabArguments({"labplus_load_last_save"})&&!validLabArguments({"labplus_load_last_save","1"}),"load-last-save console command has no user arguments");
+    auto feedbackToken=newSaveCommandToken(); expect(saveCommandTokenValid(feedbackToken),"console load uses a random bounded response token");
+    auto feedbackPath=std::filesystem::temp_directory_path()/(L"labplus-save-reply-"+std::to_wstring(GetCurrentProcessId())+L".tsv");
+    auto feedback=[&](const std::string& text) { std::ofstream out(feedbackPath,std::ios::binary); out<<text; };
+    auto feedbackLine="#LABPLUS_SAVE_COMMAND_V1\t"+std::to_string(GetCurrentProcessId())+"\t"+feedbackToken+"\terror\tLast save was deleted.\n";
+    feedback(feedbackLine); expect(readSaveCommandReply(feedbackPath,GetCurrentProcessId(),feedbackToken)=="Last save was deleted.","deleted-save feedback is safe console text");
+    expect(readSaveCommandReply(feedbackPath,GetCurrentProcessId()+1,feedbackToken).empty()&&readSaveCommandReply(feedbackPath,GetCurrentProcessId(),std::string(32,'a')).empty(),"foreign process and stale console replies are rejected");
+    feedback(feedbackLine+"extra\n"); expect(readSaveCommandReply(feedbackPath,GetCurrentProcessId(),feedbackToken).empty(),"multiline console reply is rejected");
+    feedback(std::string(4097,'x')); expect(readSaveCommandReply(feedbackPath,GetCurrentProcessId(),feedbackToken).empty(),"oversized console reply is rejected");
+    std::filesystem::remove(feedbackPath);
+    expect(practiceMayRunFromPresent("status")&&practiceMayRunFromPresent("archive"),"loading-screen presentation can only identify/copy checkpoints");
+    for(const char* operation:{"prepare","reload","restore","unknown"}) expect(!practiceMayRunFromPresent(operation),"presentation must never prepare replacements, write Steam saves or call the engine loader");
     expect(practiceRuntimeSlot("AUTOSAVE3")&&std::string(practiceRuntimeSlot("AUTOSAVE3")->slot)=="DLC1-AUTOSAVE3","canonical TAG1 folder mapping");
     expect(!practiceRuntimeSlot("../AUTOSAVE3")&&!practiceRuntimeSlot("AUTOSAVE9"),"unsafe/unknown folder mapping rejected");
     {
@@ -136,7 +148,22 @@ int main(int argc,char** argv) {
             put(item.record.data(),8,uint32_t((i*5+3)%9)); put(item.record.data(),24,reinterpret_cast<uintptr_t>(slot.folder));
             put(item.entries.data(),((i*5+3)%9)*0xe0+0x78,reinterpret_cast<uintptr_t>(slot.folder));
             auto value=item.read(); expect(bool(value)==(i<adapter->slotCount),"patch-specific DLC/slot availability");
-            if(value)expect(value.slot==slot.slot,"patch-specific slot identity preserved");
+            if(value) {
+                expect(value.slot==slot.slot,"patch-specific slot identity preserved");
+                auto hud=adapter->game->playerHudOffset+adapter->game->hudPausedOffset;
+                put(item.player.data(),hud,uint8_t(0)); expect(bool(item.read()),"normal gameplay accepted on every supported patch/campaign");
+                put(reinterpret_cast<void*>(item.system),0x44,uint32_t(1));
+                expect(bool(readPracticeRuntime(WallMemory{},item.base,adapter->game,true,true)),"pre-Space checkpoint capture accepted on every supported patch/campaign");
+                expect(!item.read()&&item.read().busy,"pre-Space engine reload waits for entered gameplay");
+                put(reinterpret_cast<void*>(item.system),adapter->pendingOffset,uint32_t(1));
+                auto writing=readPracticeRuntime(WallMemory{},item.base,adapter->game,true,true);
+                expect(!writing&&writing.busy,"pre-Space capture still waits for autosave");
+                put(reinterpret_cast<void*>(item.system),adapter->pendingOffset,uint32_t(0));
+                put(reinterpret_cast<void*>(item.system),0x44,uint32_t(0));
+                expect(!readPracticeRuntime(WallMemory{},item.base,adapter->game,true,true),"main menu cannot be mistaken for a loaded checkpoint");
+                put(reinterpret_cast<void*>(item.system),0x44,uint32_t(2));
+                put(item.player.data(),hud,uint8_t(1));
+            }
             put(item.entries.data(),i*0xe0+0x78,reinterpret_cast<uintptr_t>(slot.folder));
             put(item.record.data(),8,uint32_t(i));
             auto global=item.read();expect(bool(global)==(i<adapter->slotCount),"save-list positions preserve patch DLC boundaries");
@@ -167,8 +194,17 @@ int main(int argc,char** argv) {
     put(f.record.data(),24,reinterpret_cast<uintptr_t>("AUTOSAVE4")); expect(bool(f.read())&&!practiceRequestMatches(f.read(),"DLC1-AUTOSAVE5"),"different current folder blocks requested restore target"); put(f.record.data(),24,reinterpret_cast<uintptr_t>("AUTOSAVE5")); put(f.entries.data(),2*0xe0+0x78,reinterpret_cast<uintptr_t>("AUTOSAVE5"));
     put(f.map.data(),0x20,reinterpret_cast<uintptr_t>("game/dlc/e5m1_spear/e5m1_spear")); expect(!f.read(),"other DLC blocked"); put(f.map.data(),0x20,reinterpret_cast<uintptr_t>("game/dlc/e4m1_rig/e4m1_rig"));
     auto hud=kProfile6663.playerHudOffset+kProfile6663.hudPausedOffset;
-    put(f.player.data(),hud,uint8_t(0)); expect(!f.read(),"running game blocked"); put(f.player.data(),hud,uint8_t(1));
-    put(reinterpret_cast<void*>(f.system),0x9ca8,uint32_t(1)); expect(!f.read(),"pending save blocked"); put(reinterpret_cast<void*>(f.system),0x9ca8,uint32_t(0));
+    put(f.player.data(),hud,uint8_t(0)); expect(bool(f.read()),"running game accepted");
+    put(f.player.data(),hud,uint8_t(2)); expect(!f.read()&&!f.read().busy,"invalid HUD layout does not become retryable"); put(f.player.data(),hud,uint8_t(0));
+    PracticeIdleWindow idle;
+    expect(!idle.update(f.read(),1000)&&!idle.update(f.read(),1499)&&idle.update(f.read(),1500),"normal gameplay requires 500 ms quiescence");
+    put(reinterpret_cast<void*>(f.system),0x9ca8,uint32_t(1)); expect(!f.read()&&f.read().busy,"pending save waits without writing");
+    expect(bool(readPracticeRuntime(WallMemory{},f.base,f.adapter->game,false)),"read-only status still identifies a slot during autosave");
+    expect(!idle.update(f.read(),1600),"autosave resets the quiescence window");
+    put(reinterpret_cast<void*>(f.system),0x9ca8,uint32_t(0));
+    expect(!idle.update(f.read(),2000)&&!idle.update(f.read(),2499)&&idle.update(f.read(),2500),"after autosave a full new idle interval is required");
+    auto changed=f.read(); changed.record+=8; expect(!idle.update(changed,2600),"changing the selected user record resets quiescence");
+    changed=f.read(); changed.map+=8; expect(!idle.update(changed,2700),"changing the active map resets quiescence");
     put(reinterpret_cast<void*>(f.system),0xb8,uint8_t(1)); expect(!f.read(),"map transition blocked"); put(reinterpret_cast<void*>(f.system),0xb8,uint8_t(0));
     std::array<uintptr_t,3> task{0,1,0}; put(f.ghost.data(),0x60,reinterpret_cast<uintptr_t>(task.data())); expect(!f.read(),"async load blocked"); put(f.ghost.data(),0x60,uintptr_t(0));
     std::array<uintptr_t,2> jobs{0,1}; task[1]=reinterpret_cast<uintptr_t>(jobs.data()); put(f.ghost.data(),0x58,reinterpret_cast<uintptr_t>(task.data())); expect(!f.read(),"active writer blocked"); jobs[1]=0; expect(bool(f.read()),"completed writer queue accepted");
@@ -198,8 +234,8 @@ int main(int argc,char** argv) {
     for(auto name:names) { std::ofstream out(temporary/name,std::ios::binary); out<<std::string(28,'x'); }
     expect(readPracticeFiles(temporary)[0].size()==28,"complete checkpoint copy");
     HANDLE writer=CreateFileW((temporary/names[0]).c_str(),GENERIC_WRITE,FILE_SHARE_READ|FILE_SHARE_WRITE,nullptr,OPEN_EXISTING,0,nullptr); expect(writer!=INVALID_HANDLE_VALUE,"fixture writer");
-    bool blocked=false; try { readPracticeFiles(temporary); } catch(...) { blocked=true; } expect(blocked,"concurrent writer denied"); CloseHandle(writer);
+    bool blocked=false; try { readPracticeFiles(temporary); } catch(const PracticeCheckpointBusy&) { blocked=true; } expect(blocked,"concurrent writer produces retryable wait"); CloseHandle(writer);
     { std::ofstream extra(temporary/L"unexpected.dat"); extra<<"x"; } blocked=false; try { readPracticeFiles(temporary); } catch(...) { blocked=true; } expect(blocked,"unsupported extra file blocked");
     std::filesystem::remove_all(temporary);
-    puts("PASS: live practice slot/profile/pause/user/writer/map guards, account-bound paths, bounded tokens, complete file read and concurrent-writer rejection. No engine/Steam calls executed.");
+    puts("PASS: gameplay and pause on 22 patch adapters, idle-window reset after autosave, read-only busy status, user/writer/map guards, account-bound paths and concurrent-writer wait. No engine/Steam calls executed.");
 }

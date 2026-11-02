@@ -109,7 +109,7 @@ static PracticeStorageApi practiceStorageApi(const std::string& slot="DLC1-AUTOS
     };
     return api;
 }
-// Caller MUST be the paused, idle engine frame callback.
+// Caller MUST be the idle engine frame callback in an entered campaign (state 2).
 // Storage is supplied explicitly: production uses Steam's own local storage API
 // to update its file cache/index, tests use a bounded recording implementation.
 // After commit both copies remain; async load failures must not roll files back.

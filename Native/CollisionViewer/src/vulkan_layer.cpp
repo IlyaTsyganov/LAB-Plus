@@ -1141,6 +1141,9 @@ static bool applyCompanionAvailability(bool available) {
     updateViewerSettings(!companionRuntimeActive);companionRuntimeActive=true;return true;
 }
 EXPORT VKAPI_ATTR VkResult VKAPI_CALL vkQueuePresentKHR(VkQueue queue,const VkPresentInfoKHR* present) {
+    // Capture remains available at the loading prompt where meathook's engine
+    // callback is suspended. Do not hold Vulkan state locks across file/Steam IO.
+    if(!smokeTest()&&!sceneTest()&&!occlusionCase()) practiceLiveBridge.update(currentGameProfile(),false);
     std::unique_lock<std::recursive_mutex> lock(guard);
     auto foundQueue=queues.find(queue);
     auto foundDevice=devices.find(key(queue));

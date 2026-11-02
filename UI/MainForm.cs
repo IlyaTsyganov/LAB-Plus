@@ -236,12 +236,19 @@ internal sealed partial class MainForm : LabPlusForm
         BeginInvoke(() =>
         {
             if (IsDisposed || SelectedGameProcess() != process) return;
+            if (PracticeSaveCommand.TryParse(args, out var token)) { _ = LoadLastSaveCommand(process, token); return; }
             if (!LabCommands.Apply(_settings, args, process, DateTime.UtcNow.Ticks)) return;
             _loadingControls = true;
             try { LoadSettingsIntoControls(); }
             finally { _loadingControls = false; }
             SaveSettings();
         });
+    }
+
+    private async Task LoadLastSaveCommand(int process, string token)
+    {
+        var result = await EnsurePracticeSaves().LoadLastCheckpointFromCommand(process);
+        if (!IsDisposed) PracticeSaveCommand.Reply(_settingsStore.SettingsDirectory, process, token, result.Success, result.Message);
     }
 
     internal void StopResearchOnExit()

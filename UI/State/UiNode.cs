@@ -15,6 +15,7 @@ internal class UiNode : IDisposable
     public string Text { get => _text; set { if (_text == value) return; _text = value ?? ""; TextChanged?.Invoke(this, EventArgs.Empty); } }
     public string Name { get; set; } = "";
     public object? Tag { get; set; }
+    public string Presentation { get; set; } = "";
     public bool Enabled { get => _enabled && (Parent?.Enabled ?? true); set => _enabled = value; }
     public virtual bool Visible { get; set; } = true;
     public bool IsDisposed { get; private set; }
@@ -121,6 +122,7 @@ internal class UiTab : UiStack;
 internal class UiText : UiNode;
 internal class UiAction : UiNode
 {
+    public string Icon { get; set; } = "";
     public event EventHandler? Click;
     public DialogResult DialogResult { get; set; }
     public bool Primary { get; set; }

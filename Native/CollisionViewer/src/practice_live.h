@@ -7,50 +7,62 @@ static std::string practiceClean(std::string text) {
     if(text.size()>2048) text.resize(2048); return text;
 }
 // Live checkpoint archival/restore through explicit, patch-specific save/load adapters.
-// All Steam/engine calls, fixed-path file writes and quiescence checks run in
-// meathook's frame callback. Account ownership is never changed.
+// Engine calls and game-save replacement run only in meathook's frame callback.
+// Presentation can service status/capture while that callback is suspended at
+// the loading prompt. That path only reads the game and copies archive files.
+// Account ownership is never changed.
 struct PracticeRuntime {
     uintptr_t system=0,map=0,record=0;
-    uint32_t user=0,entryIndex=~0u;
+    uint32_t user=0,entryIndex=~0u,engineState=0;
     std::string folder,slot,level,error;
     const PracticeProfile* adapter=nullptr;
+    bool busy=false;
     explicit operator bool() const { return error.empty()&&system&&map&&record; }
 };
-static PracticeRuntime readPracticeRuntime(const WallMemory& memory,uintptr_t base,const GameProfile* profile) {
+static PracticeRuntime readPracticeRuntime(const WallMemory& memory,uintptr_t base,const GameProfile* profile,bool requireIdle=true,bool allowLoadingCapture=false) {
     PracticeRuntime out;
     auto fail=[&](const char* message) { out.error=message; return out; };
+    auto busy=[&](const char* message) { out.busy=true; return fail(message); };
     const auto* adapter=practiceProfile(profile); out.adapter=adapter;
     if(!adapter) return fail("In-game saves require an audited save/load adapter for this patch.");
     uint32_t state=0,pending=~0u,type=0; unsigned char requested=1,paused=0,removed=1;
     uintptr_t ghost=0,globalGhost=0,users=0,master=0,shared=0,player=0,vt=0;
     if(!memory.get(base+profile->gameSystemRva,out.system)||out.system!=base+adapter->systemRva||
-       !memory.get(out.system+0x44,state)||state!=2||!memory.get(out.system+0x50,out.map)||!out.map)
+       !memory.get(out.system+0x44,state)||(state!=2&&state!=1)||!memory.get(out.system+0x50,out.map)||!out.map)
         return fail("Load the selected campaign slot first.");
+    out.engineState=state;
+    // At the completed loading prompt retail remains in state 1 until continued.
+    // Reading an idle checkpoint there is safe; starting another engine load
+    // must wait for state 2. No engine calls or file replacement in state 1.
+    if(state==1&&!allowLoadingCapture) return busy("Continue into the loaded level in the game before loading an archive.");
     if(!memory.get(out.map+adapter->mapTypeOffset,type)||type!=1||!memory.get(out.map+0x20,shared)) return fail("Campaign map unavailable.");
     out.level=readEntityText(memory,shared,512);
 
     if(!memory.get(out.map+profile->mapPlayerOffset,player)||!memory.get(player,vt)||vt!=base+profile->playerVtableRva||
-       !memory.get(player+0xa4,removed)||removed||!memory.get(player+profile->playerHudOffset+profile->hudPausedOffset,paused)||paused!=1)
-        return fail("Pause the game in the selected campaign slot.");
-    if(!memory.get(out.system+adapter->pendingOffset,pending)||pending||!memory.get(out.system+0xb8,requested)||requested)
-        return fail("Engine save/map-change queue is busy. Wait on pause and retry.");
+       !memory.get(player+0xa4,removed)||removed||!memory.get(player+profile->playerHudOffset+profile->hudPausedOffset,paused)||paused>1)
+        return fail("The campaign player is not ready.");
+    if(!memory.get(out.system+adapter->pendingOffset,pending)||!memory.get(out.system+0xb8,requested)) return fail("Cannot read engine save/map-change state.");
+    if(requested||(requireIdle&&pending)) return busy("Waiting for the engine save/map-change queue.");
     if(!memory.get(out.system+adapter->ghostOffset,ghost)||!ghost||!memory.get(base+adapter->ghostRva,globalGhost)||ghost!=globalGhost)
         return fail("Save manager unavailable.");
-    if(adapter->slotsOffset==0x68) {
+    if(requireIdle&&adapter->slotsOffset==0x68) {
         // Legacy save manager: outstanding save work is a list, not a shared queue.
         uint64_t writers=~0ULL;
-        if(!memory.get(ghost+0x40,writers)||writers) return fail("Engine save work is still queued.");
+        if(!memory.get(ghost+0x40,writers)) return fail("Cannot read save writer state.");
+        if(writers) return busy("Waiting for autosave to finish.");
         for(auto offset:{0x50u,0x58u}) {
             uintptr_t task=0,object=0;
-            if(!memory.get(ghost+offset,task)||(task&&!memory.get(task+8,object))||object) return fail("Engine save/load task is busy.");
+            if(!memory.get(ghost+offset,task)||(task&&!memory.get(task+8,object))) return fail("Cannot read save task state.");
+            if(object) return busy("Waiting for the engine save/load task.");
         }
-    } else {
+    } else if(requireIdle) {
         for(auto offset:{0x50u,0x58u,0x60u}) {
             uintptr_t task=0,object=0,count=0;
             if(!memory.get(ghost+offset,task)||(task&&!memory.get(task+8,object))) return fail("Cannot read save task state.");
             if(offset==0x58) {
-                if(object&&(!memory.get(object+8,count)||count)) return fail("Engine is still writing saves.");
-            } else if(object) return fail("Engine save/load task is busy.");
+                if(object&&!memory.get(object+8,count)) return fail("Cannot read save writer queue.");
+                if(count) return busy("Waiting for autosave to finish.");
+            } else if(object) return busy("Waiting for the engine save/load task.");
         }
     }
     if(!memory.get(base+adapter->usersRva,users)||!memory.get(users+0x18,shared)||!shared||
@@ -80,9 +92,22 @@ static PracticeRuntime readPracticeRuntime(const WallMemory& memory,uintptr_t ba
 static bool practiceRequestMatches(const PracticeRuntime& state,const std::string& requestedSlot) {
     return bool(state)&&state.slot==requestedSlot;
 }
+struct PracticeIdleWindow {
+    ULONGLONG since=0;
+    PracticeRuntime initial;
+    void reset() { since=0; initial={}; }
+    bool update(const PracticeRuntime& state,ULONGLONG now) {
+        if(!state) { reset(); return false; }
+        if(!since||initial.engineState!=state.engineState||initial.map!=state.map||initial.record!=state.record||initial.user!=state.user||initial.slot!=state.slot||initial.entryIndex!=state.entryIndex) {
+            initial=state; since=now; return false;
+        }
+        return now-since>=500;
+    }
+};
 static bool practiceCloudDisabled(int accountEnabled,int appEnabled) {
     return accountEnabled>=0&&accountEnabled<=1&&appEnabled>=0&&appEnabled<=1&&!(accountEnabled&&appEnabled);
 }
+static bool practiceMayRunFromPresent(const std::string& operation) { return operation=="status"||operation=="archive"; }
 struct PracticeSteamIdentity {
     uint64_t account=0;
     bool cloudDisabled=false;
@@ -124,6 +149,7 @@ static bool practiceRemote(const std::filesystem::path& remote,uint64_t account)
     auto app=remote.parent_path(),user=app.parent_path();
     return remote.filename()==L"remote"&&app.filename()==L"782330"&&user.filename()==std::to_wstring(account-individual)&&user.parent_path().filename()==L"userdata";
 }
+struct PracticeCheckpointBusy : std::runtime_error { using std::runtime_error::runtime_error; };
 static std::array<std::vector<unsigned char>,4> readPracticeFiles(const std::filesystem::path& slot) {
     static const wchar_t* names[]{L"game.details",L"game.details-BACKUP",L"game_duration.dat",L"game_duration.dat-BACKUP"};
     practiceNoLinks(slot); std::vector<HANDLE> handles;
@@ -142,7 +168,11 @@ static std::array<std::vector<unsigned char>,4> readPracticeFiles(const std::fil
     // Open ALL containers before reading any; a concurrent writer is denied.
     for(const auto name:names) {
         HANDLE handle=CreateFileW((slot/name).c_str(),GENERIC_READ,FILE_SHARE_READ,nullptr,OPEN_EXISTING,FILE_ATTRIBUTE_NORMAL,nullptr);
-        if(handle==INVALID_HANDLE_VALUE) throw std::runtime_error("Save files are still open for writing. Retry after autosave completes."); handles.push_back(handle);
+        if(handle==INVALID_HANDLE_VALUE) {
+            auto error=GetLastError();
+            if(error==ERROR_SHARING_VIOLATION||error==ERROR_LOCK_VIOLATION) throw PracticeCheckpointBusy("Waiting for autosave files to close.");
+            throw std::runtime_error("Cannot open checkpoint files for reading.");
+        } handles.push_back(handle);
     }
     for(size_t i=0;i<4;++i) {
         LARGE_INTEGER length{};
@@ -191,8 +221,10 @@ struct PracticeReloadReadiness {
     }
 };
 class PracticeLiveBridge {
+    std::mutex work;
     std::string seen,token,operation,account,slot,build,checkpoint,cloudDetail,recoveryDetail; std::filesystem::path remote;
-    uint64_t requested=0; ULONGLONG idleSince=0,nextPoll=0,loadingSince=0; uintptr_t originalMap=0;
+    uint64_t requested=0; ULONGLONG nextPoll=0,presentPoll=0,loadingSince=0; uintptr_t originalMap=0;
+    PracticeIdleWindow idle;
     bool loading=false,sawTransition=false;
     PracticeReloadReadiness readiness;
     void result(const std::filesystem::path& directory,const std::string& phase,const std::string& detail,const std::string& level="") {
@@ -202,12 +234,28 @@ class PracticeLiveBridge {
         out.close(); if(out) MoveFileExW(temporary.c_str(),path.c_str(),MOVEFILE_REPLACE_EXISTING);
     }
 public:
-    void update(const GameProfile* profile) {
-        if(!labAppAvailable()||GetTickCount64()<nextPoll) return; nextPoll=GetTickCount64()+(loading?16:100);
+    void update(const GameProfile* profile,bool engineFrame=true) {
+        // Never block presentation waiting for an engine callback (or vice
+        // versa). Separate clocks prevent render polling from starving a load.
+        std::unique_lock<std::mutex> lock(work,std::try_to_lock); if(!lock.owns_lock()) return;
+        auto& poll=engineFrame?nextPoll:presentPoll;
+        if(!labAppAvailable()||GetTickCount64()<poll) return; poll=GetTickCount64()+(loading?16:100);
         const auto directory=researchDirectory(); if(directory.empty()) return;
         auto base=reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr)); WallMemory memory;
+        struct SteamThreadMemory {
+            bool release;
+            ~SteamThreadMemory() {
+                if(!release) return;
+                auto module=GetModuleHandleW(L"steam_api64.dll");
+                // Steamworks recommends releasing API parameter storage on
+                // threads which do not dispatch SteamAPI_RunCallbacks.
+                auto clear=module?reinterpret_cast<void(__cdecl*)()>(GetProcAddress(module,"SteamAPI_ReleaseCurrentThreadMemory")):nullptr;
+                if(clear) clear();
+            }
+        } steamMemory{false};
         try {
             if(loading) {
+                if(!engineFrame) return;
                 uintptr_t system=0,map=0; uint32_t state=0; unsigned char change=0;
                 bool readable=profile&&memory.get(base+profile->gameSystemRva,system)&&memory.get(system+0x44,state)&&memory.get(system+0x50,map)&&memory.get(system+0xb8,change);
                 auto level=profile?readLevelIdentity(memory,base,*profile):LevelIdentity{};
@@ -231,34 +279,50 @@ public:
                 std::vector<std::string> values; std::istringstream split(line); std::string part;
                 while(std::getline(split,part,'\t')) values.push_back(part);
                 if(values.size()!=9||values[0]!="#LABPLUS_LIVE_PRACTICE_REQUEST_V2"||values[1]!=std::to_string(GetCurrentProcessId())||
-                   !practiceToken(values[2])||values[2]==seen||(values[4]!="archive"&&values[4]!="reload"&&values[4]!="restore")||!practiceSlot(values[6])) return;
+                   !practiceToken(values[2])||values[2]==seen||(values[4]!="status"&&values[4]!="prepare"&&values[4]!="archive"&&values[4]!="reload"&&values[4]!="restore")||
+                   (values[4]=="status"?values[6]!="*":!practiceSlot(values[6]))) return;
                 auto number=[](const std::string& value) { return !value.empty()&&value.size()<=20&&std::all_of(value.begin(),value.end(),[](char c) { return c>='0'&&c<='9'; }); };
                 if(!number(values[3])||!number(values[5])) return;
                 requested=std::stoull(values[3]); auto now=encounterEpochMillis();
                 if(requested>now+2000||now>requested+10000) { seen=values[2]; return; }
                 token=seen=values[2]; operation=values[4]; account=values[5]; slot=values[6]; build=practiceProfile(profile)?practiceProfile(profile)->version:"unsupported";
-                if(values[8]!="*"&&values[8]!=build) { result(directory,"error","Archive patch does not match the running game. Original untouched."); token.clear(); return; } checkpoint.clear(); cloudDetail.clear(); recoveryDetail.clear(); idleSince=0;
+                if(values[8]!="*"&&values[8]!=build) { result(directory,"error","Archive patch does not match the running game. Original untouched."); token.clear(); return; } checkpoint.clear(); cloudDetail.clear(); recoveryDetail.clear(); idle.reset(); originalMap=0;
                 remote=std::filesystem::u8path(values[7]);
             }
-            if(encounterEpochMillis()>requested+10000) { result(directory,"error","Checkpoint writing did not become idle while paused within ten seconds."); token.clear(); return; }
-            auto state=readPracticeRuntime(memory,base,profile);
-            if(!state) { result(directory,"error",state.error); token.clear(); return; }
-            if(!practiceRequestMatches(state,slot)) { result(directory,"error","Requested slot is not the currently loaded campaign slot."); token.clear(); return; }
+            if(encounterEpochMillis()>requested+30000) { result(directory,"error","Checkpoint writing did not become idle within thirty seconds. No files installed."); token.clear(); return; }
+            if(!engineFrame&&!practiceMayRunFromPresent(operation)) {
+                result(directory,"waiting","Continue into the loaded level in the game to start the archive load."); return;
+            }
+            auto state=readPracticeRuntime(memory,base,profile,operation!="status",operation=="archive"||operation=="status");
+            if(!state) {
+                idle.reset();
+                if(state.busy&&operation!="status") { result(directory,"waiting",state.error); return; }
+                result(directory,"error",state.error); token.clear(); return;
+            }
+            if(operation=="status") slot=state.slot;
+            else if(!practiceRequestMatches(state,slot)) { result(directory,"error","Requested slot is not the currently loaded campaign slot."); token.clear(); return; }
+            steamMemory.release=!engineFrame;
             auto steam=readPracticeSteam();
             cloudDetail="Steam Cloud flags: account="+std::to_string(steam.cloudAccount)+", app="+std::to_string(steam.cloudApp)+".";
             if(!steam.account||std::to_string(steam.account)!=account||!practiceRemote(remote,steam.account)) {
                 result(directory,"error","Steam runtime account and save-folder owner must match. Account mixing is blocked."); token.clear(); return;
             }
+            if(operation=="status") {
+                auto layout=std::atomic_load(&checkpointMetadata);
+                auto loaded=layout?readLoadedCheckpoint(memory,state.map,state.level,*layout):CheckpointObservation{};
+                checkpoint=loaded.name; result(directory,"ready","Current campaign slot identified. No save files read or changed.",state.level); token.clear(); return;
+            }
             if(!steam.cloudDisabled) {
                 result(directory,"error",steam.cloudAccount<0||steam.cloudApp<0?"Steam Cloud state is unavailable; live operation blocked.":"Steam Cloud is enabled both for the account and the game. Disable Cloud before the live operation.");
                 token.clear(); return;
             }
-            if(!idleSince) { idleSince=GetTickCount64(); originalMap=state.map; result(directory,"waiting","Checking that checkpoint writing stays idle for 500 ms.",state.level); return; }
-            if(originalMap!=state.map) { result(directory,"error","Map changed during preparation."); token.clear(); return; }
-            if(GetTickCount64()-idleSince<500) return;
+            if(originalMap&&originalMap!=state.map) { result(directory,"error","Map changed during preparation. Retry in the loaded campaign."); token.clear(); return; }
+            originalMap=state.map;
+            if(!idle.update(state,GetTickCount64())) { result(directory,"waiting","Waiting for a stable completed checkpoint.",state.level); return; }
+            if(operation=="prepare") { result(directory,"ready","Campaign save queues are idle. No save files read or changed.",state.level); token.clear(); return; }
             auto files=readPracticeFiles(remote/std::filesystem::u8path(slot));
-            auto after=readPracticeRuntime(memory,base,profile);
-            if(!after||after.map!=state.map||after.record!=state.record||after.user!=state.user||after.slot!=state.slot) throw std::runtime_error("Engine state changed during checkpoint read.");
+            auto after=readPracticeRuntime(memory,base,profile,true,operation=="archive");
+            if(!after||after.engineState!=state.engineState||after.map!=state.map||after.record!=state.record||after.user!=state.user||after.slot!=state.slot) throw std::runtime_error("Engine state changed during checkpoint read.");
             auto layout=std::atomic_load(&checkpointMetadata);
             auto loaded=layout?readLoadedCheckpoint(memory,state.map,state.level,*layout):CheckpointObservation{}; checkpoint=loaded.name;
             if(operation=="archive") {
@@ -287,11 +351,15 @@ public:
                 }
                 if(!requestPracticeReload(memory,base,state)) throw std::runtime_error("Audited engine-loader signatures or load parameters did not match.");
                 loading=true; loadingSince=GetTickCount64(); sawTransition=false; readiness={}; originalMap=state.map;
-                result(directory,"loading",operation=="restore"?"Archive files installed and verified through Steam storage. Loading PRIMARY checkpoint; press Space in game if loading reaches 100%.":"Requested PRIMARY checkpoint through the engine. No save files replaced. Press Space in game if loading reaches 100%.",state.level);
+                result(directory,"loading",operation=="restore"?"Archive files installed and verified through Steam storage. Loading PRIMARY checkpoint; continue in the game when loading reaches 100%.":"Requested PRIMARY checkpoint through the engine. No save files replaced. Continue in the game when loading reaches 100%.",state.level);
                 // Keep the request token until asynchronous completion is reported.
             }
+        } catch(const PracticeCheckpointBusy& error) {
+            // Only initial checkpoint reads may wait. Once originals exist, a
+            // restore error must retain its recovery report and stop.
+            if(!token.empty()&&recoveryDetail.empty()) { idle.reset(); result(directory,"waiting",error.what()); }
+            else { if(!token.empty()) result(directory,"error",error.what()); token.clear(); loading=false; }
         } catch(const std::exception& error) { if(!token.empty()) result(directory,"error",error.what()); token.clear(); loading=false; }
-        if(!loading&&operation=="reload") token.clear();
     }
 };
 static PracticeLiveBridge practiceLiveBridge;

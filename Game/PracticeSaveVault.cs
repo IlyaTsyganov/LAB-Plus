@@ -183,14 +183,15 @@ public sealed partial class PracticeSaveVault
         Validate(value); string path = ArchivePath(id), temporary = path + ".pending";
         WriteSet(Path.Combine(temporary, "slot"), files);
         File.WriteAllText(Path.Combine(temporary, "manifest.json"), JsonSerializer.Serialize(value, new JsonSerializerOptions { WriteIndented = true }));
-        _ = VerifyFolder(temporary); Directory.Move(temporary, path); return value;
+        _ = VerifyFolder(temporary); Directory.Move(temporary, path);
+        new PracticeLatestSave(Path.GetDirectoryName(_root)!).Remember(value); return value;
     }
     public PracticeSave Capture(string remote, string slot, string name, string category, string map = "", string build = "")
     {
         RequireClosed(); var location = SteamSaveLocation.Parse(remote); var files = ReadSet(location.SlotPath(slot)); RequireClosed();
         return Store(files, location.Account, slot, name, category, map, build, false);
     }
-    // This consumes a COPY made inside the paused, idle engine frame callback.
+    // This consumes a COPY made inside the idle engine frame callback.
     // It never reads/replaces the live slot and never relaxes offline restore.
     public PracticeSave ImportLiveCheckpoint(string directory, LivePracticeResult capture, string remote, string name, string category, string map = "")
     {
