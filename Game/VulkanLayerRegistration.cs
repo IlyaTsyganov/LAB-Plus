@@ -38,6 +38,7 @@ public sealed class VulkanLayerRegistration
     public void ConfigureLaunch(ProcessStartInfo start)
     {
         PrepareRuntime();
+        start.Environment["LABPLUS_FUN_AUDIO"] = Path.Combine(AppContext.BaseDirectory, "Assets", "audio", "labplus_fun.wav");
         var path = new StringBuilder(32768);
         uint count = GetShortPathName(RuntimeDirectory, path, (uint)path.Capacity);
         ConfigureEnvironment(start, count > 0 && count < path.Capacity ? path.ToString() : RuntimeDirectory);

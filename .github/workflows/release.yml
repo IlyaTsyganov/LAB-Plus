@@ -51,12 +51,12 @@ jobs:
           $request = Get-Content -LiteralPath '.github/release-request.json' -Raw | ConvertFrom-Json
           [xml]$project = Get-Content -LiteralPath 'labplus.csproj' -Raw
           $version = ([string]$project.Project.PropertyGroup.Version).Trim()
-          if ($version -notmatch '^\d+\.\d+\.\d+$' -or $request.version -cne $version) {
+          if ($version -notmatch '^\d+\.\d+(\.\d+)?$' -or $request.version -cne $version) {
             throw 'The requested release must match the source project version.'
           }
           if ($request.tag -cne "v$version" -or $request.asset -cne "labplus-$version-win-x64.zip" -or
               $request.notes -cne "docs/releases/$version.md" -or $request.title -cne "LAB Plus $version" -or
-              $request.expectedRuntimeFiles -ne 29) {
+              $request.expectedRuntimeFiles -ne 30) {
             throw 'Unexpected release request, asset, notes path, title or reviewed package count.'
           }
           if (!(Test-Path -LiteralPath $request.notes -PathType Leaf)) { throw 'Release notes are missing.' }
@@ -121,13 +121,13 @@ jobs:
           & '.\package-local.ps1' -Source (Join-Path $PWD 'build/release-raw')
           $package = (Resolve-Path -LiteralPath 'publish').Path
           $files = @(Get-ChildItem -LiteralPath $package -Recurse -File)
-          if ($files.Count -ne 29) { throw "Expected 29 runtime files; found $($files.Count)." }
+          if ($files.Count -ne 30) { throw "Expected 30 runtime files; found $($files.Count)." }
           if ($files.Name -match '\.pdb$|\.log$|^settings\.json$|^(README|CREDITS)\.md$') {
             throw 'Unexpected development files or runtime state in the package.'
           }
           $exe = Join-Path $package 'LABPlus.exe'
           $fileVersion = [Diagnostics.FileVersionInfo]::GetVersionInfo($exe).FileVersion
-          if ($fileVersion -cne "$env:RELEASE_VERSION.0") { throw "Unexpected LABPlus.exe FileVersion: $fileVersion" }
+          if ($fileVersion -cne "$env:RELEASE_VERSION.0.0") { throw "Unexpected LABPlus.exe FileVersion: $fileVersion" }
           $stream = [IO.File]::OpenRead($exe)
           try {
             $reader = [IO.BinaryReader]::new($stream)
@@ -145,13 +145,13 @@ jobs:
           $archive = [IO.Compression.ZipFile]::OpenRead($zip)
           try {
             $entries = @($archive.Entries | Where-Object { $_.Name })
-            if ($entries.Count -ne 29 -or !($entries.FullName -ccontains 'LABPlus.exe')) {
+            if ($entries.Count -ne 30 -or !($entries.FullName -ccontains 'LABPlus.exe')) {
               throw 'Release ZIP does not contain the exact runtime package at its root.'
             }
           } finally { $archive.Dispose() }
           $hash = (Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash.ToLowerInvariant()
           "$hash  $env:RELEASE_ASSET" | Set-Content -LiteralPath 'artifacts/release/SHA256SUMS' -Encoding ascii
-          "Package: $env:RELEASE_ASSET; 29 files; LABPlus.exe $fileVersion; Windows x64." >> $env:GITHUB_STEP_SUMMARY
+          "Package: $env:RELEASE_ASSET; 30 files; LABPlus.exe $fileVersion; Windows x64." >> $env:GITHUB_STEP_SUMMARY
           "SHA-256: $hash" >> $env:GITHUB_STEP_SUMMARY
 
       - name: Publish a new release from this exact commit

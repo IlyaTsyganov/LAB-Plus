@@ -3,6 +3,7 @@ static void printActiveEncounters(const MeathookHudApi& api);
 
 struct LabCommandDefinition { const char* name; const char* usage; bool legacy=false; };
 static constexpr LabCommandDefinition labCommandDefinitions[]{
+    {"labplus_fun","0|1"},
     {"labplus_commands_list","List LAB Plus cvars and action commands"},
     {"labplus_encounters_list","List active encounter managers with reference names"},
     {"labplus_debughud_scale","[0.5..3] - query or set DebugHUD text scale"},
@@ -54,7 +55,7 @@ static bool validLabArguments(const std::vector<std::string>& input) {
         int value=atoi(args[1].c_str()); return value>=20&&value<=200;
     }
     if(args[1]!="0"&&args[1]!="1") return false;
-    if(command=="labplus_enemies"||command=="labplus_enemy_hp_bars"||command=="labplus_timers"||command=="labplus_techs") return true;
+    if(command=="labplus_fun"||command=="labplus_enemies"||command=="labplus_enemy_hp_bars"||command=="labplus_timers"||command=="labplus_techs") return true;
     for(const auto& definition:labCommandDefinitions) if(definition.legacy&&command==definition.name) return true;
     return false;
 }
@@ -103,6 +104,7 @@ static LabCommandSystem resolveLabCommandSystem(const WallMemory& memory,uintptr
     return result;
 }
 #include "labplus_cvars.h"
+#include "fun_mode.h"
 
 class LabConsole {
     const MeathookHudApi* api=nullptr;
@@ -128,14 +130,16 @@ class LabConsole {
         }
         if(!validLabArguments(args)) { self->api->consolePrint("%s","labplus_: invalid arguments. Use labplus_commands_list.\n"); return; }
         args=normalizeLabArguments(args);
-        if(printDebugHudScaleQuery(*self->api,args)) {}
+        if(funMode().command(*self->api,self->commandSystem,args)) {}
+        else if(printDebugHudScaleQuery(*self->api,args)) {}
         else if(args[0]=="labplus_encounters"&&args.size()==1) { printActiveEncounters(*self->api); }
         else if(args[0]=="labplus_help") {
             for(const auto& definition:labCvarDefinitions) self->api->consolePrint("%s : %d..%d\n",definition.name,definition.minimum,definition.maximum);
-            for(const auto& definition:labCommandDefinitions) if(!definition.legacy) self->api->consolePrint("%s : %s\n",definition.name,definition.usage);
+            for(const auto& definition:labCommandDefinitions) if(!definition.legacy&&strncmp(definition.name,"labplus_fun",11)) self->api->consolePrint("%s : %s\n",definition.name,definition.usage);
         } else self->api->consolePrint("%s",sendLabRequest(args)?"labplus_: request sent to LAB Plus.\n":"labplus_: LAB Plus is unavailable or busy; retry.\n");
     }
     void frame() {
+        funMode().frame();
         bool available=labAppAvailable();
         const auto* profile=currentGameProfile(); if(!profile) return;
         if(commandsRegistered) {

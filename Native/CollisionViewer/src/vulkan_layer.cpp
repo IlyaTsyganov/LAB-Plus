@@ -113,8 +113,9 @@ static ULONGLONG researchReset=0,researchMarker=0;
 static std::string researchMarkerLabel;
 static bool showPlayerCollider=false,showMotionPaths=true,motionFollowTarget=true;
 static std::atomic<bool> showSupportHud{false};
+static bool funScreenActive();
 static bool nativeOverlayNeeded() {
-    return enabled||showEnemyHealthBars.load()||showEnemyHealthHud.load()||showGameTimersHud.load()||
+    return funScreenActive()||enabled||showEnemyHealthBars.load()||showEnemyHealthHud.load()||showGameTimersHud.load()||
         showSpeedrunTechsHud.load()||showSupportHud.load()||showActiveEncountersHud.load();
 }
 static DWORD motionProcess=0;
@@ -589,6 +590,7 @@ static void sortVisibleCandidates(std::vector<Candidate>& visible) {
 #include "encounter_labels.h"
 #include "meathook_hud.h"
 #include "labplus_console.h"
+static bool funScreenActive() { return funMode().enabled(); }
 // Resolve the existing visibility cvar only on the engine callback. The
 // renderer consumes its immutable result and never calls engine functions.
 static bool debugHudEngineVisible(const MeathookHudApi* api) {
@@ -861,6 +863,14 @@ static bool draw(Swapchain& swap,VkQueue queue,uint32_t imageIndex,const VkPrese
     static std::vector<Vertex> vertices;
     uint32_t healthTriangleVertices=0;
     uint32_t triangleVertices=collectVertices(camera,vertices,swap.extent.height,&healthTriangleVertices);
+    const auto funOffset=static_cast<uint32_t>(vertices.size());
+    const uint32_t funVertices=funScreenActive()?6u:0u;
+    if(funVertices) {
+        const auto color=funMode().color();
+        for(const auto& p:std::array<Vec3,6>{{{-1,-1,0},{1,-1,0},{1,1,0},{-1,-1,0},{1,1,0},{-1,1,0}}}) {
+            Vertex vertex{}; vertex.position=p; memcpy(vertex.color,color.data(),16); vertices.push_back(vertex);
+        }
+    }
     const auto& hud=debugHudVertices(swap.extent.width,swap.extent.height,consoleFraction>0);
     const auto hudOffset=static_cast<uint32_t>(vertices.size()),hudVertices=static_cast<uint32_t>(hud.size());
     vertices.insert(vertices.end(),hud.begin(),hud.end());
@@ -911,14 +921,16 @@ static bool draw(Swapchain& swap,VkQueue queue,uint32_t imageIndex,const VkPrese
         d.CmdBindPipeline(frame.commands,VK_PIPELINE_BIND_POINT_GRAPHICS,swap.fill); d.CmdDraw(frame.commands,worldTriangleVertices,1,0,0);
         d.CmdPushConstants(frame.commands,swap.layout,VK_SHADER_STAGE_VERTEX_BIT|VK_SHADER_STAGE_FRAGMENT_BIT,0,sizeof(push),&push);
     }
-    uint32_t lineVertices=hudOffset-triangleVertices;
+    uint32_t lineVertices=funOffset-triangleVertices;
     if(lineVertices) { d.CmdBindPipeline(frame.commands,VK_PIPELINE_BIND_POINT_GRAPHICS,swap.lines); d.CmdDraw(frame.commands,lineVertices,1,triangleVertices,0); }
     // UI layers use painter order, while the fragment shader still tests the game depth.
     if(healthTriangleVertices) { d.CmdBindPipeline(frame.commands,VK_PIPELINE_BIND_POINT_GRAPHICS,swap.healthFill); d.CmdDraw(frame.commands,healthTriangleVertices,1,worldTriangleVertices,0); }
-    if(hudVertices) {
+    if(funVertices||hudVertices) {
         PushConstants screen{}; screen.matrix[0]=screen.matrix[5]=screen.matrix[10]=screen.matrix[15]=1;
         d.CmdPushConstants(frame.commands,swap.layout,VK_SHADER_STAGE_VERTEX_BIT|VK_SHADER_STAGE_FRAGMENT_BIT,0,sizeof(screen),&screen);
-        d.CmdBindPipeline(frame.commands,VK_PIPELINE_BIND_POINT_GRAPHICS,swap.healthFill); d.CmdDraw(frame.commands,hudVertices,1,hudOffset,0);
+        d.CmdBindPipeline(frame.commands,VK_PIPELINE_BIND_POINT_GRAPHICS,swap.healthFill);
+        if(funVertices) d.CmdDraw(frame.commands,funVertices,1,funOffset,0);
+        if(hudVertices) d.CmdDraw(frame.commands,hudVertices,1,hudOffset,0);
     }
     d.CmdEndRenderPass(frame.commands);
     depthSamplingBarrier(d,frame.commands,*screenDepth,true);

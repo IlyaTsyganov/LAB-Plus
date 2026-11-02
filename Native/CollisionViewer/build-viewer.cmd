@@ -25,6 +25,8 @@ if not exist build mkdir build
 if not exist bin mkdir bin
 cl /nologo /std:c++17 /W4 /O2 /EHsc /MD /LD /I"%VULKAN_HEADERS%" src\vulkan_layer.cpp /Fo:build\vulkan_layer.obj /Fe:bin\labplus-layer.dll user32.lib /link /INCREMENTAL:NO
 if errorlevel 1 exit /b %errorlevel%
+cl /nologo /std:c++17 /W4 /O2 /EHsc /MD /I"%VULKAN_HEADERS%" tests\fun_mode_tests.cpp /Fo:build\fun_mode_tests.obj /Fe:bin\FunModeTests.exe user32.lib /link /INCREMENTAL:NO
+if errorlevel 1 exit /b %errorlevel%
 cl /nologo /std:c++17 /W4 /O2 /EHsc /MD /I"%VULKAN_HEADERS%" tests\app_lifetime_tests.cpp /Fo:build\app_lifetime_tests.obj /Fe:bin\AppLifetimeTests.exe user32.lib /link /INCREMENTAL:NO
 if errorlevel 1 exit /b %errorlevel%
 cl /nologo /std:c++17 /W4 /O2 /EHsc /MD /I"%VULKAN_HEADERS%" tests\bats_weapon_tests.cpp /Fo:build\bats_weapon_tests.obj /Fe:bin\BatsWeaponTests.exe user32.lib /link /INCREMENTAL:NO

@@ -13,6 +13,7 @@ $flags = @('-std=c++17', '-fms-extensions', '-D_WIN32_WINNT=0x0A00', '-DNTDDI_VE
 & $Compiler @flags -shared (Join-Path $nativeDirectory 'src\vulkan_layer.cpp') -o (Join-Path $output 'labplus-layer.dll') -luser32 -lbcrypt
 if ($LASTEXITCODE -ne 0) { throw 'Native layer compilation failed.' }
 $suites = [ordered]@{
+ 'fun_mode_tests.cpp'='FunModeTests';
  'app_lifetime_tests.cpp'='AppLifetimeTests';
  'bats_weapon_tests.cpp'='BatsWeaponTests';
  'health_bar_render_tests.cpp'='HealthBarRenderTests';
