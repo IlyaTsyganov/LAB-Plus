@@ -10,7 +10,7 @@
     <AssemblyName>LABPlus</AssemblyName>
     <Product>LAB Plus</Product>
     <AssemblyTitle>LAB Plus</AssemblyTitle>
-    <Version>1.0.2</Version>
+    <Version>1.0.3</Version>
     <RootNamespace>LabPlus</RootNamespace>
     <PlatformTarget>x64</PlatformTarget>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -20,7 +20,7 @@
     <Content Include="Assets\licenses\*.txt" CopyToOutputDirectory="PreserveNewest" TargetPath="licenses\%(Filename)%(Extension)" />
     <Content Include="Assets\ui\**\*" CopyToOutputDirectory="PreserveNewest" TargetPath="Assets\ui\%(RecursiveDir)%(Filename)%(Extension)" />
     <Content Include="LICENSE" CopyToOutputDirectory="PreserveNewest" TargetPath="licenses\GPL-3.0.txt" />
-    <Content Include="Native\CollisionViewer\THIRD_PARTY_NOTICES.md" CopyToOutputDirectory="PreserveNewest" TargetPath="licenses\THIRD_PARTY_NOTICES.md" />
+    <Content Include="Native\CollisionViewer\THIRD_PARTY_NOTICES.txt" CopyToOutputDirectory="PreserveNewest" TargetPath="licenses\THIRD_PARTY_NOTICES.txt" />
     <Content Include="Assets\labplus.png" CopyToOutputDirectory="PreserveNewest" TargetPath="Assets\labplus.png" />
     <Compile Remove="Tests\**\*.cs" />
     <Compile Remove="Tools\**\*.cs" />

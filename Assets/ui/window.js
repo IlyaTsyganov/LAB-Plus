@@ -4,7 +4,9 @@
   window.chrome.webview.addEventListener('message',event=>{
     if(event.data.kind==='state'){
       const state=event.data.state;ui.text(document.getElementById('tool-title'),state.title);ui.text(document.getElementById('tool-subtitle'),state.subtitle);
+      ui.text(document.getElementById('app-version'),state.appVersion);
       document.querySelector('.desktop-app').classList.toggle('dialog-window',!!state.dialog);
+      document.querySelector('.desktop-app').classList.toggle('compact-dialog',!!state.compactDialog);
       document.querySelector('.desktop-app').dataset.tool=state.tool;
       ui.renderControls(root,state.tree);
       ui.rendered();

@@ -1,5 +1,6 @@
 html,body{margin:0;min-height:100%;background:#191615;color-scheme:dark}
 body{font-family:'LP UI';font-size:16px}
+#labplus-refined .lr-app-version{font-family:'LP UI';font-weight:400;font-size:12px;line-height:1;white-space:nowrap;color:var(--lr-muted);align-self:center;margin-left:1px}
 #labplus-refined{min-height:100vh}
 #labplus-refined .desktop-app.lr-app{min-height:100vh;height:100vh;overflow:hidden}
 #labplus-refined .desktop-app .lr-workspace{min-width:0;min-height:0;overflow:auto}
@@ -96,6 +97,13 @@ body{font-family:'LP UI';font-size:16px}
 #labplus-refined .dialog-window .research-content{padding-bottom:26px}
 #labplus-refined .dialog-window .control-toolbar{background:transparent;border:0;padding:10px 0 0;justify-content:flex-end}
 #labplus-refined .dialog-window .control-label{font-size:14px;max-height:58vh;overflow:auto}
+#labplus-refined .compact-dialog .lr-statusbar{display:none}
+#labplus-refined .compact-dialog .research-content{padding:18px 20px;display:flex;flex-direction:column;gap:14px}
+#labplus-refined .compact-dialog .lr-heading-row{margin:0}
+#labplus-refined .compact-dialog .lr-heading{font-size:22px}
+#labplus-refined .compact-dialog .control-root{gap:0}
+#labplus-refined .compact-dialog .control-toolbar{gap:10px;flex-wrap:nowrap}
+#labplus-refined .compact-dialog .control-toolbar .lr-btn{font-size:12px;padding:8px 12px;min-height:34px;white-space:nowrap}
 @media(max-width:800px){#labplus-refined .research-content{padding:23px 20px}#labplus-refined .window-context{display:none}#labplus-refined .control-grid{grid-template-columns:1fr!important}#labplus-refined .control-toolbar{padding:12px}#labplus-refined .control-field{width:100%!important}}
 @media(max-width:800px){#labplus-refined .control-grid>.control-node{grid-column:auto!important;grid-row:auto!important}}
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}

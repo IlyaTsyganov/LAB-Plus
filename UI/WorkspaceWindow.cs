@@ -232,8 +232,40 @@ internal static class WorkspaceWindows
 
 internal sealed class WorkspaceApplicationContext : ApplicationContext
 {
-    internal WorkspaceApplicationContext(MainForm main)
+    private MainForm? _main;
+    private Game.LabCommandServer? _commands;
+    internal WorkspaceApplicationContext(bool preview)
     {
-        WorkspaceWindows.Initialize();main.FormClosed+=(_,_)=>{WorkspaceWindows.Shutdown();ExitThread();};main.Show();
+        WorkspaceWindows.Initialize();
+        // Begin startup from the active UI message loop. No main window, game
+        // monitor or command server exists while the optional update is shown.
+        WorkspaceWindows.Dispatch(async () =>
+        {
+            try
+            {
+                if (!preview && await StartupUpdates.RunAsync()) { ExitThread(); return; }
+                _main = new MainForm();
+                _commands = preview ? null : new Game.LabCommandServer(_main.ReceiveLabCommand);
+                _main.FormClosing += (_, e) => { if (!e.Cancel) _commands?.Stop(); };
+                _main.FormClosed += (_, _) => ExitThread();
+                _main.Show();
+            }
+            catch (Exception error)
+            {
+                System.Windows.Forms.MessageBox.Show("LAB Plus could not start.\n\n" + error.GetBaseException().Message, "LAB Plus", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                ExitThread();
+            }
+        });
+    }
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            _commands?.Dispose();
+            _main?.StopResearchOnExit();
+            _main?.Dispose();
+            WorkspaceWindows.Shutdown();
+        }
+        base.Dispose(disposing);
     }
 }

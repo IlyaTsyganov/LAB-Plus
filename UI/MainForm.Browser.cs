@@ -6,6 +6,7 @@ internal sealed partial class MainForm
 {
     internal object WorkspaceSnapshot(ScreenStateAdapter projection) => new
     {
+        appVersion = Updates.AppVersion.Display,
         enabled = _viewerEnabled.Checked, world = _worldCollision.Checked, triggers = _triggers.Checked, walls = _invisibleWalls.Checked,
         inspector = _inspector.Checked, disabled = _disabledVolumes.Checked, history = _volumeHistory.Checked,
         style = _outlines.Checked ? "Outlines" : "Filled", distance = (int)_distanceInput.Value,

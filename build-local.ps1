@@ -19,6 +19,8 @@ try {
     }
     & '.\Native\Lighting\build.ps1' -Compiler $NativeCompiler
     if (!$SkipTests) {
+        & $dotnet run --project '.\Tests\Updates\Updates.Tests.csproj' -c Release
+        if ($LASTEXITCODE -ne 0) { throw 'Update checks failed.' }
         & $dotnet run --project '.\Tests\Launcher\LauncherTests.csproj' -c Release
         if ($LASTEXITCODE -ne 0) { throw 'Launcher checks failed.' }
         New-Item -ItemType Directory -Path '.\build\screenshots' -Force | Out-Null

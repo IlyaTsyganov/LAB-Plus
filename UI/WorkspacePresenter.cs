@@ -104,7 +104,7 @@ internal sealed class WorkspacePresenter : IDisposable
     internal void Publish(bool force = false)
     {
         if (_disposed || _browser.CoreWebView2 is null) return;
-        object state = _form is MainForm main ? main.WorkspaceSnapshot(_projection) : new { title = ToolTitle(_form), subtitle = ToolSubtitle(_form), tool = _form.GetType().Name, dialog = _form is WorkspaceMessageForm, tree = _projection.Snapshot(_projection.Roots) };
+        object state = _form is MainForm main ? main.WorkspaceSnapshot(_projection) : new { appVersion = Updates.AppVersion.Display, title = ToolTitle(_form), subtitle = ToolSubtitle(_form), tool = _form.GetType().Name, dialog = _form is WorkspaceMessageForm, compactDialog = _form is WorkspaceMessageForm { Compact: true }, tree = _projection.Snapshot(_projection.Roots) };
         string text = JsonSerializer.Serialize(new { kind = "state", state }, Json);
         if (!force && text == _lastState) return;
         _lastState = text; _browser.CoreWebView2.PostWebMessageAsJson(text);

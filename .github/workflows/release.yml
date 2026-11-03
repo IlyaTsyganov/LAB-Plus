@@ -55,7 +55,7 @@ jobs:
             throw 'The requested release must match the source project version.'
           }
           if ($request.tag -cne "v$version" -or $request.asset -cne "labplus-$version-win-x64.zip" -or
-              $request.notes -cne "docs/releases/$version.md" -or $request.title -cne "LAB Plus $version" -or
+              $request.notes -cne ".github/release-notes.txt" -or $request.title -cne "LAB Plus $version" -or
               $request.expectedRuntimeFiles -ne 30) {
             throw 'Unexpected release request, asset, notes path, title or reviewed package count.'
           }
@@ -105,6 +105,8 @@ jobs:
 
       - name: Run launcher and HUD fixtures without a game installation
         run: |
+          & dotnet run --project 'Tests/Updates/Updates.Tests.csproj' --configuration Release
+          if ($LASTEXITCODE -ne 0) { throw 'Update fixtures failed.' }
           & dotnet run --project 'Tests/Launcher/LauncherTests.csproj' --configuration Release
           if ($LASTEXITCODE -ne 0) { throw 'Launcher fixtures failed.' }
           & dotnet run --project 'Tests/Hud/Hud.Tests.csproj' --configuration Release
