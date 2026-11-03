@@ -8,8 +8,6 @@ Everything in one customizable interface.
 
 [**Download Latest Release**](https://github.com/IlyaTsyganov/LAB-Plus/releases/latest) • [**Wiki**](https://github.com/IlyaTsyganov/LAB-Plus/wiki) • [**Report an Issue**](https://github.com/IlyaTsyganov/LAB-Plus/issues)
 
-![LAB Plus interface](docs/images/workspace.png)
-
 ## Features
 
 - **Collision Viewer** — See collision geometry, triggers and invisible walls directly in the game.
