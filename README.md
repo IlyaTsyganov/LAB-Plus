@@ -1,69 +1,63 @@
 # LAB Plus
 
-Windows research and practice companion for **DOOM Eternal**, featuring the **Slayer Workspace** interface, original Eternal typefaces and the red/gold Plus emblem. The interface is fully English; technical identifiers and console controls use `labplus` / `labplus_`.
+**Explore DOOM Eternal beyond what you can normally see.**
 
-[Download Windows x64](https://github.com/IlyaTsyganov/LAB-Plus/releases/latest) · [Detailed Wiki](https://github.com/IlyaTsyganov/LAB-Plus/wiki) · [Console reference](https://github.com/IlyaTsyganov/LAB-Plus/wiki/Console-commands-and-cvars)
+LAB Plus is a free Windows tool for DOOM Eternal that helps you explore levels, visualize hidden geometry, track movement, analyze combat and practice speedrunning.
 
-![Slayer Workspace](docs/images/workspace.png)
+Everything in one customizable interface.
+
+[**Download Latest Release**](https://github.com/IlyaTsyganov/LAB-Plus/releases/latest) • [**Wiki**](https://github.com/IlyaTsyganov/LAB-Plus/wiki) • [**Report an Issue**](https://github.com/IlyaTsyganov/LAB-Plus/issues)
+
+![LAB Plus interface](docs/images/workspace.png)
 
 ## Features
 
-- A dedicated **LAB** tab with three independent speedometers, signed vertical speed, Lighting Fix, Modbot input protection, AMD driver-line hiding and red-screen opacity. Its commands use `labplus_`.
-- Compact **LAB Plus (MR)** indicators, filtered changed cheat cvars and active noclip/notarget/god states.
-- Compact 820×800 layout, common control sizes across tool windows, per-tab Help and direct Discord/Wiki links.
-- Independent shared outline/fill colors and fill opacity for world collision, triggers, invisible walls and the crosshair inspector.
-- Collision viewer: independent world collision, triggers and invisible walls; filled/outline style; 20–200 m distance.
-- Persistent trigger-class and hierarchical folder filters, crosshair volume inspector, disabled-volume outlines and recent history.
-- Research timeline: manual recording, in-game path, markers, search and complete CSV export.
-- Movement Lab: named attempts, manual outcomes, up to six route overlays, player collider, velocity, target distances and surface projections.
-- Entity links: navigable observed-reference graphs with fit, zoom, pan and JSON export.
-- Before/after level comparison, changed-volume highlights and CSV/JSON export.
-- Active encounter observations and optional native HUD; Inspector, Support plane and Encounters stack at the upper left with adjustable text size.
-- **Invisible numbers**: living enemies grouped by active encounter, current/max HP and optional world HP bars; equipment, powerup, Sticky Bomb and current sync-clip countdowns; BATS and Fast DBlade state observations.
-- Research points with physical/camera data, categories, notes and copyable return data.
-- Checkpoint library plus authenticated same-account archives, reviewed restore and backup recovery.
-- Scoped Vulkan launch and automatic early-version NVIDIA lighting correction.
+- **Collision Viewer** — See collision geometry, triggers and invisible walls directly in the game.
+- **Movement Tools** — Track your speed, visualize movement and practice routes.
+- **Combat Information** — Monitor enemy health, active encounters, equipment cooldowns and other useful information.
+- **Level Exploration** — Inspect hidden objects, record paths and compare level geometry.
+- **Checkpoint Manager** — Organize and reload supported checkpoints for easier practice.
+- **Visual Customization** — Adjust overlay colors, visibility and other visual settings.
 
-## Install and run
+LAB Plus supports multiple versions of DOOM Eternal. Feature availability may vary depending on the game version.
 
-Extract the **entire** release ZIP and run `LABPlus.exe`. Keep every included file/folder together. Install **.NET 10 Desktop Runtime x64** and **Microsoft Edge WebView2 Evergreen Runtime**. Select `DOOMEternalx64vk.exe` on Viewer beside Launch game, configure the matching outbound firewall block in DESRU, enable the viewer and launch the game through LAB Plus. The launch gate reads firewall state without changing it. First enable or a DLL update requires a full game restart.
+## Download & Installation
 
-See [installation](https://github.com/IlyaTsyganov/LAB-Plus/wiki/Installation-and-first-launch), [compatibility](https://github.com/IlyaTsyganov/LAB-Plus/wiki/Compatibility) and [troubleshooting](https://github.com/IlyaTsyganov/LAB-Plus/wiki/Troubleshooting).
+1. Download the latest Windows release from the [Releases page](https://github.com/IlyaTsyganov/LAB-Plus/releases/latest).
+2. Extract the ZIP archive into a folder.
+3. Run `LABPlus.exe`.
+4. Follow the [installation guide](https://github.com/IlyaTsyganov/LAB-Plus/wiki/Installation-and-first-launch) to complete the initial setup and launch DOOM Eternal through LAB Plus.
 
-The header shows the installed application version. On startup, LAB Plus checks GitHub Releases for a newer stable version. Choose Yes to update in the same installation folder, No to continue, or Don't ask again for this version to skip that release. Offline starts and failed checks show no update prompt. Updates preserve settings, checkpoint archives and logs, and restart LAB Plus automatically.
+**Requirements:** Windows 64-bit, .NET 10 Desktop Runtime (x64) and Microsoft Edge WebView2 Runtime.
 
-## Compatibility and scope
+### Important: Internet Access Restriction
 
-The research Debug HUD uses the full viewport with a common font size, wrapping and automatic columns. Enemy HP/GK panels use EternalUi2Regular. Sticky Bomb shows separate countdowns for missing charges, with a shared deadline when all charges reload together; countdowns include verified maximum durations when available.
+LAB Plus requires an enabled Windows Firewall rule that blocks DOOM Eternal from accessing the internet. **Without this rule, LAB Plus will refuse to launch the game.**
 
-Invisible numbers resolves reflected game fields and marks unsupported values unavailable. Health, equipment/animation clocks and BATS calculation adapters are audited for all 22 recognized executable builds from 1.0 through 6.66 Rev 3.2. Player-lock countdowns use the actual player-release animation event, including Praetor Token and Gore Nest interactions. Retail data audits and synthetic fixtures establish compatibility; live gameplay acceptance remains feature- and patch-specific. Fast DBlade activates on a prepared Arbalest hit and persists until its actual one-shot charge override is spent.
+This restriction is intentional. It is designed to discourage misuse of the software in online or competitive environments and to help ensure that LAB Plus remains a tool for offline research, learning and speedrunning practice.
 
-LAB Plus activates only for the exact game process launched through its launcher. **Hide AMD driver line** also hides actual CPU/GPU labels from any manufacturer; when the driver row is visible, LAB Plus indicators and changed cheat cvars appear above it.
+The firewall rule can be configured using DESRU. See the [installation guide](https://github.com/IlyaTsyganov/LAB-Plus/wiki/Installation-and-first-launch) for instructions.
 
-The collision reader recognizes 22 audited executable profiles from 1.0 through 6.66 Rev 3.2. Research HUD/console integration requires a compatible, already-loaded meathook, which is not bundled; LAB speedometers, MR indicators and cheat-cvar monitoring use their independent validated adapters. Native cvar creation is audited for **6.66 Rev 3 only**. **Saves is an in-game checkpoint library**: keep Steam running, disable Steam Cloud, load a campaign slot through this LAB Plus build. Manual pause is optional; capture also supports the completed loading prompt before entering the level, and operations wait for autosave to finish. Archive loading waits for the player to enter the level. Continue using the configured game control when loading reaches 100%. Save / Load / Delete and the Steam folder selector are on the Saves page; the settings dialog and mode picker are removed. Categories organize checkpoints independently of their original slot; Move to… transfers selected archives to an existing or new category. Up / Down persists their order, and checkboxes support bulk deletion. Load requires one archive and targets the slot currently open in the game, including a different slot of the same campaign. Archives remain bound to the same Steam account and game patch. The console action `labplus_load_last_save` loads the last archive for that account, patch and campaign; a deleted or damaged last archive reports an error without falling back to an older save. Load requires an entered destination slot; compatible rows keep normal styling in the main menu. Unsupported DLC checkpoints remain visible and deletable, with loading disabled: 3.0 adds TAG1 and 5.0 adds TAG2.
+## Need Help?
 
-In-game checkpoint loading has statically audited adapters for all 22 recognized patches. Clean live B-to-A returns passed on 1.0, 1.1, 2.0, 3.0/TAG1, 5.0/TAG2 and 6.66 Rev 2. Rev 3 and Rev 3.2 had successful repeats but also one initial unexplained crash each; their stability remains under investigation. The advanced offline archive/validation/recovery implementation is retained internally while its Tools button is hidden. Checkpoints store completed autosaves, not arbitrary RAM simulation state.
+Visit the [Wiki](https://github.com/IlyaTsyganov/LAB-Plus/wiki) for detailed instructions, feature explanations and troubleshooting.
 
-The Viewer/LAB interface and 11 tool windows passed browser acceptance, including 125% and 150% scale, persistence and launch feedback. The LAB runtime passed 310 checks covering executed HUD/metrics code, input and tint, read-only cvar monitoring, concurrent text rendering and four real executable layouts. Viewer fixtures cover 22 profiles; independent appearance tests cover native colors and zero, partial and full fill opacity. These isolated tests do not prove the combined new build in a live game; it still needs in-game acceptance.
+Found a bug or have a suggestion? Open an [issue on GitHub](https://github.com/IlyaTsyganov/LAB-Plus/issues).
 
-Collision decoding does not modify physics. The Vulkan loader loads the scoped layer at game startup; optional research integration uses engine APIs and the explicit checkpoint workflow can request an engine reload. LAB Plus is an unofficial community tool.
+## Purpose & Disclaimer
 
-## Build
+LAB Plus is developed exclusively for educational, research and practice purposes, with a particular focus on understanding DOOM Eternal's game mechanics and improving speedrunning knowledge and techniques.
 
-Requires Windows x64, the .NET 10 SDK and MSVC C++ Build Tools or LLVM-MinGW.
+The software is not intended to provide an unfair advantage over other players, facilitate cheating in competitive environments or interfere with the experience of other users.
 
-```powershell
-./build-local.ps1
-# Optional explicit portable native compiler:
-./build-local.ps1 -NativeCompiler C:\tools\llvm-mingw\bin\clang++.exe
-```
+LAB Plus is an independent, unofficial community project. The author does not claim ownership of DOOM Eternal or any associated trademarks, copyrights, game assets or other intellectual property. All respective rights remain with their original owners. No infringement of third-party rights is intended.
 
-This builds the native layer, runs fixtures and managed/UI checks, and publishes the complete application to `publish`. See [Building and validation](https://github.com/IlyaTsyganov/LAB-Plus/wiki/Building-and-validation) for individual commands and test boundaries.
+LAB Plus is not affiliated with, sponsored by or endorsed by id Software, Bethesda Softworks or their respective parent companies.
 
-The UI uses packaged HTML/CSS via WebView2. Screen state/actions are plain C# objects; the native host contains only one WebView2 and does not create the former native widget layouts. Windows file/folder pickers remain OS dialogs. `LABPlus.exe --preview` opens an isolated UI preview.
+**Use at your own risk.** The software is provided "as is", without warranties of any kind. The author assumes no responsibility for crashes, data loss, game instability, account restrictions or other consequences arising from its use, to the extent permitted by applicable law.
 
-Data lives under `%LOCALAPPDATA%\labplus`; `LABPLUS_DATA_DIRECTORY` accepts an absolute override. LAB preferences are stored independently in its `hud` subfolder. Logs use `logs\labplus.log` beside the executable. First-use migration copies previous preferences and archives without modifying originals or overwriting existing LAB Plus data. See [Data and migration](https://github.com/IlyaTsyganov/LAB-Plus/wiki/Data-and-migration).
+Users are responsible for complying with applicable game and platform terms of service, as well as the rules of any speedrunning communities or events in which they participate.
 
-## License and attribution
+---
 
-Source is [GNU GPL v3](LICENSE), retaining history from [the original project](https://github.com/IlyaTsyganov/DEVIL). The read-only cheat-cvar monitor is adapted from [DESRU-Enhanced](https://github.com/IlyaTsyganov/DESRU-Enhanced). Vulkan-Headers, the [lighting correction](https://github.com/billymooreq/DoomEternal-v1.1--RTXFix) and WebView2 retain their included notices/licenses. DOOM Eternal typefaces and logo-derived assets remain the property of their respective owners; inclusion does not transfer ownership or grant additional rights. LAB Plus is not affiliated with or endorsed by id Software or Bethesda.
+Licensed under [GNU GPL v3](LICENSE).
