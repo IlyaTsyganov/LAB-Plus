@@ -23,8 +23,7 @@ public sealed class GameLauncher
         if (startInfo.UseShellExecute || !Path.IsPathFullyQualified(startInfo.FileName) ||
             !string.Equals(Path.GetFullPath(startInfo.FileName), target, StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException("Launch blocked: the configured process must use the verified DOOM Eternal executable directly.");
-        if (settings.NeedsNativeLayer || startInfo.Environment[LightingFixPolicy.EnvironmentVariable] == "1" ||
-            File.Exists(Path.Combine(AppContext.BaseDirectory, "Assets", "audio", "labplus_fun.wav")))
+        if (settings.NeedsNativeLayer || startInfo.Environment[LightingFixPolicy.EnvironmentVariable] == "1")
             _layerRegistration.ConfigureLaunch(startInfo);
         startInfo.Environment["LABPLUS_LAUNCHED"] = "1";
         // Launch ownership belongs to this exact process, even when only the

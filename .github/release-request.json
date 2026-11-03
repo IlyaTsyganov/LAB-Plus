@@ -1,9 +1,9 @@
 {
-  "tag": "v1.0.3",
-  "title": "LAB Plus 1.0.3",
+  "tag": "v1.0.4",
+  "title": "LAB Plus 1.0.4",
   "notes": ".github/release-notes.txt",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "buildRevision": 1,
-  "expectedRuntimeFiles": 30,
-  "asset": "labplus-1.0.3-win-x64.zip"
+  "expectedRuntimeFiles": 29,
+  "asset": "labplus-1.0.4-win-x64.zip"
 }
