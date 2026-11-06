@@ -8,32 +8,47 @@ public sealed class GameLauncher
     private readonly VulkanLayerRegistration _layerRegistration;
     private readonly Func<string, GameFirewallResult> _firewall;
     private readonly Func<ProcessStartInfo, Process?> _start;
+    private readonly Func<IProgress<string>?, CancellationToken, Task> _ensureSteam;
     public GameLauncher(SettingsStore settingsStore) : this(settingsStore, GameFirewall.Inspect) { }
-    internal GameLauncher(SettingsStore settingsStore, Func<string, GameFirewallResult> firewall, Func<ProcessStartInfo, Process?>? start = null)
-    { _layerRegistration = new(settingsStore); _firewall = firewall; _start = start ?? Process.Start; }
+    internal GameLauncher(SettingsStore settingsStore, Func<string, GameFirewallResult> firewall, Func<ProcessStartInfo, Process?>? start = null,
+        Func<IProgress<string>?, CancellationToken, Task>? ensureSteam = null)
+    { _layerRegistration = new(settingsStore); _firewall = firewall; _start = start ?? Process.Start; _ensureSteam = ensureSteam ?? SteamClientLauncher.EnsureRunningAsync; }
 
     public string RuntimeDirectory => _layerRegistration.RuntimeDirectory;
 
     public Process Start(LabPlusSettings settings, Action<ProcessStartInfo>? configure = null)
+        => StartAsync(settings, configure).GetAwaiter().GetResult();
+
+    public async Task<Process> StartAsync(LabPlusSettings settings, Action<ProcessStartInfo>? configure = null,
+        IProgress<string>? progress = null, CancellationToken cancellation = default)
     {
+        cancellation.ThrowIfCancellationRequested();
         var startInfo = CreateStartInfo(settings.GameExecutablePath);
         string target = startInfo.FileName;
         GameFirewall.RequireBlocked(_firewall(startInfo.FileName));
         configure?.Invoke(startInfo);
-        if (startInfo.UseShellExecute || !Path.IsPathFullyQualified(startInfo.FileName) ||
-            !string.Equals(Path.GetFullPath(startInfo.FileName), target, StringComparison.OrdinalIgnoreCase))
-            throw new InvalidOperationException("Launch blocked: the configured process must use the verified DOOM Eternal executable directly.");
-        if (settings.NeedsNativeLayer || startInfo.Environment[LightingFixPolicy.EnvironmentVariable] == "1")
-            _layerRegistration.ConfigureLaunch(startInfo);
+        RequireVerifiedTarget(startInfo, target);
+        // Checkpoint operations are available even when every overlay is off.
+        _layerRegistration.ConfigureLaunch(startInfo);
         startInfo.Environment["LABPLUS_LAUNCHED"] = "1";
         // Launch ownership belongs to this exact process, even when only the
         // managed HUD is enabled. Do not let Steam replace it on startup.
         startInfo.Environment["SteamAppId"] = "782330";
+        await _ensureSteam(progress, cancellation).ConfigureAwait(false);
+        cancellation.ThrowIfCancellationRequested();
+        RequireVerifiedTarget(startInfo, target);
 
         // Preparation can take time. Re-read the rule immediately before launch,
         // including when the viewer and lighting correction are both disabled.
         GameFirewall.RequireBlocked(_firewall(startInfo.FileName));
+        progress?.Report("Launching game…");
         return _start(startInfo) ?? throw new InvalidOperationException("Windows could not start DOOM Eternal.");
+    }
+    private static void RequireVerifiedTarget(ProcessStartInfo info, string target)
+    {
+        if (info.UseShellExecute || !Path.IsPathFullyQualified(info.FileName) ||
+            !string.Equals(Path.GetFullPath(info.FileName), target, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Launch blocked: the configured process must use the verified DOOM Eternal executable directly.");
     }
 
     internal static string ValidateGamePath(string gamePath)

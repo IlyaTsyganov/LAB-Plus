@@ -87,10 +87,34 @@ int main() {
     expect(surfaceRequests==1&&surfaceRows[56].find("no unique")!=std::string::npos&&surfaceRows[72].find("0.00")!=std::string::npos,"surface HUD distinguishes plane cuts from normal angles at the common sixteen-unit row spacing");
     hud.update(hudApi,&valid,true,1050); expect(surfaceRequests==1,"surface HUD does not spam visibility commands");
     auto airborne=valid; airborne.contact=false; airborne.tick=1200; hud.update(hudApi,&airborne,true,1200);
-    expect(surfaceRows.size()==7&&surfaceRows[24].find("No current")!=std::string::npos&&surfaceRows[40]=="Slope: -"&&
+    expect(surfaceRows.size()==7&&surfaceRows[24]=="n: -"&&surfaceRows[40]=="Slope: -"&&
         surfaceRows[56]=="XY tangent: -"&&surfaceRows[72]=="XZ tangent: -"&&surfaceRows[88]=="YZ tangent: -",
         "airborne HUD clears stale angle values while preserving all six labelled rows and unrelated inspector text");
     hud.update(hudApi,nullptr,false,1400); expect(surfaceRows.size()==1&&surfaceRows[280]=="Inspector","surface HUD hides only its own rows");
+    {
+        surfaceRows.clear();DebugHudStack shared;SupportPlaneHud stable(&shared);
+        const std::vector<std::string> lower{"Timer below support"};
+        shared.publish(DebugHudBlock::Timers,&hudApi,lower,16,.72f,1);
+        valid.tick=2000;stable.update(hudApi,&valid,true,2000);
+        expect(surfaceRows.size()==7&&surfaceRows[108]==lower[0],"following HUD block begins below the six support rows");
+        const auto requests=surfaceRequests;
+        auto expectPending=[&] {
+            expect(surfaceRows.size()==7&&surfaceRows[8]=="LAB Plus | Support plane"&&surfaceRows[24]=="n: -"&&surfaceRows[40]=="Slope: -"&&
+                surfaceRows[56]=="XY tangent: -"&&surfaceRows[72]=="XZ tangent: -"&&surfaceRows[88]=="YZ tangent: -"&&surfaceRows[108]==lower[0],
+                "unavailable support uses dashes without moving the following HUD text or retaining surface values");
+        };
+        stable.update(hudApi,nullptr,true,2050);expectPending(); // Inside the normal formatting throttle.
+        valid.tick=2060;stable.update(hudApi,&valid,true,2060);
+        expect(surfaceRows[24]!="n: -"&&surfaceRows[108]==lower[0],"fresh data returns without shifting lower rows");
+        stable.update(hudApi,&valid,true,2310);expectPending(); // Exactly stale at 250 ms.
+        auto invalid=valid;invalid.valid=false;stable.update(hudApi,&invalid,true,2400);expectPending();
+        auto future=valid;future.tick=2600;stable.update(hudApi,&future,true,2500);expectPending();
+        for(unsigned i=0;i<12;++i){valid.tick=2700+i*20;stable.update(hudApi,&valid,true,valid.tick);stable.update(hudApi,nullptr,true,valid.tick+10);expectPending();}
+        expect(surfaceRequests==requests,"sample gaps do not repeat the HUD visibility command");
+        stable.update(hudApi,nullptr,false,3000);
+        expect(surfaceRows.size()==1&&surfaceRows[8]==lower[0],"explicit disable releases support space while preserving other blocks");
+        shared.clear(DebugHudBlock::Timers);expect(surfaceRows.empty(),"test HUD is fully cleared");
+    }
     Mesh target{}; target.entity={1,1,1,12,3,"idTrigger"}; auto geometry=std::make_shared<Geometry>(); geometry->triangles={{8,18,32.8f},{12,18,32.8f},{10,22,32.8f}}; target.geometry=geometry;
     measureMotionTarget(valid,target); expect(fabsf(valid.originDistance-2.8f)<1e-4f&&fabsf(valid.skinGap-1)<1e-4f,"origin distance and rounded-skin gap are distinct surface measurements");
     geometry->triangles={{9.98f,19.98f,30.9f},{10.02f,19.98f,30.9f},{10,20.02f,30.9f}};

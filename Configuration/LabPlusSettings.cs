@@ -25,6 +25,14 @@ public sealed class LabPlusSettings
     public bool CollisionViewerEnabled { get; set; }
     public bool ShowTriggers { get; set; } = true;
     public bool ShowWorldCollision { get; set; } = true;
+    public bool ShowShotCollision { get; set; }
+    public bool TrimShotCollision { get; set; }
+    public bool ShowSyncTarget { get; set; }
+    public int SyncTargetAction { get; set; }
+    public string SyncGloryKillAnimation { get; set; } = "";
+    public string SyncChainsawAnimation { get; set; } = "";
+    internal static string SyncAnimationKey(string? value) => value is { Length: <= 180 } && value.All(c => char.IsAsciiLetterOrDigit(c) || "_./-".Contains(c)) ? value : "";
+    public VolumeAppearance ShotAppearance { get; set; } = new() { Color = "#cc59ff" };
     public bool ShowInvisibleWalls { get; set; } = true;
     public VolumeAppearance WorldAppearance { get; set; } = new() { Color = "#26ccff" };
     public VolumeAppearance TriggerAppearance { get; set; } = new() { Color = "#40f21f" };
@@ -39,7 +47,7 @@ public sealed class LabPlusSettings
     public bool ShowGameTimersHud { get; set; }
     public bool ShowSpeedrunTechsHud { get; set; }
     [JsonIgnore]
-    public bool NeedsNativeLayer => CollisionViewerEnabled || ShowEnemyHealthHud || ShowEnemyHealthBars || ShowGameTimersHud || ShowSpeedrunTechsHud || ShowSupportHud || ShowActiveEncountersHud;
+    public bool NeedsNativeLayer => CollisionViewerEnabled || ShowPlayerPositionHud || ShowPlayerAnglesHud || ShowEnemyHealthHud || ShowEnemyHealthBars || ShowGameTimersHud || ShowSpeedrunTechsHud || ShowSyncTarget || ShowSupportHud || ShowActiveEncountersHud;
     [JsonNumberHandling(JsonNumberHandling.AllowNamedFloatingPointLiterals)]
     public double DebugHudScale { get; set; } = 1;
     public bool ShowResearchPath { get; set; } = true;
@@ -50,6 +58,8 @@ public sealed class LabPlusSettings
     public string ResearchMarkerLabel { get; set; } = "";
     public int MotionProcess { get; set; }
     public bool ShowPlayerCollider { get; set; }
+    public bool ShowPlayerPositionHud { get; set; }
+    public bool ShowPlayerAnglesHud { get; set; }
     public bool ShowSupportHud { get; set; }
     public bool ShowMotionPaths { get; set; } = true;
     public bool MotionFollowTarget { get; set; } = true;
@@ -83,6 +93,7 @@ public sealed class LabPlusSettings
     internal void NormalizeTriggerClasses()
     {
         if (!double.IsFinite(DebugHudScale) || DebugHudScale is < 0.5 or > 3) DebugHudScale = 1;
+        ShotAppearance ??= new() { Color = "#cc59ff" }; ShotAppearance.Normalize("#cc59ff");
         WorldAppearance ??= new() { Color = "#26ccff" }; WorldAppearance.Normalize("#26ccff");
         TriggerAppearance ??= new() { Color = "#40f21f" }; TriggerAppearance.Normalize("#40f21f");
         WallAppearance ??= new() { Color = "#ff730d" }; WallAppearance.Normalize("#ff730d");
@@ -153,6 +164,12 @@ public sealed class SettingsStore
             $"Enabled={(settings.CollisionViewerEnabled ? 1 : 0)}{Environment.NewLine}" +
             $"ShowTriggers={(settings.ShowTriggers ? 1 : 0)}{Environment.NewLine}" +
             $"ShowCollision={(settings.ShowWorldCollision ? 1 : 0)}{Environment.NewLine}" +
+            $"ShowShotCollision={(settings.ShowShotCollision ? 1 : 0)}{Environment.NewLine}" +
+            $"TrimShotCollision={(settings.TrimShotCollision ? 1 : 0)}{Environment.NewLine}" +
+            $"ShowSyncTarget={(settings.ShowSyncTarget ? 1 : 0)}{Environment.NewLine}" +
+            $"SyncTargetAction={(settings.SyncTargetAction == 1 ? 1 : 0)}{Environment.NewLine}" +
+            $"SyncGloryKillAnimation={LabPlusSettings.SyncAnimationKey(settings.SyncGloryKillAnimation)}{Environment.NewLine}" +
+            $"SyncChainsawAnimation={LabPlusSettings.SyncAnimationKey(settings.SyncChainsawAnimation)}{Environment.NewLine}" +
             $"ShowWalls={(settings.ShowInvisibleWalls ? 1 : 0)}{Environment.NewLine}" +
             $"InspectVolumes={(settings.InspectVolumes ? 1 : 0)}{Environment.NewLine}" +
             $"ShowDisabledVolumes={(settings.ShowDisabledVolumes ? 1 : 0)}{Environment.NewLine}" +
@@ -171,12 +188,14 @@ public sealed class SettingsStore
             $"ResearchMarkerLabel={CleanMarker(settings.ResearchMarkerLabel)}{Environment.NewLine}" +
             $"MotionProcess={settings.MotionProcess}{Environment.NewLine}" +
             $"ShowPlayerCollider={(settings.ShowPlayerCollider ? 1 : 0)}{Environment.NewLine}" +
+            $"ShowPlayerPositionHud={(settings.ShowPlayerPositionHud ? 1 : 0)}{Environment.NewLine}" +
+            $"ShowPlayerAnglesHud={(settings.ShowPlayerAnglesHud ? 1 : 0)}{Environment.NewLine}" +
             $"ShowSupportHud={(settings.ShowSupportHud ? 1 : 0)}{Environment.NewLine}" +
             $"ShowMotionPaths={(settings.ShowMotionPaths ? 1 : 0)}{Environment.NewLine}" +
             $"MotionFollowTarget={(settings.MotionFollowTarget ? 1 : 0)}{Environment.NewLine}" +
             $"CollisionMode={(settings.Style == RenderStyle.Filled ? 1 : 0)}{Environment.NewLine}" +
             $"Distance={Math.Clamp(settings.ViewDistanceMeters, 20, 200)}{Environment.NewLine}";
-        foreach (var (key, appearance) in new[] { ("World", settings.WorldAppearance), ("Trigger", settings.TriggerAppearance), ("Wall", settings.WallAppearance), ("Inspector", settings.InspectorAppearance) })
+        foreach (var (key, appearance) in new[] { ("Shot", settings.ShotAppearance), ("World", settings.WorldAppearance), ("Trigger", settings.TriggerAppearance), ("Wall", settings.WallAppearance), ("Inspector", settings.InspectorAppearance) })
             viewerIni += $"{key}Color={appearance.Color}{Environment.NewLine}{key}FillOpacity={appearance.FillOpacity}{Environment.NewLine}";
         viewerIni += $"{Environment.NewLine}[TriggerClasses]{Environment.NewLine}";
         foreach (string className in settings.HiddenTriggerClasses)

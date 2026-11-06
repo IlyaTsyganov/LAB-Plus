@@ -204,7 +204,14 @@ body{font-family:'LP UI';font-size:16px}
 #labplus-refined .lr-folder-icon:before{content:"";position:absolute;top:-4px;left:-1px;width:6px;height:4px;border:1px solid currentColor;border-bottom:0;background:var(--lr-panel)}
 
 /* Saves uses the same assets and button geometry as Viewer. */
-#labplus-refined [data-presentation="saves-layout"]{--saves-action-width:170px;gap:12px}
+#labplus-refined [data-presentation="saves-layout"]{--saves-action-width:170px;display:flex;flex-direction:column;gap:8px!important}
+#labplus-refined [data-presentation="saves-requirements"]{gap:3px!important}
+#labplus-refined [data-presentation="saves-step-ready"],#labplus-refined [data-presentation="saves-step-required"]{position:relative;padding-left:22px}
+#labplus-refined [data-presentation="saves-step-ready"]{color:var(--lr-gold)}
+#labplus-refined [data-presentation="saves-step-ready"]:before,#labplus-refined [data-presentation="saves-step-required"]:before{content:'!';position:absolute;left:0;top:1px;width:16px;height:16px;line-height:14px;text-align:center;font-weight:700;color:var(--lr-action);border:1px solid var(--lr-action);border-radius:50%;box-sizing:border-box}
+#labplus-refined [data-presentation="saves-step-ready"]:before{content:'';border-color:var(--lr-gold);border-radius:1px}
+#labplus-refined [data-presentation="saves-step-ready"]:after{content:'';position:absolute;left:4px;top:5px;width:7px;height:4px;border-left:2px solid var(--lr-gold);border-bottom:2px solid var(--lr-gold);transform:rotate(-45deg)}
+#labplus-refined [data-presentation="saves-folder-label"]{cursor:help}
 #labplus-refined [data-presentation="saves-create"].control-grid,#labplus-refined [data-presentation="saves-filters"].control-grid{grid-template-columns:minmax(0,1fr) var(--saves-action-width)!important;align-items:stretch}
 #labplus-refined [data-presentation="saves-primary"]{width:var(--saves-action-width);height:42px;min-height:42px;max-width:100%;padding:8px 16px;justify-self:end;font-family:'LP Battle'!important}
 #labplus-refined [data-presentation="saves-category-anchor"]{position:relative;min-width:0}
@@ -216,6 +223,8 @@ body{font-family:'LP UI';font-size:16px}
 #labplus-refined [data-presentation="saves-add-category"].control-grid{grid-template-columns:minmax(0,1fr) 38px!important;border-top:1px solid var(--lr-line);padding-top:10px}
 #labplus-refined [data-presentation="saves-add-category"] .lr-btn{padding:5px}
 #labplus-refined [data-presentation="saves-category-heading"]{color:var(--lr-gold);font-size:13px}
+#labplus-refined [data-presentation="saves-table"]{min-height:112px!important;max-height:146px!important}
+#labplus-refined [data-presentation="saves-table"] .empty-row td{height:70px!important}
 #labplus-refined [data-presentation="saves-table"] table{table-layout:fixed}
 #labplus-refined [data-presentation="saves-table"] .table-check-cell{width:38px;padding:8px 10px;text-align:center}
 #labplus-refined [data-presentation="saves-table"] th:nth-child(2){width:48%}
@@ -232,7 +241,7 @@ body{font-family:'LP UI';font-size:16px}
 #labplus-refined [data-presentation="saves-order"].control-toolbar{padding:0;border:0;background:transparent;gap:8px}
 #labplus-refined [data-presentation="saves-order"] .lr-btn{min-width:62px}
 #labplus-refined [data-presentation="saves-destination"]{font-size:13px;color:var(--lr-muted);overflow-wrap:anywhere}
-#labplus-refined [data-presentation="saves-folder-area"]{border-top:1px solid var(--lr-line);padding-top:16px;margin-top:6px;gap:8px}
+#labplus-refined [data-presentation="saves-folder-area"]{border-bottom:1px solid var(--lr-line);padding:0 0 10px;margin:0;gap:4px!important}
 #labplus-refined [data-presentation="saves-folder-area"]>.control-label{font-size:13px;color:var(--lr-muted)}
 #labplus-refined [data-presentation="saves-folder-row"].control-grid{grid-template-columns:minmax(0,1fr) 42px!important;gap:8px}
 #labplus-refined [data-presentation="saves-folder-row"] .lr-btn{width:42px;min-height:34px;padding:0}
@@ -251,3 +260,8 @@ body{font-family:'LP UI';font-size:16px}
 #labplus-refined .lr-geometry-settings{display:flex;align-items:center;justify-content:space-between;gap:8px}
 #labplus-refined .lr-geometry-settings .lr-trigger-actions{margin:0;flex-shrink:0}
 #labplus-refined .lr-geometry-settings .lr-appearance{gap:12px}
+#labplus-refined .lr-geometry-settings .lr-appearance:has(.lr-trim-option){column-gap:8px}
+#labplus-refined .lr-appearance .lr-trim-option{gap:5px;min-height:24px;font-size:11px;white-space:nowrap;cursor:pointer}
+#labplus-refined .lr-trim-option input{flex-basis:14px;width:14px;height:14px;cursor:inherit}
+#labplus-refined .lr-trim-option input:checked:after{left:2px;top:3px;width:7px;height:4px}
+#labplus-refined .lr-trim-option:has(input:disabled){opacity:.45;cursor:default}

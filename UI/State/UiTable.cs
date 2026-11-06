@@ -67,6 +67,7 @@ internal sealed class UiTable : UiNode
     public bool AllowUserToAddRows { get; set; } public bool AllowUserToDeleteRows { get; set; }
     public bool RowHeadersVisible { get; set; } public bool MultiSelect { get; set; }
     public bool ShowSelectionChecks { get; set; }
+    public string EmptyText { get; set; } = "No data yet.";
     private int _selectionAnchor = -1;
     public IReadOnlyList<int> SelectedIndices => Enumerable.Range(0, Rows.Count).Where(i => Rows[i].Selected).ToArray();
     public void SetSelectedRows(IEnumerable<int> indices)

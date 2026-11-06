@@ -11,6 +11,8 @@ static constexpr LabCommandDefinition labCommandDefinitions[]{
     {"labplus_load_last_save","Load the last LAB Plus archive for the current account, patch and campaign"},
     {"labplus_enemies","0|1 - living enemies and health HUD"},
     {"labplus_enemy_hp_bars","0|1 - world enemy health bars"},
+    {"labplus_position","0|1 - player coordinates in debug HUD"},
+    {"labplus_angles","0|1 - player angles in debug HUD"},
     {"labplus_timers","0|1 - engine countdown HUD"},
     {"labplus_techs","0|1 - speedrun technique states HUD"},
     {"labplus_recording_start","Start/resume research recording"}, {"labplus_recording_stop","Stop research recording"},
@@ -57,7 +59,7 @@ static bool validLabArguments(const std::vector<std::string>& input) {
         int value=atoi(args[1].c_str()); return value>=20&&value<=200;
     }
     if(args[1]!="0"&&args[1]!="1") return false;
-    if(command=="labplus_enemies"||command=="labplus_enemy_hp_bars"||command=="labplus_timers"||command=="labplus_techs") return true;
+    if(command=="labplus_position"||command=="labplus_angles"||command=="labplus_enemies"||command=="labplus_enemy_hp_bars"||command=="labplus_timers"||command=="labplus_techs") return true;
     for(const auto& definition:labCommandDefinitions) if(definition.legacy&&command==definition.name) return true;
     return false;
 }

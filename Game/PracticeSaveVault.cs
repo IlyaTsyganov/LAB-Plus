@@ -9,6 +9,7 @@ namespace LabPlus.Game;
 
 public sealed record SteamSaveLocation(string Remote, string Account)
 {
+    public const string Pattern = @"Steam\userdata\<SteamID>\782330\remote";
     public string AppRoot => Directory.GetParent(Remote)!.FullName;
     public static SteamSaveLocation Parse(string remote)
     {
@@ -16,10 +17,13 @@ public sealed record SteamSaveLocation(string Remote, string Account)
         string path;
         try { path = Path.TrimEndingDirectorySeparator(Path.GetFullPath(remote)); }
         catch (Exception ex) when (ex is ArgumentException or NotSupportedException) { throw new IOException("Invalid Steam save-folder path.", ex); }
-        var folder = new DirectoryInfo(path); var app = folder.Parent; var user = app?.Parent;
-        if (!folder.Name.Equals("remote", StringComparison.OrdinalIgnoreCase) || app?.Name != "782330" || user?.Parent?.Name != "userdata"
-            || !uint.TryParse(user.Name, NumberStyles.None, CultureInfo.InvariantCulture, out uint account) || account == 0 || !folder.Exists)
-            throw new IOException("Select Steam/userdata/<account>/782330/remote for DOOM Eternal.");
+        var folder = new DirectoryInfo(path); var app = folder.Parent; var user = app?.Parent; var userdata = user?.Parent;
+        if (!folder.Name.Equals("remote", StringComparison.OrdinalIgnoreCase) || app?.Name != "782330"
+            || userdata is null || !userdata.Name.Equals("userdata", StringComparison.OrdinalIgnoreCase)
+            || userdata.Parent is null || !userdata.Parent.Name.Equals("Steam", StringComparison.OrdinalIgnoreCase)
+            || !uint.TryParse(user!.Name, NumberStyles.None, CultureInfo.InvariantCulture, out uint account) || account == 0)
+            throw new IOException("Select " + Pattern + " for DOOM Eternal. SteamID must be a positive numeric Steam userdata folder.");
+        if (!folder.Exists) throw new DirectoryNotFoundException("The selected Steam save folder does not exist.");
         PracticeSaveVault.NoLinks(path);
         return new(path, (76561197960265728UL + account).ToString(CultureInfo.InvariantCulture));
     }

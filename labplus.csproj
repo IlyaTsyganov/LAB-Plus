@@ -23,6 +23,7 @@
     <Content Include="Assets\labplus.png" CopyToOutputDirectory="PreserveNewest" TargetPath="Assets\labplus.png" />
     <Compile Remove="Tests\**\*.cs" />
     <Compile Remove="Tools\**\*.cs" />
+    <Compile Remove="build\**\*.cs" />
     <EmbeddedResource Include="Assets\trigger-paths.tsv" LogicalName="LabPlus.TriggerPaths.tsv" />
     <Content Include="Assets\labplus.ico" CopyToOutputDirectory="PreserveNewest" TargetPath="Assets\labplus.ico" />
     <Content Include="Assets\fonts\*.ttf" CopyToOutputDirectory="PreserveNewest" TargetPath="Assets\fonts\%(Filename)%(Extension)" />

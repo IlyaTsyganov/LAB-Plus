@@ -1,0 +1,6501 @@
+{
+  "scope": "Loaded retail 1.1 authored declarations; aliases, state, equipment and final selection are separate.",
+  "source_sha256": "78cdf687741ec592710b6e46745d3580b7041889f3751841674549d67eec9438",
+  "source_pid": 22592,
+  "enemies": {
+    "arachnotron": [
+      {
+        "declaration": "syncdeath/playervsai/arachnotron/front_lower",
+        "state": "kill_front_lower",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          3.0
+        ],
+        "pitchYaw": [
+          90.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/arachnotron/above_front",
+        "state": "kill_above_front",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          5.0,
+          0.03099999949336052,
+          4.0
+        ],
+        "pitchYaw": [
+          90.0,
+          90.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/arachnotron/back_upper",
+        "state": "kill_back_upper",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          3.0
+        ],
+        "pitchYaw": [
+          90.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/arachnotron/right_upper",
+        "state": "kill_right_upper",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          3.0
+        ],
+        "pitchYaw": [
+          90.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/arachnotron/left_upper",
+        "state": "kill_left_upper",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          3.0
+        ],
+        "pitchYaw": [
+          90.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/arachnotron/above_back",
+        "state": "kill_above_back",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          5.0,
+          0.03099999949336052,
+          3.0
+        ],
+        "pitchYaw": [
+          90.0,
+          90.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/arachnotron/chainsaw/cut_front",
+        "state": "cut_front",
+        "action": "CS",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          3.0
+        ],
+        "pitchYaw": [
+          90.0,
+          90.0
+        ],
+        "centric": [
+          1,
+          1,
+          0,
+          0,
+          1
+        ],
+        "inputs": [
+          1,
+          16
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/arachnotron/chainsaw/cut_back",
+        "state": "cut_back",
+        "action": "CS",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          3.0
+        ],
+        "pitchYaw": [
+          90.0,
+          90.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          1,
+          16
+        ]
+      }
+    ],
+    "archvile": [
+      {
+        "declaration": "syncdeath/playervsai/archvile/front_upper",
+        "state": "kill_front_upper",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          45.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/archvile/above_back",
+        "state": "kill_above_back",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 0,
+        "ranges": [
+          0.0,
+          5.0,
+          0.03099999949336052,
+          4.0
+        ],
+        "pitchYaw": [
+          90.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/archvile/above_front",
+        "state": "kill_above_front",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 0,
+        "ranges": [
+          0.0,
+          5.0,
+          0.03099999949336052,
+          4.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/archvile/left_upper",
+        "state": "kill_left_upper",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/archvile/back_upper",
+        "state": "kill_back_upper",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/archvile/right_upper",
+        "state": "kill_right_upper",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      }
+    ],
+    "baron": [
+      {
+        "declaration": "syncdeath/playervsai/baron/back_upper",
+        "state": "kill_back_upper",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          6.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/baron/above_front",
+        "state": "kill_above_front",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          5.0,
+          0.03099999949336052,
+          3.5
+        ],
+        "pitchYaw": [
+          90.0,
+          90.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/baron/above_back",
+        "state": "kill_above_back",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          5.0,
+          0.03099999949336052,
+          3.5
+        ],
+        "pitchYaw": [
+          90.0,
+          90.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/baron/front_upper",
+        "state": "kill_front_upper",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          6.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/baron/left_upper",
+        "state": "kill_left_upper",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/baron/right_upper",
+        "state": "kill_right_upper",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      }
+    ],
+    "buffpod": [
+      {
+        "declaration": "syncdeath/playervsai/buffpod/front",
+        "state": "kill_front",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 15,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          1.8287999629974365
+        ],
+        "pitchYaw": [
+          45.0,
+          45.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/buffpod/left",
+        "state": "kill_left",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 15,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          1.8287999629974365
+        ],
+        "pitchYaw": [
+          45.0,
+          90.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/buffpod/back",
+        "state": "kill_back",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 15,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          1.8287999629974365
+        ],
+        "pitchYaw": [
+          45.0,
+          45.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/buffpod/right",
+        "state": "kill_right",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 15,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          1.8287999629974365
+        ],
+        "pitchYaw": [
+          45.0,
+          -90.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/buffpod/above_front",
+        "state": "kill_above_front",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 0,
+        "ranges": [
+          0.0,
+          5.0,
+          0.03099999949336052,
+          4.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/buffpod/above_back",
+        "state": "kill_above_back",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 0,
+        "ranges": [
+          0.0,
+          5.0,
+          0.03099999949336052,
+          4.0
+        ],
+        "pitchYaw": [
+          90.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      }
+    ],
+    "cacodemon": [
+      {
+        "declaration": "syncdeath/playervsai/cacodemon/front_lower",
+        "state": "kill_front_lower",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          6.0,
+          0.0,
+          9.0
+        ],
+        "pitchYaw": [
+          90.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/cacodemon/chainsaw/cut_back",
+        "state": "cut_back",
+        "action": "CS",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          5.0,
+          0.0,
+          3.0
+        ],
+        "pitchYaw": [
+          90.0,
+          90.0
+        ],
+        "centric": [
+          1,
+          1,
+          0,
+          1,
+          1
+        ],
+        "inputs": [
+          1,
+          16
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/cacodemon/chainsaw/cut_front",
+        "state": "cut_front",
+        "action": "CS",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          5.0,
+          0.0,
+          3.0
+        ],
+        "pitchYaw": [
+          90.0,
+          90.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          1,
+          16
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/cacodemon/back_upper",
+        "state": "kill_back_upper",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          6.0,
+          0.0,
+          9.0
+        ],
+        "pitchYaw": [
+          90.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/cacodemon/right_upper",
+        "state": "kill_right_upper",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          6.0,
+          0.0,
+          9.0
+        ],
+        "pitchYaw": [
+          90.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/cacodemon/left_upper",
+        "state": "kill_left_upper",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          6.0,
+          0.0,
+          9.0
+        ],
+        "pitchYaw": [
+          90.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      }
+    ],
+    "carcass": [
+      {
+        "declaration": "syncdeath/playervsai/carcass/front_head",
+        "state": "kill_front_head",
+        "action": "GK",
+        "groups": [
+          "head"
+        ],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/carcass/right_upper",
+        "state": "kill_right_upper",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 3,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/carcass/left_lower",
+        "state": "kill_left_lower",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 12,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/carcass/front_chest",
+        "state": "kill_front_chest",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 3,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/carcass/back_upper",
+        "state": "kill_back_upper",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 3,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/carcass/front_lower",
+        "state": "kill_front_lower",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 12,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/carcass/left_upper",
+        "state": "kill_left_upper",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 3,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/carcass/back_lower",
+        "state": "kill_back_lower",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 12,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/carcass/front_rightarm",
+        "state": "kill_front_rightarm",
+        "action": "GK",
+        "groups": [
+          "right_arm",
+          "right_arm_mech"
+        ],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          5.0,
+          0.0,
+          3.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/carcass/right_lower",
+        "state": "kill_right_lower",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 12,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/carcass/above_front",
+        "state": "kill_above_front",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          5.0,
+          0.03099999949336052,
+          4.0
+        ],
+        "pitchYaw": [
+          90.0,
+          90.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/carcass/front_leftarm",
+        "state": "kill_front_leftarm",
+        "action": "GK",
+        "groups": [
+          "left_arm",
+          "left_arm_mech"
+        ],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          5.0,
+          0.0,
+          3.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/carcass/chainsaw/cut_front",
+        "state": "cut_front",
+        "action": "CS",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          1.8287999629974365
+        ],
+        "pitchYaw": [
+          90.0,
+          90.0
+        ],
+        "centric": [
+          1,
+          1,
+          0,
+          0,
+          1
+        ],
+        "inputs": [
+          1,
+          16
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/carcass/chainsaw/cut_back",
+        "state": "cut_back",
+        "action": "CS",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          1.8287999629974365
+        ],
+        "pitchYaw": [
+          90.0,
+          90.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          1,
+          16
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/carcass/above_back",
+        "state": "kill_above_back",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 0,
+        "ranges": [
+          0.0,
+          5.0,
+          0.03099999949336052,
+          4.0
+        ],
+        "pitchYaw": [
+          90.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      }
+    ],
+    "doomhunter": [
+      {
+        "declaration": "syncdeath/playervsai/doomhunter/front_upper",
+        "state": "kill_front_upper",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          10.0,
+          0.0,
+          5.0
+        ],
+        "pitchYaw": [
+          45.0,
+          45.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/doomhunter/above_front",
+        "state": "kill_above_front",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          5.0,
+          0.03099999949336052,
+          4.0
+        ],
+        "pitchYaw": [
+          45.0,
+          90.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/doomhunter/above_back",
+        "state": "kill_above_back",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          5.0,
+          0.03099999949336052,
+          4.0
+        ],
+        "pitchYaw": [
+          90.0,
+          90.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/doomhunter/left_upper",
+        "state": "kill_left_upper",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          5.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/doomhunter/back_upper",
+        "state": "kill_back_upper",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          5.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/doomhunter/right_upper",
+        "state": "kill_right_upper",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          5.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/doomhunter/front_upper_boss",
+        "state": "kill_front_upper",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          10.0,
+          0.0,
+          5.0
+        ],
+        "pitchYaw": [
+          90.0,
+          180.0
+        ],
+        "centric": [
+          1,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      }
+    ],
+    "dreadknight": [
+      {
+        "declaration": "syncdeath/playervsai/dreadknight/right_upper",
+        "state": "kill_right_upper",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/dreadknight/front_upper",
+        "state": "kill_front_upper",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/dreadknight/above_back",
+        "state": "kill_above_back",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          5.0,
+          0.03099999949336052,
+          4.0
+        ],
+        "pitchYaw": [
+          90.0,
+          90.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/dreadknight/above_front",
+        "state": "kill_above_front",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          5.0,
+          0.03099999949336052,
+          4.0
+        ],
+        "pitchYaw": [
+          90.0,
+          90.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/dreadknight/left_upper",
+        "state": "kill_left_upper",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/dreadknight/chainsaw/cut_front",
+        "state": "cut_front",
+        "action": "CS",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          1.8287999629974365
+        ],
+        "pitchYaw": [
+          90.0,
+          180.0
+        ],
+        "centric": [
+          1,
+          1,
+          0,
+          0,
+          1
+        ],
+        "inputs": [
+          1,
+          16
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/dreadknight/back_upper",
+        "state": "kill_back_upper",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/dreadknight/chainsaw/cut_back",
+        "state": "cut_back",
+        "action": "CS",
+        "groups": [],
+        "quadrants": 15,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          1.8287999629974365
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          1,
+          16
+        ]
+      }
+    ],
+    "gargoyle": [
+      {
+        "declaration": "syncdeath/playervsai/gargoyle/front_chest",
+        "state": "kill_front_chest",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 3,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          45.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/gargoyle/front_head_01",
+        "state": "kill_front_head_01",
+        "action": "GK",
+        "groups": [
+          "head"
+        ],
+        "quadrants": 3,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/gargoyle/chainsaw/cut_front_01",
+        "state": "cut_front_01",
+        "action": "CS",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          1.8287999629974365
+        ],
+        "pitchYaw": [
+          90.0,
+          90.0
+        ],
+        "centric": [
+          1,
+          1,
+          0,
+          0,
+          1
+        ],
+        "inputs": [
+          1,
+          16
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/gargoyle/left_lower",
+        "state": "kill_left_lower",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 12,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/gargoyle/chainsaw/cut_back",
+        "state": "cut_back",
+        "action": "CS",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          1.8287999629974365
+        ],
+        "pitchYaw": [
+          90.0,
+          90.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          1,
+          16
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/gargoyle/back_upper",
+        "state": "kill_back_upper",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 3,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/gargoyle/above_front",
+        "state": "kill_above_front",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          5.0,
+          0.03099999949336052,
+          4.0
+        ],
+        "pitchYaw": [
+          90.0,
+          90.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/gargoyle/front_lower",
+        "state": "kill_front_lower",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 12,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/gargoyle/right_lower",
+        "state": "kill_right_lower",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 12,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/gargoyle/back_lower",
+        "state": "kill_back_lower",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 12,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/gargoyle/above_back",
+        "state": "kill_above_back",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          5.0,
+          0.03099999949336052,
+          4.0
+        ],
+        "pitchYaw": [
+          90.0,
+          90.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/gargoyle/right_upper",
+        "state": "kill_right_upper",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 3,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/gargoyle/front_leftarm",
+        "state": "kill_front_leftarm",
+        "action": "GK",
+        "groups": [
+          "left_upper_arm",
+          "left_lower_arm",
+          "left_arm",
+          "left_forearm"
+        ],
+        "quadrants": 15,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          30.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/gargoyle/left_upper",
+        "state": "kill_left_upper",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 3,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/gargoyle/front_rightarm",
+        "state": "kill_front_rightarm",
+        "action": "GK",
+        "groups": [
+          "right_upper_arm",
+          "right_lower_arm",
+          "right_arm",
+          "right_forearm"
+        ],
+        "quadrants": 15,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          30.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      }
+    ],
+    "gladiator": [
+      {
+        "declaration": "syncdeath/playervsai/gladiator/front_shield",
+        "state": "kill_front_shield",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          10.0,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          180.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/gladiator/front_head",
+        "state": "kill_front_head",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          10.0,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          180.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      }
+    ],
+    "hellknight": [
+      {
+        "declaration": "syncdeath/playervsai/hellknight/above_front",
+        "state": "kill_above_front",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          8.0,
+          0.03099999949336052,
+          12.0
+        ],
+        "pitchYaw": [
+          90.0,
+          90.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/hellknight/above_back",
+        "state": "kill_above_back",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          8.0,
+          0.03099999949336052,
+          12.0
+        ],
+        "pitchYaw": [
+          90.0,
+          90.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/hellknight/back_upper",
+        "state": "kill_back_upper",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/hellknight/left_upper",
+        "state": "kill_left_upper",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/hellknight/right_upper",
+        "state": "kill_right_upper",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/hellknight/front_head",
+        "state": "kill_front_head",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 3,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/hellknight/chainsaw/cut_front_01",
+        "state": "cut_front_01",
+        "action": "CS",
+        "groups": [
+          "chest",
+          "gut",
+          "head",
+          "left_lower_arm",
+          "left_lower_leg",
+          "left_upper_arm",
+          "left_upper_leg",
+          "right_lower_arm",
+          "right_lower_leg",
+          "right_upper_arm",
+          "right_upper_leg"
+        ],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          1.8287999629974365
+        ],
+        "pitchYaw": [
+          90.0,
+          90.0
+        ],
+        "centric": [
+          1,
+          1,
+          0,
+          0,
+          1
+        ],
+        "inputs": [
+          1,
+          16
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/hellknight/front_lower",
+        "state": "kill_front_lower",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 12,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/hellknight/chainsaw/cut_back",
+        "state": "cut_back",
+        "action": "CS",
+        "groups": [
+          "chest",
+          "gut",
+          "head",
+          "left_lower_arm",
+          "left_lower_leg",
+          "left_upper_arm",
+          "left_upper_leg",
+          "right_lower_arm",
+          "right_lower_leg",
+          "right_upper_arm",
+          "right_upper_leg"
+        ],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          1.8287999629974365
+        ],
+        "pitchYaw": [
+          90.0,
+          90.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          1,
+          16
+        ]
+      }
+    ],
+    "imp": [
+      {
+        "declaration": "syncdeath/playervsai/imp/left_upper",
+        "state": "kill_left_upper",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 3,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/imp/right_upper",
+        "state": "kill_right_upper",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 3,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/imp/front_head",
+        "state": "kill_front_head",
+        "action": "GK",
+        "groups": [
+          "head"
+        ],
+        "quadrants": 3,
+        "ranges": [
+          0.0,
+          5.0,
+          0.0,
+          3.0
+        ],
+        "pitchYaw": [
+          45.0,
+          45.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/imp/front_chest",
+        "state": "kill_front_chest",
+        "action": "GK",
+        "groups": [
+          "chest",
+          "gut"
+        ],
+        "quadrants": 3,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          45.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/imp/back_upper",
+        "state": "kill_back_upper",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 3,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/imp/left_lower",
+        "state": "kill_left_lower",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 12,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/imp/right_lower",
+        "state": "kill_right_lower",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 12,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/imp/above_front",
+        "state": "kill_above_front",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          5.0,
+          0.0,
+          9.52500057220459
+        ],
+        "pitchYaw": [
+          90.0,
+          90.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/imp/back_lower",
+        "state": "kill_back_lower",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 12,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/imp/above_back",
+        "state": "kill_above_back",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          5.0,
+          0.0,
+          9.52500057220459
+        ],
+        "pitchYaw": [
+          90.0,
+          90.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/imp/front_lower",
+        "state": "kill_front_lower",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 12,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          45.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/imp/front_leftarm",
+        "state": "kill_front_leftarm",
+        "action": "GK",
+        "groups": [
+          "left_lower_arm",
+          "left_upper_arm"
+        ],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/imp/front_rightarm",
+        "state": "kill_front_rightarm",
+        "action": "GK",
+        "groups": [
+          "right_lower_arm",
+          "right_upper_arm"
+        ],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/imp/chainsaw/cut_back",
+        "state": "cut_back",
+        "action": "CS",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          1.8287999629974365
+        ],
+        "pitchYaw": [
+          90.0,
+          90.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          1,
+          16
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/imp/chainsaw/cut_front",
+        "state": "cut_front",
+        "action": "CS",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          1.8287999629974365
+        ],
+        "pitchYaw": [
+          90.0,
+          90.0
+        ],
+        "centric": [
+          1,
+          1,
+          0,
+          0,
+          1
+        ],
+        "inputs": [
+          1,
+          16
+        ]
+      }
+    ],
+    "mancubus_fire": [
+      {
+        "declaration": "syncdeath/playervsai/mancubus_fire/front_head",
+        "state": "kill_front_head",
+        "action": "GK",
+        "groups": [
+          "head"
+        ],
+        "quadrants": 3,
+        "ranges": [
+          0.0,
+          5.0,
+          0.0,
+          3.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/mancubus_fire/front_upper",
+        "state": "kill_front_upper",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          5.0,
+          0.0,
+          3.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/mancubus_fire/chainsaw/cut_front",
+        "state": "cut_front",
+        "action": "CS",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          1.8287999629974365
+        ],
+        "pitchYaw": [
+          90.0,
+          90.0
+        ],
+        "centric": [
+          1,
+          1,
+          0,
+          0,
+          1
+        ],
+        "inputs": [
+          1,
+          16
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/mancubus_fire/chainsaw/cut_back",
+        "state": "cut_back",
+        "action": "CS",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          1.8287999629974365
+        ],
+        "pitchYaw": [
+          90.0,
+          90.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          1,
+          16
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/mancubus_fire/back_upper",
+        "state": "kill_back_upper",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          5.0,
+          0.0,
+          3.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/mancubus_fire/left_upper",
+        "state": "kill_left_upper",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          5.0,
+          0.0,
+          4.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/mancubus_fire/right_upper",
+        "state": "kill_right_upper",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          5.0,
+          0.0,
+          4.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/mancubus_fire/above_back",
+        "state": "kill_above_back",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          5.0,
+          0.03099999949336052,
+          6.0
+        ],
+        "pitchYaw": [
+          90.0,
+          95.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/mancubus_fire/above_front",
+        "state": "kill_above_front",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          5.0,
+          0.03099999949336052,
+          6.0
+        ],
+        "pitchYaw": [
+          90.0,
+          95.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      }
+    ],
+    "marauder": [
+      {
+        "declaration": "syncdeath/playervsai/marauder/front_upper",
+        "state": "kill_front_upper",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 15,
+        "ranges": [
+          0.0,
+          6.0,
+          0.0,
+          4.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/marauder/above_front",
+        "state": "kill_above_front",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 0,
+        "ranges": [
+          0.0,
+          5.0,
+          0.03099999949336052,
+          4.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/marauder/left_upper",
+        "state": "kill_left_upper",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/marauder/above_back",
+        "state": "kill_above_back",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 0,
+        "ranges": [
+          0.0,
+          5.0,
+          0.03099999949336052,
+          4.0
+        ],
+        "pitchYaw": [
+          90.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/marauder/right_upper",
+        "state": "kill_right_upper",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/marauder/back_upper",
+        "state": "kill_back_upper",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 3,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      }
+    ],
+    "painelemental": [
+      {
+        "declaration": "syncdeath/playervsai/painelemental/front_lower",
+        "state": "kill_front_lower",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          5.0,
+          0.0,
+          8.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/painelemental/left_lower",
+        "state": "kill_left_lower",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          5.0,
+          0.0,
+          8.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/painelemental/right_lower",
+        "state": "kill_right_lower",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          5.0,
+          0.0,
+          8.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/painelemental/back_lower",
+        "state": "kill_back_lower",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          5.0,
+          0.0,
+          8.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/painelemental/above_back",
+        "state": "kill_back_lower",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          5.0,
+          0.0,
+          8.0
+        ],
+        "pitchYaw": [
+          45.0,
+          180.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/painelemental/above_front",
+        "state": "kill_above_front",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          5.0,
+          0.03099999949336052,
+          8.0
+        ],
+        "pitchYaw": [
+          45.0,
+          90.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/painelemental/chainsaw/cut_back",
+        "state": "cut_back",
+        "action": "CS",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          1.8287999629974365
+        ],
+        "pitchYaw": [
+          90.0,
+          90.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          1,
+          16
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/painelemental/chainsaw/cut_front",
+        "state": "cut_front",
+        "action": "CS",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          1.8287999629974365
+        ],
+        "pitchYaw": [
+          90.0,
+          90.0
+        ],
+        "centric": [
+          1,
+          1,
+          0,
+          0,
+          1
+        ],
+        "inputs": [
+          1,
+          16
+        ]
+      }
+    ],
+    "pinky": [
+      {
+        "declaration": "syncdeath/playervsai/pinky/above_back",
+        "state": "kill_above_back",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          5.0,
+          0.03099999949336052,
+          4.0
+        ],
+        "pitchYaw": [
+          90.0,
+          90.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/pinky/above_front",
+        "state": "kill_above_front",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          5.0,
+          0.03099999949336052,
+          4.0
+        ],
+        "pitchYaw": [
+          90.0,
+          90.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/pinky/back_upper",
+        "state": "kill_back_upper",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/pinky/front_upper",
+        "state": "kill_front_upper",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/pinky/left_upper",
+        "state": "kill_left_upper",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/pinky/right_upper",
+        "state": "kill_right_upper",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/pinky/chainsaw/cut_front",
+        "state": "cut_front",
+        "action": "CS",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          1.8287999629974365
+        ],
+        "pitchYaw": [
+          90.0,
+          90.0
+        ],
+        "centric": [
+          1,
+          1,
+          0,
+          0,
+          1
+        ],
+        "inputs": [
+          1,
+          16
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/pinky/chainsaw/cut_back",
+        "state": "cut_back",
+        "action": "CS",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          1.8287999629974365
+        ],
+        "pitchYaw": [
+          90.0,
+          90.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          1,
+          16
+        ]
+      }
+    ],
+    "prowler": [
+      {
+        "declaration": "syncdeath/playervsai/prowler/front_rightarm",
+        "state": "kill_front_rightarm",
+        "action": "GK",
+        "groups": [
+          "right_lower_arm",
+          "right_upper_arm"
+        ],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          45.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/prowler/front_head",
+        "state": "kill_front_head",
+        "action": "GK",
+        "groups": [
+          "head"
+        ],
+        "quadrants": 3,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/prowler/right_upper",
+        "state": "kill_right_upper",
+        "action": "GK",
+        "groups": [
+          "chest",
+          "gut",
+          "head",
+          "left_lower_arm",
+          "left_lower_leg",
+          "left_upper_arm",
+          "left_upper_leg",
+          "right_lower_arm",
+          "right_lower_leg",
+          "right_upper_arm",
+          "right_upper_leg"
+        ],
+        "quadrants": 3,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/prowler/front_lower",
+        "state": "kill_front_lower",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 12,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          45.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/prowler/front_leftarm",
+        "state": "kill_front_leftarm",
+        "action": "GK",
+        "groups": [
+          "left_lower_arm",
+          "left_upper_arm"
+        ],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          45.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/prowler/left_lower",
+        "state": "kill_left_lower",
+        "action": "GK",
+        "groups": [
+          "gut",
+          "left_lower_arm",
+          "left_lower_leg",
+          "left_upper_leg"
+        ],
+        "quadrants": 12,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/prowler/left_upper",
+        "state": "kill_left_upper",
+        "action": "GK",
+        "groups": [
+          "chest",
+          "head",
+          "left_lower_arm",
+          "left_upper_arm"
+        ],
+        "quadrants": 3,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/prowler/above_front",
+        "state": "kill_above_front",
+        "action": "GK",
+        "groups": [
+          "chest",
+          "gut",
+          "head",
+          "left_lower_arm",
+          "left_lower_leg",
+          "left_upper_arm",
+          "left_upper_leg",
+          "right_lower_arm",
+          "right_lower_leg",
+          "right_upper_arm",
+          "right_upper_leg"
+        ],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          5.0,
+          0.03099999949336052,
+          4.0
+        ],
+        "pitchYaw": [
+          90.0,
+          90.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/prowler/above_back",
+        "state": "kill_above_back",
+        "action": "GK",
+        "groups": [
+          "chest",
+          "gut",
+          "head",
+          "left_lower_arm",
+          "left_lower_leg",
+          "left_upper_arm",
+          "left_upper_leg",
+          "right_lower_arm",
+          "right_lower_leg",
+          "right_upper_arm",
+          "right_upper_leg"
+        ],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          5.0,
+          0.03099999949336052,
+          4.0
+        ],
+        "pitchYaw": [
+          90.0,
+          90.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/prowler/right_lower",
+        "state": "kill_right_lower",
+        "action": "GK",
+        "groups": [
+          "chest",
+          "gut",
+          "head",
+          "left_lower_arm",
+          "left_lower_leg",
+          "left_upper_arm",
+          "left_upper_leg",
+          "right_lower_arm",
+          "right_lower_leg",
+          "right_upper_arm",
+          "right_upper_leg"
+        ],
+        "quadrants": 12,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/prowler/back_lower",
+        "state": "kill_back_lower",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 12,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/prowler/back_upper",
+        "state": "kill_back_upper",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 3,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/prowler/chainsaw/cut_front",
+        "state": "cut_front",
+        "action": "CS",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          3.0
+        ],
+        "pitchYaw": [
+          90.0,
+          90.0
+        ],
+        "centric": [
+          1,
+          1,
+          0,
+          0,
+          1
+        ],
+        "inputs": [
+          1,
+          16
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/prowler/chainsaw/cut_back",
+        "state": "cut_back",
+        "action": "CS",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          3.0
+        ],
+        "pitchYaw": [
+          90.0,
+          90.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          1,
+          16
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/prowler/front_chest",
+        "state": "kill_front_chest",
+        "action": "GK",
+        "groups": [
+          "chest",
+          "crotch",
+          "neck",
+          "spine3",
+          "stomach",
+          "right_upper_leg",
+          "left_upper_leg",
+          "gut"
+        ],
+        "quadrants": 3,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          45.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      }
+    ],
+    "revenant": [
+      {
+        "declaration": "syncdeath/playervsai/revenant/front_upper",
+        "state": "kill_front_upper",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          45.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/revenant/left_upper",
+        "state": "kill_left_upper",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/revenant/right_upper",
+        "state": "kill_right_upper",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/revenant/back_upper",
+        "state": "kill_back_upper",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/revenant/above_front",
+        "state": "kill_above_front",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          5.0,
+          0.03099999949336052,
+          3.0
+        ],
+        "pitchYaw": [
+          90.0,
+          90.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/revenant/above_back",
+        "state": "kill_above_back",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          5.0,
+          0.03099999949336052,
+          3.0
+        ],
+        "pitchYaw": [
+          90.0,
+          90.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/revenant/chainsaw/cut_front",
+        "state": "cut_front",
+        "action": "CS",
+        "groups": [],
+        "quadrants": 15,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          1.8287999629974365
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          1,
+          1,
+          0,
+          0,
+          1
+        ],
+        "inputs": [
+          1,
+          16
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/revenant/chainsaw/cut_back",
+        "state": "cut_back",
+        "action": "CS",
+        "groups": [],
+        "quadrants": 15,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          1.8287999629974365
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          1,
+          16
+        ]
+      }
+    ],
+    "soldier_blaster": [
+      {
+        "declaration": "syncdeath/playervsai/soldier_blaster/right_upper",
+        "state": "kill_right_upper",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 3,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/soldier_blaster/left_upper",
+        "state": "kill_left_upper",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 3,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/soldier_blaster/front_upper",
+        "state": "kill_front_upper",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 3,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          45.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/soldier_blaster/front_head",
+        "state": "kill_front_head",
+        "action": "GK",
+        "groups": [
+          "head"
+        ],
+        "quadrants": 3,
+        "ranges": [
+          0.0,
+          5.0,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/soldier_blaster/left_lower",
+        "state": "kill_left_lower",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 12,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/soldier_blaster/above_back",
+        "state": "kill_above_back",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          5.0,
+          0.03099999949336052,
+          4.0
+        ],
+        "pitchYaw": [
+          90.0,
+          90.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/soldier_blaster/above_front",
+        "state": "kill_above_front",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          5.0,
+          0.03099999949336052,
+          4.0
+        ],
+        "pitchYaw": [
+          90.0,
+          90.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/soldier_blaster/front_rightarm",
+        "state": "kill_front_rightarm",
+        "action": "GK",
+        "groups": [
+          "right_arm"
+        ],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/soldier_blaster/front_leftarm",
+        "state": "kill_front_leftarm",
+        "action": "GK",
+        "groups": [
+          "left_arm"
+        ],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/soldier_blaster/chainsaw/cut_back",
+        "state": "cut_back",
+        "action": "CS",
+        "groups": [
+          "chest",
+          "gut",
+          "head",
+          "left_arm",
+          "left_foot",
+          "left_leg",
+          "right_arm",
+          "right_foot",
+          "right_leg"
+        ],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          3.0
+        ],
+        "pitchYaw": [
+          90.0,
+          90.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          1,
+          16
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/soldier_blaster/back_lower",
+        "state": "kill_back_lower",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 12,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/soldier_blaster/chainsaw/cut_front",
+        "state": "cut_front",
+        "action": "CS",
+        "groups": [
+          "chest",
+          "gut",
+          "head",
+          "left_arm",
+          "left_foot",
+          "left_leg",
+          "right_arm",
+          "right_foot",
+          "right_leg"
+        ],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          3.0
+        ],
+        "pitchYaw": [
+          90.0,
+          90.0
+        ],
+        "centric": [
+          1,
+          1,
+          0,
+          0,
+          1
+        ],
+        "inputs": [
+          1,
+          16
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/soldier_blaster/right_lower",
+        "state": "kill_right_lower",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 12,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/soldier_blaster/back_upper",
+        "state": "kill_back_upper",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 3,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/soldier_blaster/front_lower",
+        "state": "kill_front_lower",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 12,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          45.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      }
+    ],
+    "tentacle": [
+      {
+        "declaration": "syncdeath/playervsai/tentacle/chainsaw/cut_front",
+        "state": "cut_front",
+        "action": "CS",
+        "groups": [],
+        "quadrants": 15,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          1.8287999629974365
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          1,
+          1,
+          0,
+          0,
+          1
+        ],
+        "inputs": [
+          1,
+          16
+        ]
+      }
+    ],
+    "tyrant": [
+      {
+        "declaration": "syncdeath/playervsai/tyrant/front_upper",
+        "state": "kill_front_upper",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          6.0,
+          0.0,
+          4.0
+        ],
+        "pitchYaw": [
+          90.0,
+          100.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/tyrant/above_front",
+        "state": "kill_above_front",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          6.0,
+          0.03099999949336052,
+          10.0
+        ],
+        "pitchYaw": [
+          90.0,
+          180.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/tyrant/back_upper",
+        "state": "kill_back_upper",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          6.0,
+          0.0,
+          4.0
+        ],
+        "pitchYaw": [
+          90.0,
+          100.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      }
+    ],
+    "whiplash": [
+      {
+        "declaration": "syncdeath/playervsai/whiplash/right_upper",
+        "state": "kill_right_upper",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          6.0,
+          0.0,
+          3.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/whiplash/back_upper",
+        "state": "kill_back_upper",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          6.0,
+          0.0,
+          3.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/whiplash/above_front",
+        "state": "kill_above_front",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          5.0,
+          0.03099999949336052,
+          4.0
+        ],
+        "pitchYaw": [
+          90.0,
+          90.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/whiplash/above_back",
+        "state": "kill_above_back",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          5.0,
+          0.03099999949336052,
+          4.0
+        ],
+        "pitchYaw": [
+          90.0,
+          90.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/whiplash/front_upper",
+        "state": "kill_front_upper",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          6.0,
+          0.0,
+          3.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/whiplash/chainsaw/cut_front",
+        "state": "cut_front",
+        "action": "CS",
+        "groups": [],
+        "quadrants": 15,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          1.8287999629974365
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          1,
+          1,
+          0,
+          0,
+          1
+        ],
+        "inputs": [
+          1,
+          16
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/whiplash/chainsaw/cut_back",
+        "state": "cut_back",
+        "action": "CS",
+        "groups": [],
+        "quadrants": 15,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          1.8287999629974365
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          1,
+          16
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/whiplash/left_upper",
+        "state": "kill_left_upper",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          6.0,
+          0.0,
+          3.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      }
+    ],
+    "zombie_maykr": [
+      {
+        "declaration": "syncdeath/playervsai/zombie_maykr/above_back",
+        "state": "kill_above_back",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          5.0,
+          0.03099999949336052,
+          4.0
+        ],
+        "pitchYaw": [
+          90.0,
+          90.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/zombie_maykr/above_front",
+        "state": "kill_above_front",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          5.0,
+          0.03099999949336052,
+          4.0
+        ],
+        "pitchYaw": [
+          90.0,
+          90.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/zombie_maykr/right_upper",
+        "state": "kill_right_upper",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/zombie_maykr/left_upper",
+        "state": "kill_left_upper",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/zombie_maykr/front_upper",
+        "state": "kill_front_upper",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/zombie_maykr/back_upper",
+        "state": "kill_back_upper",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/zombie_maykr/chainsaw/cut_front",
+        "state": "cut_front",
+        "action": "CS",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          5.0,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          90.0,
+          90.0
+        ],
+        "centric": [
+          1,
+          1,
+          0,
+          0,
+          1
+        ],
+        "inputs": [
+          1,
+          16
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/zombie_maykr/chainsaw/cut_back",
+        "state": "cut_back",
+        "action": "CS",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          5.0,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          90.0,
+          90.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          1,
+          16
+        ]
+      }
+    ],
+    "zombie_tier1": [
+      {
+        "declaration": "syncdeath/playervsai/zombie_tier1/front_head",
+        "state": "kill_front_head",
+        "action": "GK",
+        "groups": [
+          "head"
+        ],
+        "quadrants": 3,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/zombie_tier1/back_lower",
+        "state": "kill_back_lower",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 12,
+        "ranges": [
+          0.0,
+          5.0,
+          0.0,
+          3.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/zombie_tier1/above_back",
+        "state": "kill_above_back",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          5.0,
+          0.03099999949336052,
+          6.0
+        ],
+        "pitchYaw": [
+          90.0,
+          90.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/zombie_tier1/above_front",
+        "state": "kill_above_front",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          6.0,
+          0.03099999949336052,
+          4.0
+        ],
+        "pitchYaw": [
+          90.0,
+          90.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/zombie_tier1/back_head",
+        "state": "kill_back_head",
+        "action": "GK",
+        "groups": [
+          "head"
+        ],
+        "quadrants": 3,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/zombie_tier1/front_chest",
+        "state": "kill_front_chest",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 3,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          45.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/zombie_tier1/front_leftarm",
+        "state": "kill_front_leftarm",
+        "action": "GK",
+        "groups": [
+          "left_arm"
+        ],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/zombie_tier1/front_lower",
+        "state": "kill_front_lower",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 12,
+        "ranges": [
+          0.0,
+          5.0,
+          0.0,
+          3.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/zombie_tier1/front_rightarm",
+        "state": "kill_front_rightarm",
+        "action": "GK",
+        "groups": [
+          "right_arm"
+        ],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/zombie_tier1/left_lower",
+        "state": "kill_left_lower",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 12,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/zombie_tier1/left_upper",
+        "state": "kill_left_upper",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 3,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/zombie_tier1/right_lower",
+        "state": "kill_right_lower",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 12,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/zombie_tier1/right_upper",
+        "state": "kill_right_upper",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 3,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/zombie_tier1/back_upper",
+        "state": "kill_back_upper",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 3,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/zombie_tier1/chainsaw/cut_front",
+        "state": "cut_front_01",
+        "action": "CS",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          1.8287999629974365
+        ],
+        "pitchYaw": [
+          90.0,
+          90.0
+        ],
+        "centric": [
+          1,
+          1,
+          0,
+          0,
+          1
+        ],
+        "inputs": [
+          1,
+          16
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/zombie_tier1/chainsaw/cut_front",
+        "state": "cut_front_02",
+        "action": "CS",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          1.8287999629974365
+        ],
+        "pitchYaw": [
+          90.0,
+          90.0
+        ],
+        "centric": [
+          1,
+          1,
+          0,
+          0,
+          1
+        ],
+        "inputs": [
+          1,
+          16
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/zombie_tier1/chainsaw/cut_back",
+        "state": "cut_back",
+        "action": "CS",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          1.8287999629974365
+        ],
+        "pitchYaw": [
+          90.0,
+          90.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          1,
+          16
+        ]
+      }
+    ],
+    "zombie_tier3": [
+      {
+        "declaration": "syncdeath/playervsai/zombie_tier3/front_head",
+        "state": "kill_front_head",
+        "action": "GK",
+        "groups": [
+          "head"
+        ],
+        "quadrants": 3,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/zombie_tier3/left_upper",
+        "state": "kill_left_upper",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 3,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/zombie_tier3/back_head",
+        "state": "kill_back_head",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 3,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/zombie_tier3/front_chest",
+        "state": "kill_front_chest",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 3,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/zombie_tier3/right_upper",
+        "state": "kill_right_upper",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 3,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/zombie_tier3/above_front",
+        "state": "kill_above_front",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          5.0,
+          0.03099999949336052,
+          4.0
+        ],
+        "pitchYaw": [
+          90.0,
+          90.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/zombie_tier3/front_rightarm",
+        "state": "kill_front_rightarm",
+        "action": "GK",
+        "groups": [
+          "right_arm"
+        ],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          45.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/zombie_tier3/above_back",
+        "state": "kill_above_back",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          5.0,
+          0.03099999949336052,
+          4.0
+        ],
+        "pitchYaw": [
+          90.0,
+          90.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/zombie_tier3/front_leftarm",
+        "state": "kill_front_leftarm",
+        "action": "GK",
+        "groups": [
+          "left_arm"
+        ],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          45.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/zombie_tier3/right_lower",
+        "state": "kill_right_lower",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 12,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/zombie_tier3/back_lower",
+        "state": "kill_back_lower",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 12,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/zombie_tier3/left_lower",
+        "state": "kill_left_lower",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 12,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/zombie_tier3/chainsaw/cut_back",
+        "state": "cut_back",
+        "action": "CS",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          1.8287999629974365
+        ],
+        "pitchYaw": [
+          90.0,
+          90.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          1,
+          16
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/zombie_tier3/chainsaw/cut_front",
+        "state": "cut_front",
+        "action": "CS",
+        "groups": [],
+        "quadrants": 2147483647,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          1.8287999629974365
+        ],
+        "pitchYaw": [
+          90.0,
+          90.0
+        ],
+        "centric": [
+          1,
+          1,
+          0,
+          0,
+          1
+        ],
+        "inputs": [
+          1,
+          16
+        ]
+      },
+      {
+        "declaration": "syncdeath/playervsai/zombie_tier3/front_lower",
+        "state": "kill_front_lower",
+        "action": "GK",
+        "groups": [],
+        "quadrants": 12,
+        "ranges": [
+          0.0,
+          4.762500286102295,
+          0.0,
+          2.0
+        ],
+        "pitchYaw": [
+          45.0,
+          60.0
+        ],
+        "centric": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inputs": [
+          2,
+          0
+        ]
+      }
+    ]
+  }
+}

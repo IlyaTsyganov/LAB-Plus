@@ -37,6 +37,39 @@ struct RuntimeSceneBuilder {
     std::unordered_map<std::string,uint32_t> errors;
     ShapeContentsFilter contents;
     bool failed=false;
+    std::vector<std::array<float,4>> nativePlanes(uintptr_t address,const unsigned char* header) {
+        auto u16=[&](size_t at) { uint16_t value=0; memcpy(&value,header+at,2); return value; };
+        const unsigned count=u16(0x50),vertices=u16(0x42),faces=u16(0x54),indices=u16(0x58);
+        const size_t begin=0x50+u16(0x52),end=begin+size_t(count)*16,vertexBegin=0x42+u16(0x44),faceBegin=0x54+u16(0x56),indexBegin=0x58+u16(0x5a);
+        // Audited native polytope hkRelArray: planes at +0x50, faces +0x54,
+        // corners +0x58. Require the actual face/vertex relationship as well
+        // as bounded, non-overlapping arrays; other layouts retain mesh fallback.
+        if(count<4||count>512||count!=faces||vertices<4||vertices>256||indices>8192||
+           vertexBegin<0x70||begin<vertexBegin+size_t(vertices)*16||end>faceBegin||faceBegin+size_t(faces)*4>indexBegin||indexBegin+indices>0x10000||
+           address>std::numeric_limits<uintptr_t>::max()-indexBegin-indices) return {};
+        std::vector<std::array<float,4>> planes(count),points(vertices);
+        std::vector<std::array<unsigned char,4>> polygons(faces); std::vector<unsigned char> corners(indices);
+        if(!memory.read(address+begin,planes.data(),planes.size()*16)||!memory.read(address+vertexBegin,points.data(),points.size()*16)||
+           !memory.read(address+faceBegin,polygons.data(),polygons.size()*4)||!memory.read(address+indexBegin,corners.data(),corners.size())) return {};
+        double magnitude=1;
+        for(const auto& point:points) for(unsigned k=0;k<3;++k) { if(!std::isfinite(point[k])||fabs(point[k])>100000) return {}; magnitude=std::max(magnitude,fabs(double(point[k]))); }
+        const double tolerance=magnitude*2e-6;
+        for(unsigned i=0;i<count;++i) {
+            const auto& p=planes[i]; for(float value:p) if(!std::isfinite(value)||fabs(value)>1000000) return {};
+            const double length=double(p[0])*p[0]+double(p[1])*p[1]+double(p[2])*p[2]; if(fabs(length-1)>.002) return {};
+            const auto& face=polygons[i]; const unsigned first=face[0]|(unsigned(face[1])<<8),size=face[2];
+            if(size<3||first+size>indices) return {};
+            for(unsigned k=0;k<size;++k) {
+                unsigned index=corners[first+k]; if(index>=vertices) return {};
+                const auto& v=points[index];
+                if(fabs(double(p[0])*v[0]+double(p[1])*v[1]+double(p[2])*v[2]+p[3])>tolerance) {
+                    return {};
+                }
+            }
+        }
+        // Only fully certified native convex bodies can hide projectile geometry.
+        return planes;
+    }
     bool walk(uintptr_t address,const WallTransform& transform,RuntimeScene& scene,unsigned depth=0) {
         if(cancelled()) return false;
         if(depth>64||scene.meshes.size()>2000000) { failed=true; return false; }
@@ -68,16 +101,21 @@ struct RuntimeSceneBuilder {
             }
             return true;
         }
-        if(!contents.allowsShape(address)) { ++scene.nonBlocking; return true; }
+        if(contents.shotsOnly&&header[0x22]==9?!contents.hasShotTags(address):!contents.allowsShape(address)) { if(!contents.shotsOnly) ++scene.nonBlocking; return true; }
         auto found=cache.find(address);
         if(found==cache.end()) {
             LiveWalls decoder; decoder.memory=memory;
-            auto geometry=std::make_shared<Geometry>(); geometry->kind=1;
+            auto geometry=std::make_shared<Geometry>(); geometry->kind=contents.shotsOnly?3u:1u;
             bool decoded=decoder.shape(address,WallTransform{},*geometry,0,&contents);
             if(decoded&&geometry->triangles.empty()) { ++errors["empty shape"]; return true; }
             if(!decoded) {
                 ++scene.unsupported; ++unsupportedTypes[header[0x22]]; ++errors[decoder.shapeError]; return true;
             }
+            // Only native convex leaves can supply subtraction volumes. A
+            // compressed surface or a compound is never assumed to be solid.
+            geometry->convexSolid=!contents.shotsOnly&&header[0x22]!=9&&(header[0x20]&2)!=0&&contents.knownPlayerBlocker(address);
+            geometry->sourceType=header[0x22];
+            if(geometry->convexSolid) geometry->solidPlanes=nativePlanes(address,header);
             Cached item{}; item.geometry=geometry;
             for(int k=0;k<3;++k) { item.bounds[k]=FLT_MAX; item.bounds[k+3]=-FLT_MAX; }
             for(Vec3 point:geometry->triangles) {
@@ -86,7 +124,7 @@ struct RuntimeSceneBuilder {
             }
             found=cache.emplace(address,std::move(item)).first;
         }
-        Mesh mesh{}; mesh.kind=1; mesh.geometry=found->second.geometry; memcpy(mesh.matrix,transform.m,48);
+        Mesh mesh{}; mesh.kind=contents.shotsOnly?3u:1u; mesh.geometry=found->second.geometry; memcpy(mesh.matrix,transform.m,48);
         for(int k=0;k<3;++k) { mesh.bounds[k]=FLT_MAX; mesh.bounds[k+3]=-FLT_MAX; }
         const float* bounds=found->second.bounds;
         for(unsigned corner=0;corner<8;++corner) {
@@ -101,8 +139,12 @@ struct RuntimeSceneBuilder {
         auto start=std::chrono::steady_clock::now();
         auto scene=std::make_shared<RuntimeScene>(); scene->level=level;
         cache.clear(); unsupportedTypes.clear(); errors.clear(); contents.memory=memory; contents.clear(); failed=false;
+        contents.shotsOnly=false;
         if(!walk(level.world,WallTransform{},*scene)||failed||cancelled()) return {};
         scene->unique=static_cast<uint32_t>(cache.size()); cache.clear();
+        contents.shotsOnly=true;
+        if(!walk(level.world,WallTransform{},*scene)||failed||cancelled()) return {};
+        scene->unique+=static_cast<uint32_t>(cache.size()); cache.clear();
         scene->order.resize(scene->meshes.size()); std::iota(scene->order.begin(),scene->order.end(),0u);
         if(!scene->meshes.empty()) buildSpatialNodeFor(scene->meshes,scene->nodes,scene->order,0,static_cast<uint32_t>(scene->meshes.size()));
         if(cancelled()) return {};
@@ -110,6 +152,8 @@ struct RuntimeSceneBuilder {
         return scene;
     }
 };
+
+#include "projectile_trim.h"
 
 struct RuntimeEntities {
     LevelIdentity level;
@@ -131,12 +175,18 @@ class RuntimeSceneManager {
     WallMemory memory;
     ResearchControl researchControl;
     std::shared_ptr<const RuntimeScene> world;
+    std::shared_ptr<const ProjectileTrim> trimmed;
+    std::atomic<bool> trimRequested{false};
+    std::atomic<float> trimRadius{40};
     std::shared_ptr<const RuntimeEntities> entities;
     std::shared_ptr<const ResearchRoute> researchRoute;
     std::vector<std::shared_ptr<const RuntimeScene>> retired;
+    std::vector<std::shared_ptr<const ProjectileTrim>> retiredTrims;
     void run() {
         uint64_t version=0; LevelIdentity level; uintptr_t image=0; bool built=false; const GameProfile* profile=nullptr;
+        std::shared_ptr<const RuntimeScene> builtWorld;
         ULONGLONG retryAt=0;
+        ULONGLONG trimRetryAt=0;
         LiveWalls scanner; scanner.memory=memory;
         TriggerClassDiscovery discovered;
         TriggerPathDiscovery discoveredPaths;
@@ -144,15 +194,18 @@ class RuntimeSceneManager {
         while(!stopping.load()) {
             ResearchControl control;
             std::vector<std::shared_ptr<const RuntimeScene>> garbage;
+            std::vector<std::shared_ptr<const ProjectileTrim>> trimGarbage;
             {
                 std::unique_lock<std::mutex> lock(mutex);
-                wake.wait_for(lock,std::chrono::milliseconds(100),[&] { return stopping.load()||generation.load()!=version||!retired.empty(); });
+                wake.wait_for(lock,std::chrono::milliseconds(100),[&] { return stopping.load()||generation.load()!=version||!retired.empty()||!retiredTrims.empty(); });
                 if(stopping.load()) break;
                 garbage.swap(retired);
+                trimGarbage.swap(retiredTrims);
                 control=researchControl;
-                if(generation.load()!=version) { version=generation.load(); level=requested; image=base; profile=requestedProfile; built=false; retryAt=0; scanner.resetHistory(); }
+                if(generation.load()!=version) { version=generation.load(); level=requested; image=base; profile=requestedProfile; built=false; builtWorld.reset(); retryAt=trimRetryAt=0; scanner.resetHistory(); }
             }
             garbage.clear();
+            trimGarbage.clear();
             if(!profile) { research.finish(); continue; }
             try {
                 auto actualLevel=readLevelIdentity(memory,image,*profile);
@@ -184,9 +237,21 @@ class RuntimeSceneManager {
                     auto nextWorld=builder.build(level);
                     if(nextWorld&&readLevelIdentity(memory,image,*profile)==level) {
                         std::lock_guard<std::mutex> lock(mutex);
-                        if(generation.load()==version) { world=std::move(nextWorld); built=true; }
+                        if(generation.load()==version) { world=nextWorld; builtWorld=std::move(nextWorld); built=true; }
                     }
                     retryAt=GetTickCount64()+2000;
+                }
+                if(builtWorld&&trimRequested.load()&&GetTickCount64()>=trimRetryAt) {
+                    std::shared_ptr<const ProjectileTrim> previous;
+                    { std::lock_guard<std::mutex> lock(mutex); if(generation.load()==version) previous=trimmed; }
+                    GameCamera focus{};
+                    bool haveFocus=readGameCamera(memory,image,*profile,focus);
+                    if(!previous||(haveFocus&&pendingProjectileTrimInView(*builtWorld,*previous,focus,trimRadius.load()))) {
+                        auto result=buildProjectileTrim(*builtWorld,[&] { return stopping.load()||generation.load()!=version||!trimRequested.load(); },{},haveFocus?&focus:nullptr,trimRadius.load(),previous.get());
+                        std::lock_guard<std::mutex> lock(mutex);
+                        if(result&&generation.load()==version) trimmed=std::move(result);
+                        trimRetryAt=GetTickCount64()+1000;
+                    }
                 }
             } catch(...) { retryAt=GetTickCount64()+2000; }
         }
@@ -199,38 +264,48 @@ public:
     void request(const LevelIdentity& level,uintptr_t image,const GameProfile& profile) {
         std::lock_guard<std::mutex> lock(mutex);
         if(requested==level&&requestedProfile==&profile&&worker.joinable()) return;
-        requested=level; base=image; requestedProfile=&profile; world.reset(); entities.reset(); ++generation;
+        requested=level; base=image; requestedProfile=&profile; world.reset(); trimmed.reset(); entities.reset(); ++generation;
         if(!worker.joinable()) { stopping=false; worker=std::thread([this] { run(); }); }
         wake.notify_one();
     }
     void controlResearch(ResearchControl control) { std::lock_guard<std::mutex> lock(mutex); researchControl=std::move(control); }
+    void controlTrim(bool value,float distance) { trimRadius=distance+std::max(.5f,distance*.01f); trimRequested=value; }
     void pause() {
         std::lock_guard<std::mutex> lock(mutex);
         if(!requestedProfile) return;
         requestedProfile=nullptr;requested={};researchControl={};++generation;
         if(world) retired.push_back(std::move(world));
-        entities.reset();researchRoute.reset();wake.notify_one();
+        trimmed.reset();entities.reset();researchRoute.reset();wake.notify_one();
     }
     std::shared_ptr<const ResearchRoute> route() { std::lock_guard<std::mutex> lock(mutex); return researchRoute; }
-    void retire(std::shared_ptr<const RuntimeScene> old) {
-        if(!old) return;
-        std::lock_guard<std::mutex> lock(mutex); retired.push_back(std::move(old)); wake.notify_one();
+    void retire(std::shared_ptr<const RuntimeScene> old,std::shared_ptr<const ProjectileTrim> oldTrim={}) {
+        if(!old&&!oldTrim) return;
+        std::lock_guard<std::mutex> lock(mutex);
+        if(old) retired.push_back(std::move(old));
+        if(oldTrim) retiredTrims.push_back(std::move(oldTrim));
+        wake.notify_one();
     }
-    void snapshot(const LevelIdentity& level,std::shared_ptr<const RuntimeScene>& outWorld,std::shared_ptr<const RuntimeEntities>& outEntities) {
+    void snapshot(const LevelIdentity& level,std::shared_ptr<const RuntimeScene>& outWorld,std::shared_ptr<const RuntimeEntities>& outEntities,std::shared_ptr<const ProjectileTrim>* outTrim=nullptr) {
         std::lock_guard<std::mutex> lock(mutex);
         outWorld=world&&world->level==level?world:nullptr;
         outEntities=entities&&entities->level==level?entities:nullptr;
+        if(outTrim) {
+            auto next=outWorld?trimmed:nullptr;
+            if(*outTrim&&*outTrim!=next) { retiredTrims.push_back(std::move(*outTrim)); wake.notify_one(); }
+            *outTrim=std::move(next);
+        }
     }
     void stop() {
         stopping=true; ++generation; wake.notify_one();
         if(worker.joinable()) worker.join();
-        world.reset(); entities.reset(); retired.clear(); requested={};
+        world.reset(); trimmed.reset(); entities.reset(); retired.clear(); retiredTrims.clear(); requested={};
         researchRoute.reset();
     }
 };
 static RuntimeSceneManager runtimeManager;
 static LevelIdentity runtimeLevel;
 static std::shared_ptr<const RuntimeScene> runtimeWorld;
+static std::shared_ptr<const ProjectileTrim> runtimeTrim;
 static std::shared_ptr<const RuntimeEntities> runtimeEntities;
 static std::shared_ptr<const ResearchRoute> runtimeRoute;
 static bool runtimeRendering=false;
@@ -239,19 +314,20 @@ static bool updateRuntimeScene() {
     const GameProfile* profile=currentGameProfile();
     if(!profile) return false;
     runtimeManager.controlResearch({recordResearch,showResearchPath,researchProcess,researchReset,researchMarker,researchMarkerLabel});
+    runtimeManager.controlTrim(trimShotCollision,radius);
     LevelIdentity level=readLevelIdentity(WallMemory{},base,*profile);
     runtimeRendering=true;
     if(level!=runtimeLevel) {
-        runtimeManager.retire(std::move(runtimeWorld)); runtimeEntities.reset(); runtimeLevel=level;
+        runtimeManager.retire(std::move(runtimeWorld),std::move(runtimeTrim)); runtimeEntities.reset(); runtimeLevel=level;
         runtimeManager.request(level,base,*profile); liveWalls.meshes.clear();
         char message[640]; sprintf_s(message,"Level changed: %s; old geometry removed, preparing current physics scene.",level?level.name.c_str():"loading/unavailable"); note(message);
     }
     else if(level&&!runtimeWorld) runtimeManager.request(level,base,*profile);
     bool hadWorld=bool(runtimeWorld);
-    runtimeManager.snapshot(level,runtimeWorld,runtimeEntities);
+    runtimeManager.snapshot(level,runtimeWorld,runtimeEntities,&runtimeTrim);
     runtimeRoute=runtimeManager.route();
     if(!hadWorld&&runtimeWorld) {
-        char message[800]; sprintf_s(message,"Runtime scene ready: %s, %zu player-blocking collision instances, %u unique geometries, %llu triangles, filtered non-blocking=%u, unsupported=%u, background build=%.1fms.",level.name.c_str(),runtimeWorld->meshes.size(),runtimeWorld->unique,runtimeWorld->triangles,runtimeWorld->nonBlocking,runtimeWorld->unsupported,runtimeWorld->milliseconds); note(message);
+        char message[800]; sprintf_s(message,"Runtime scene ready: %s, %zu collision instances (player and shot-only), %u unique geometries, %llu triangles, filtered non-blocking=%u, unsupported=%u, background build=%.1fms.",level.name.c_str(),runtimeWorld->meshes.size(),runtimeWorld->unique,runtimeWorld->triangles,runtimeWorld->nonBlocking,runtimeWorld->unsupported,runtimeWorld->milliseconds); note(message);
     }
     static ULONGLONG lastEntities=0;
     if(runtimeEntities&&GetTickCount64()-lastEntities>5000) {

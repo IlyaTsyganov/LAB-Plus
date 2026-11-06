@@ -21,7 +21,7 @@ static bool parseDebugHudScale(const std::string& text,float& value) {
     value=static_cast<float>(parsed); return true;
 }
 
-enum class DebugHudBlock : size_t { Inspector, SupportPlane, Encounters, Enemies, Timers, Techs };
+enum class DebugHudBlock : size_t { Inspector, SupportPlane, Encounters, Enemies, Timers, Techs, PlayerPose, SyncTarget };
 enum class DebugHudProducer : size_t { Inspector, Observations, Numbers };
 struct DebugHudLine { std::string text; unsigned color=0xffeeeeeeu; bool sectionStart=false; };
 struct DebugHudFrame { std::vector<DebugHudLine> rows; float scale=1; uint64_t generation=0; bool visible=true; uint64_t captured=0; };
@@ -34,7 +34,7 @@ class DebugHudStack {
     struct Row { std::string text; unsigned color; float scale,height; };
     struct Cell { unsigned x,y,color; float scale; std::string text; };
     struct Producer { void (*callback)(void*)=nullptr; void* user=nullptr; };
-    std::array<std::vector<Row>,6> blocks;
+    std::array<std::vector<Row>,8> blocks;
     std::vector<Cell> previous;
     std::array<Producer,3> producers{};
     std::mutex registrations;

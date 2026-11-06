@@ -28,6 +28,8 @@ internal sealed partial class MainForm : LabPlusForm
     private readonly UiToggle _viewerEnabled = new WorkspaceSwitch();
     private readonly UiToggle _triggers = new WorkspaceSwitch();
     private readonly UiToggle _worldCollision = new WorkspaceSwitch();
+    private readonly UiToggle _shotCollision = new WorkspaceSwitch();
+    private readonly UiToggle _trimShotCollision = new WorkspaceSwitch();
     private readonly UiToggle _invisibleWalls = new WorkspaceSwitch();
     private readonly UiToggle _inspector = new WorkspaceSwitch();
     private readonly UiToggle _disabledVolumes = new WorkspaceSwitch();
@@ -84,7 +86,7 @@ internal sealed partial class MainForm : LabPlusForm
         RefreshProcessStatus();
         _refreshTimer.Tick += (_, _) => RefreshProcessStatus();
         _refreshTimer.Start();
-        FormClosed += (_, _) => { _refreshTimer.Stop(); _refreshTimer.Dispose(); _gamePathToolTip.Dispose(); };
+        FormClosed += (_, _) => { _refreshTimer.Stop(); _refreshTimer.Dispose(); _gamePathToolTip.Dispose(); _launchCancellation.Dispose(); };
     }
 
     private void LoadSettingsIntoControls()
@@ -93,6 +95,8 @@ internal sealed partial class MainForm : LabPlusForm
         _viewerEnabled.Text = _viewerEnabled.Checked ? "Enabled" : "Disabled";
         _triggers.Checked = _settings.ShowTriggers;
         _worldCollision.Checked = _settings.ShowWorldCollision;
+        _shotCollision.Checked = _settings.ShowShotCollision;
+        _trimShotCollision.Checked = _settings.TrimShotCollision;
         _invisibleWalls.Checked = _settings.ShowInvisibleWalls;
         _inspector.Checked = _settings.InspectVolumes;
         _disabledVolumes.Checked = _settings.ShowDisabledVolumes;
@@ -110,7 +114,9 @@ internal sealed partial class MainForm : LabPlusForm
     {
         _viewerEnabled.CheckedChanged += (_, _) => { _viewerEnabled.Text = _viewerEnabled.Checked ? "Enabled" : "Disabled"; _settings.CollisionViewerEnabled = _viewerEnabled.Checked; UpdateViewerControls(); SaveSettings(); };
         _triggers.CheckedChanged += (_, _) => { _settings.ShowTriggers = _triggers.Checked; SaveSettings(); };
-        _worldCollision.CheckedChanged += (_, _) => { _settings.ShowWorldCollision = _worldCollision.Checked; SaveSettings(); };
+        _worldCollision.CheckedChanged += (_, _) => { _settings.ShowWorldCollision = _worldCollision.Checked; UpdateViewerControls(); SaveSettings(); };
+        _shotCollision.CheckedChanged += (_, _) => { _settings.ShowShotCollision = _shotCollision.Checked; SaveSettings(); };
+        _trimShotCollision.CheckedChanged += (_, _) => { _settings.TrimShotCollision = _trimShotCollision.Checked; SaveSettings(); };
         _invisibleWalls.CheckedChanged += (_, _) => { _settings.ShowInvisibleWalls = _invisibleWalls.Checked; SaveSettings(); };
         _inspector.CheckedChanged += (_, _) => { _settings.InspectVolumes = _inspector.Checked; SaveSettings(); };
         _disabledVolumes.CheckedChanged += (_, _) => { _settings.ShowDisabledVolumes = _disabledVolumes.Checked; SaveSettings(); };
@@ -174,24 +180,34 @@ internal sealed partial class MainForm : LabPlusForm
         }
     }
 
-    private void LaunchGame()
+    private readonly CancellationTokenSource _launchCancellation = new();
+    private string? _launchStatus;
+    private bool _launching;
+    private async void LaunchGame()
     {
+        if (_launching || !_hudMonitor.TryBeginLaunch()) return;
+        _launching = true;
         try
         {
-            if (!_hudMonitor.TryBeginLaunch()) return;
             _launchButton.Enabled = false;
             Workspace?.Publish(true);
-            var process = _gameLauncher.Start(_settings, ConfigureLabLaunch);
-            Hud.Runtime.GameLaunchHistory.Record(process, _settings.GameExecutablePath, _hudStore);
+            string gamePath = _settings.GameExecutablePath;
+            var progress = new Progress<string>(message => { if (_launching && !_labClosing && !IsDisposed) { _launchStatus = message; Workspace?.Publish(true); } });
+            var process = await _gameLauncher.StartAsync(_settings, ConfigureLabLaunch, progress, _launchCancellation.Token);
+            if (_labClosing || IsDisposed) { process.Dispose(); return; }
+            Hud.Runtime.GameLaunchHistory.Record(process, gamePath, _hudStore);
             process.Dispose();
             RefreshProcessStatus();
         }
+        catch (OperationCanceledException) when (_launchCancellation.IsCancellationRequested) { _hudMonitor.CancelLaunch(); }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException or System.ComponentModel.Win32Exception)
         {
             _hudMonitor.CancelLaunch();
+            if (_labClosing || IsDisposed) return;
             RefreshProcessStatus();
             WorkspaceDialog.Show(this, ex.Message, "Unable to launch DOOM Eternal", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
+        finally { _launching = false; _launchStatus = null; if (!_labClosing && !IsDisposed) Workspace?.Publish(true); }
     }
 
     private void SaveSettings()
@@ -304,7 +320,8 @@ internal sealed partial class MainForm : LabPlusForm
     private void UpdateViewerControls()
     {
         bool enabled = _viewerEnabled.Checked;
-        _triggers.Enabled = _worldCollision.Enabled = _invisibleWalls.Enabled = enabled;
+        _triggers.Enabled = _worldCollision.Enabled = _invisibleWalls.Enabled = _shotCollision.Enabled = enabled;
+        _trimShotCollision.Enabled = enabled;
         _outlines.Enabled = _filled.Enabled = _distance.Enabled = _distanceInput.Enabled = enabled;
         _inspector.Enabled = enabled;
         _disabledVolumes.Enabled = _volumeHistory.Enabled = enabled;

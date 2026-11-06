@@ -49,6 +49,7 @@
   function render(n) {
     const e=nodes.get(n.id)||create(n);e.classList.add('control-node');e.dataset.presentation=n.presentation||'';
     e.setAttribute('aria-disabled',String(!n.enabled));
+    if(n.tip){e.title=n.tip;e.setAttribute('aria-description',n.tip);}else{if(n.kind!=='button')e.removeAttribute('title');e.removeAttribute('aria-description');}
     if(n.column)e.style.gridColumn=n.column+' / span '+(n.span||1);
     if(n.row)e.style.gridRow=n.row;
     if('disabled' in e)e.disabled=!n.enabled;
@@ -96,7 +97,7 @@
       Array.from(e.querySelectorAll('tbody tr[data-row]')).forEach((tr,i)=>{tr.classList.toggle('selected',!!n.rows[i]?.selected);const check=tr.querySelector('input[type=checkbox]');if(check){check.checked=!!n.rows[i]?.selected;check.disabled=!n.enabled;}});
       const all=e.querySelector('thead input');if(all){all.checked=n.total>0&&n.selectionCount===n.total;all.indeterminate=n.selectionCount>0&&!all.checked;all.disabled=!n.enabled||!n.total;}
     }
-    const signature=JSON.stringify([n.columns,n.checks,n.rows.map(row=>[row.index,row.values,row.subtitle,row.note,row.unavailable]),n.total]);
+    const signature=JSON.stringify([n.columns,n.checks,n.rows.map(row=>[row.index,row.values,row.subtitle,row.note,row.unavailable]),n.total,n.empty]);
     if(e.dataset.signature===signature){selection();return;}
     const top=e.scrollTop,left=e.scrollLeft;const table=element('table'),head=element('thead'),hr=element('tr'),body=element('tbody');
     if(n.checks){const th=element('th','table-check-cell'),check=element('input');check.type='checkbox';check.setAttribute('aria-label','Select all checkpoints');check.addEventListener('change',()=>control(n.id,'rows-all'));th.append(check);hr.append(th);}

@@ -40,7 +40,10 @@ public:
     }
     bool knownWall(const EntityReference& ref) const {
         auto found=records.find(VolumeIdentity(ref));
-        return found!=records.end()&&found->second.mesh.kind==2;
+        return found!=records.end()&&(found->second.mesh.kind==2||found->second.mesh.kind==3);
+    }
+    bool knownShotWall(const EntityReference& ref) const {
+        auto found=records.find(VolumeIdentity(ref)); return found!=records.end()&&found->second.mesh.kind==3;
     }
     void sample(Mesh mesh,EntityStatus status,ULONGLONG now) {
         VolumeIdentity key(mesh.entity); auto found=records.find(key);

@@ -11,6 +11,11 @@ static void writeSettings(const std::wstring& path,const wchar_t* body) {
     expect(ok&&written==content.size()*sizeof(wchar_t),"write settings fixture");
 }
 int main() {
+    expect(ShapeContentsFilter::blocksShotsOnly(0x80),"SHOTCLIP is shot-only");
+    for(uint32_t flags:{0u,1u,8u,0x4000u,0x800u,0x88u,0x81u,0x40000080u})
+        expect(!ShapeContentsFilter::blocksShotsOnly(flags),"player, trigger, projectile entity and disabled contents are not shot-only blockers");
+    expect(volumeCollisionStatus(2,0x80,false,1,true,false,true)==EntityStatus::Enabled,"dynamic shotclip enabled");
+    expect(volumeCollisionStatus(2,0x80,true,1,true,false,true)==EntityStatus::Disabled,"disabled shotclip hidden by default");
     {
         void* inaccessible=VirtualAlloc(nullptr,4096,MEM_RESERVE|MEM_COMMIT,PAGE_NOACCESS);
         expect(inaccessible!=nullptr,"guarded read fixture allocation");
@@ -48,10 +53,11 @@ int main() {
     updateViewerSettings();
     expect(!enabled&&!showTriggers&&showCollision&&!showWalls&&!inspectVolumes&&collisionMode==0&&radius==100,"settings file controls viewer without hotkeys");
     Sleep(260);
-    writeSettings(settingsFile,L"Enabled=1\r\nShowTriggers=1\r\nShowCollision=0\r\nShowWalls=1\r\nInspectVolumes=1\r\nShowDisabledVolumes=1\r\nShowVolumeHistory=1\r\nCollisionMode=1\r\nDistance=175\r\n[TriggerClasses]\r\nidTrigger=0\r\nidEncounterTrigger_Commit=0\r\nidTrigger_Teleporter=1\r\nnot_a_class=0\r\n");
+    writeSettings(settingsFile,L"Enabled=1\r\nShowTriggers=1\r\nShowCollision=0\r\nShowWalls=1\r\nInspectVolumes=1\r\nShowShotCollision=1\r\nTrimShotCollision=1\r\nShowDisabledVolumes=1\r\nShowVolumeHistory=1\r\nCollisionMode=1\r\nDistance=175\r\n[TriggerClasses]\r\nidTrigger=0\r\nidEncounterTrigger_Commit=0\r\nidTrigger_Teleporter=1\r\nnot_a_class=0\r\n");
     WritePrivateProfileStringW(nullptr,nullptr,nullptr,settingsFile.c_str());
     updateViewerSettings();
     expect(enabled&&showTriggers&&!showCollision&&showWalls&&inspectVolumes&&collisionMode==1&&radius==175,"live settings update including inspector toggle");
+    expect(showShotCollision&&trimShotCollision,"projectile visibility and experimental trim update independently through live settings");
     expect(showDisabledVolumes&&showVolumeHistory,"inactive-volume and history settings update live");
     expect(hiddenTriggerClasses.size()==2&&hiddenTriggerClasses.count("idTrigger")&&hiddenTriggerClasses.count("idEncounterTrigger_Commit"),"only exact valid disabled class entries are loaded");
     WritePrivateProfileStringW(L"TriggerPaths",L"idTrigger|trigger/props/",L"0",settingsFile.c_str());
@@ -64,6 +70,7 @@ int main() {
     Sleep(260);
     writeSettings(settingsFile,L"Enabled=1\r\nShowTriggers=1\r\nShowCollision=0\r\nShowWalls=1\r\nCollisionMode=1\r\nDistance=175\r\n");
     WritePrivateProfileStringW(nullptr,nullptr,nullptr,settingsFile.c_str()); updateViewerSettings();
+    expect(!showShotCollision&&!trimShotCollision,"older settings default to original projectile rendering with the experiment off");
     expect(hiddenTriggerClasses.empty(),"removing the class section re-enables all classes live");
     expect(hiddenTriggerPaths.empty(),"removing path rules restores path visibility live");
     expect(triggerNamePath("trigger/props/pickup_4")=="trigger/props/"&&triggerNamePath("TRIGGER\\INTERACT\\panel_2")=="trigger/interact/"&&
@@ -427,6 +434,7 @@ int main() {
     LevelIdentity levelA=readLevelIdentity(memory,b,profile); expect(levelA.name==mapA&&levelA.world==root,"current map identity");
     RuntimeSceneBuilder builder; auto worldA=builder.build(levelA);
     expect(worldA&&worldA->meshes.size()==1&&worldA->triangles==12&&worldA->unsupported==0,"runtime world decoding and BVH");
+    expect(!worldA->meshes[0].geometry->convexSolid,"legacy unknown-contents world geometry is visible but never used as a subtraction solid");
     // Static Havok leaves carry gameplay contents in a validated idHavokShape table.
     // Projectile/query-only leaves are skipped; solid and playerclip leaves remain.
     std::vector<unsigned char> contentsWrapper(0x58),contentsRows(0x58);
@@ -443,9 +451,25 @@ int main() {
     put(contentsRows.data(),0x08,uint32_t(0x1));
     worldA=builder.build(levelA);
     expect(worldA&&worldA->meshes.size()==1&&worldA->nonBlocking==0,"player-solid world shape retained");
+    expect(worldA->meshes[0].geometry->convexSolid,"verified SOLID native convex leaves may supply subtraction volumes");
     put(contentsRows.data(),0x08,uint32_t(0x8));
     worldA=builder.build(levelA);
     expect(worldA&&worldA->meshes.size()==1,"playerclip world shape retained");
+    expect(worldA->meshes[0].geometry->convexSolid,"verified PLAYERCLIP native convex leaves may supply subtraction volumes");
+    put(contentsRows.data(),0x08,uint32_t(0x80));
+    auto shotOnly=builder.build(levelA);
+    expect(shotOnly&&shotOnly->meshes.size()==1&&shotOnly->meshes[0].kind==3,"SHOTCLIP decoded as a separate world category");
+    runtimeRendering=true;runtimeWorld=shotOnly;showCollision=true;showShotCollision=false;
+    std::vector<Candidate> shotVisible;gatherVisible(camera,shotVisible);
+    expect(shotVisible.empty(),"shot-only world geometry is opt-in");
+    showCollision=false;showShotCollision=true;gatherVisible(camera,shotVisible);
+    expect(shotVisible.size()==1,"shot toggle independent of ordinary world collision");
+    collisionMode=1;std::vector<Vertex> shotVertices;
+    const auto shotFill=collectVertices(camera,shotVertices);
+    expect(shotFill==shotOnly->meshes[0].geometry->triangles.size()&&!shotVertices.empty(),"fourth category reaches fill and outline renderer");
+    expect(shotVertices[0].color[2]==1.f&&shotVertices[0].color[0]==.8f,"rendered shot geometry uses purple");
+    showCollision=true;showShotCollision=false;runtimeWorld.reset();runtimeRendering=false;
+    put(contentsRows.data(),0x08,uint32_t(0x8));
     builder.cancelled=[] { return true; }; expect(!builder.build(levelA),"obsolete build cancellation");
     RuntimeSceneManager manager; manager.request(levelA,b,profile);
     std::shared_ptr<const RuntimeScene> ready; std::shared_ptr<const RuntimeEntities> live;

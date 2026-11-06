@@ -57,7 +57,7 @@ template<class T> static void* key(T object) { return *reinterpret_cast<void**>(
 
 struct Vec3 { float x,y,z; };
 struct Vertex { Vec3 position; float color[4]; float texcoord[2]{-1,-1}; };
-struct Geometry { uint32_t kind; std::vector<Vec3> lines,triangles; };
+struct Geometry { uint32_t kind; std::vector<Vec3> lines,triangles; bool convexSolid=false; uint8_t sourceType=255; std::vector<std::array<float,4>> solidPlanes; };
 struct Mesh {
     uint32_t kind; float bounds[6]; std::shared_ptr<const Geometry> geometry;
     EntityReference entity;
@@ -102,20 +102,25 @@ static uint32_t buildSpatialNode(uint32_t begin,uint32_t end) { return buildSpat
 #include "volume_appearance.h"
 #include "debug_hud_stack.h"
 static bool debugHudEngineVisible(const MeathookHudApi* api);
-static bool sceneLoaded=false, showTriggers=true, showCollision=true, showWalls=true, enabled=true;
+static bool sceneLoaded=false, showTriggers=true, showCollision=true, showWalls=true, showShotCollision=false, enabled=true;
 static bool inspectVolumes=false;
+static bool trimShotCollision=false;
 static bool showDisabledVolumes=false,showVolumeHistory=false;
 static std::atomic<bool> showActiveEncountersHud{false};
 static std::atomic<bool> showEnemyHealthHud{false},showEnemyHealthBars{false},showGameTimersHud{false},showSpeedrunTechsHud{false};
+static std::atomic<bool> showSyncTarget{false};
+static std::atomic<int> syncTargetAction{0};
+static std::shared_ptr<const std::array<std::string,2>> syncAnimationSelection=std::make_shared<const std::array<std::string,2>>();
+static std::atomic<float> syncTargetViewDistance{40.f};
 static bool showResearchPath=false,recordResearch=false;
 static DWORD researchProcess=0;
 static ULONGLONG researchReset=0,researchMarker=0;
 static std::string researchMarkerLabel;
 static bool showPlayerCollider=false,showMotionPaths=true,motionFollowTarget=true;
-static std::atomic<bool> showSupportHud{false};
+static std::atomic<bool> showSupportHud{false},showPlayerPositionHud{false},showPlayerAnglesHud{false};
 static bool nativeOverlayNeeded() {
     return enabled||showEnemyHealthBars.load()||showEnemyHealthHud.load()||showGameTimersHud.load()||
-        showSpeedrunTechsHud.load()||showSupportHud.load()||showActiveEncountersHud.load();
+        showSpeedrunTechsHud.load()||showSyncTarget.load()||showPlayerPositionHud.load()||showPlayerAnglesHud.load()||showSupportHud.load()||showActiveEncountersHud.load();
 }
 static DWORD motionProcess=0;
 static uint32_t collisionMode=1;
@@ -489,6 +494,8 @@ static void updateViewerSettings(bool force=false) {
     enabled=GetPrivateProfileIntW(L"Viewer",L"Enabled",enabled?1:0,settingsPath.c_str())!=0;
     showTriggers=GetPrivateProfileIntW(L"Viewer",L"ShowTriggers",showTriggers?1:0,settingsPath.c_str())!=0;
     showCollision=GetPrivateProfileIntW(L"Viewer",L"ShowCollision",showCollision?1:0,settingsPath.c_str())!=0;
+    showShotCollision=GetPrivateProfileIntW(L"Viewer",L"ShowShotCollision",0,settingsPath.c_str())!=0;
+    trimShotCollision=GetPrivateProfileIntW(L"Viewer",L"TrimShotCollision",0,settingsPath.c_str())!=0;
     showWalls=GetPrivateProfileIntW(L"Viewer",L"ShowWalls",showWalls?1:0,settingsPath.c_str())!=0;
     inspectVolumes=GetPrivateProfileIntW(L"Viewer",L"InspectVolumes",0,settingsPath.c_str())!=0;
     showDisabledVolumes=GetPrivateProfileIntW(L"Viewer",L"ShowDisabledVolumes",0,settingsPath.c_str())!=0;
@@ -498,6 +505,17 @@ static void updateViewerSettings(bool force=false) {
     showEnemyHealthBars=GetPrivateProfileIntW(L"Viewer",L"ShowEnemyHealthBars",0,settingsPath.c_str())!=0;
     showGameTimersHud=GetPrivateProfileIntW(L"Viewer",L"ShowGameTimersHud",0,settingsPath.c_str())!=0;
     showSpeedrunTechsHud=GetPrivateProfileIntW(L"Viewer",L"ShowSpeedrunTechsHud",0,settingsPath.c_str())!=0;
+    showSyncTarget=GetPrivateProfileIntW(L"Viewer",L"ShowSyncTarget",0,settingsPath.c_str())!=0;
+    syncTargetAction=GetPrivateProfileIntW(L"Viewer",L"SyncTargetAction",0,settingsPath.c_str())==1?1:0;
+    {
+        std::array<std::string,2> names;unsigned index=0;
+        for(const auto* key:{L"SyncGloryKillAnimation",L"SyncChainsawAnimation"}) {
+            wchar_t buffer[182]{};const DWORD length=GetPrivateProfileStringW(L"Viewer",key,L"",buffer,182,settingsPath.c_str());
+            bool valid=length<=180;for(DWORD i=0;i<length;++i){const auto c=buffer[i];if(!((c>=L'a'&&c<=L'z')||(c>=L'A'&&c<=L'Z')||(c>=L'0'&&c<=L'9')||c==L'_'||c==L'.'||c==L'/'||c==L'-'))valid=false;}
+            if(valid)for(DWORD i=0;i<length;++i)names[index].push_back(static_cast<char>(buffer[i]));++index;
+        }
+        std::atomic_store(&syncAnimationSelection,std::make_shared<const std::array<std::string,2>>(std::move(names)));
+    }
     showResearchPath=GetPrivateProfileIntW(L"Viewer",L"ShowResearchPath",0,settingsPath.c_str())!=0;
     recordResearch=GetPrivateProfileIntW(L"Viewer",L"RecordResearch",0,settingsPath.c_str())!=0;
     researchProcess=GetPrivateProfileIntW(L"Viewer",L"ResearchProcess",0,settingsPath.c_str());
@@ -505,6 +523,8 @@ static void updateViewerSettings(bool force=false) {
     showPlayerCollider=GetPrivateProfileIntW(L"Viewer",L"ShowPlayerCollider",0,settingsPath.c_str())!=0;
     showMotionPaths=GetPrivateProfileIntW(L"Viewer",L"ShowMotionPaths",1,settingsPath.c_str())!=0;
     motionFollowTarget=GetPrivateProfileIntW(L"Viewer",L"MotionFollowTarget",1,settingsPath.c_str())!=0;
+    showPlayerPositionHud=GetPrivateProfileIntW(L"Viewer",L"ShowPlayerPositionHud",0,settingsPath.c_str())!=0;
+    showPlayerAnglesHud=GetPrivateProfileIntW(L"Viewer",L"ShowPlayerAnglesHud",0,settingsPath.c_str())!=0;
     showSupportHud=GetPrivateProfileIntW(L"Viewer",L"ShowSupportHud",0,settingsPath.c_str())!=0;
     wchar_t researchValue[512]{};
     GetPrivateProfileStringW(L"Viewer",L"ResearchReset",L"0",researchValue,512,settingsPath.c_str()); researchReset=_wcstoui64(researchValue,nullptr,10);
@@ -513,6 +533,7 @@ static void updateViewerSettings(bool force=false) {
     char markerUtf8[2048]{}; WideCharToMultiByte(CP_UTF8,0,researchValue,-1,markerUtf8,2048,nullptr,nullptr); researchMarkerLabel=markerUtf8;
     collisionMode=GetPrivateProfileIntW(L"Viewer",L"CollisionMode",static_cast<int>(collisionMode),settingsPath.c_str())!=0?1u:0u;
     radius=static_cast<float>(std::clamp(GetPrivateProfileIntW(L"Viewer",L"Distance",static_cast<UINT>(radius),settingsPath.c_str()),UINT{20},UINT{200}));
+    syncTargetViewDistance.store(radius);
     if(oldEnabled!=enabled||oldTriggers!=showTriggers||oldCollision!=showCollision||oldWalls!=showWalls||oldMode!=collisionMode||oldRadius!=radius||oldDisabled!=showDisabledVolumes||oldHistory!=showVolumeHistory||classFilterChanged) {
         char message[200];
         sprintf_s(message,"LAB Plus settings: triggers=%d collision=%d walls=%d disabled=%d history=%d fill=%u radius=%.0f enabled=%d",showTriggers,showCollision,showWalls,showDisabledVolumes,showVolumeHistory,collisionMode,radius,enabled);
@@ -621,6 +642,7 @@ static bool debugHudEngineVisible(const MeathookHudApi* api) {
 #include "enemy_telemetry.h"
 #include "game_timers.h"
 #include "speedrun_techs.h"
+#include "sync_target_preview.h"
 #include "invisible_numbers.h"
 #include "invisible_numbers_capture.h"
 #include "enemy_health_bars.h"
@@ -670,9 +692,16 @@ static uint32_t gatherVisible(const GameCamera& camera,std::vector<Candidate>& v
         if(node.left!=~0u) { self(self,node.left); self(self,node.right); return; }
         for(uint32_t i=node.begin;i<node.begin+node.count;++i) {
             ++examined;
-            const Mesh& mesh=source[order[i]];
+            const uint32_t meshIndex=order[i];
+            const Mesh* chosen=&source[meshIndex];
+            if(runtimeRendering&&trimShotCollision&&runtimeTrim&&chosen->kind==3&&meshIndex<runtimeTrim->replacement.size()) {
+                int32_t replacement=runtimeTrim->replacement[meshIndex];
+                if(replacement==-2) continue;
+                if(replacement>=0) chosen=&runtimeTrim->meshes[size_t(replacement)];
+            }
+            const Mesh& mesh=*chosen;
             if(sceneTest()&&mesh.kind==0) continue;
-            if((mesh.kind==0&&!showTriggers)||(mesh.kind==1&&!showCollision)) continue;
+            if((mesh.kind==0&&!showTriggers)||(mesh.kind==1&&!showCollision)||(mesh.kind==3&&!showShotCollision)) continue;
             if(!volumeShown(mesh,now)||!triggerClassShown(mesh)) continue;
             float distance=filter.distanceSquared(mesh.bounds);
             if(distance<=selectionRadius*selectionRadius&&filter.inView(mesh.bounds)) visible.push_back({&mesh,distance,filter.screenDistanceSquared(mesh.bounds)});
@@ -681,7 +710,7 @@ static uint32_t gatherVisible(const GameCamera& camera,std::vector<Candidate>& v
     if(!nodes.empty()) visit(visit,0);
     const auto& live=runtimeRendering?(runtimeEntities?runtimeEntities->meshes:emptyMeshes):liveWalls.meshes;
     for(const Mesh& mesh:live) {
-        if((mesh.kind==0&&!showTriggers)||(mesh.kind==2&&!showWalls)) continue;
+        if((mesh.kind==0&&!showTriggers)||(mesh.kind==2&&!showWalls)||(mesh.kind==3&&!showShotCollision)) continue;
         if(!volumeShown(mesh,now)||!triggerClassShown(mesh)) continue;
         float distance=filter.distanceSquared(mesh.bounds);
         if(distance<=selectionRadius*selectionRadius&&filter.inView(mesh.bounds)) visible.push_back({&mesh,distance,filter.screenDistanceSquared(mesh.bounds)});
@@ -744,16 +773,17 @@ static uint32_t collectVertices(const GameCamera& camera,std::vector<Vertex>& ou
     // GPU upload buffer grows on demand, so this ordering does not omit edges.
     sortVisibleCandidates(visible);
     static WorldVertexCache worldVertices;
-    worldVertices.begin(runtimeRendering?runtimeWorld:nullptr,visible);
+    worldVertices.begin(runtimeRendering?runtimeWorld:nullptr,visible,runtimeRendering&&trimShotCollision?runtimeTrim:nullptr);
     uint32_t collisionTriangleVertices=0,collisionFilledMeshes=0;
     for(const Candidate& candidate:visible) {
         const Mesh* mesh=candidate.mesh;
         VolumeStyle style=volumeStyle(*mesh,mesh==selected.mesh,now);
         if(!collisionMode||!style.filled||style.fill[3]<=0.f) continue;
+        const size_t firstTriangle=output.size();
         if(const auto* positions=worldVertices.positions(*mesh)) {
             for(size_t i=0;i<mesh->geometry->triangles.size();++i) append((*positions)[i],style.fill);
         } else for(Vec3 point:mesh->geometry->triangles) append(mesh->world(point),style.fill);
-        if(mesh->kind==1) { collisionTriangleVertices+=static_cast<uint32_t>(mesh->geometry->triangles.size()); ++collisionFilledMeshes; }
+        if(mesh->kind==1) { collisionTriangleVertices+=static_cast<uint32_t>(output.size()-firstTriangle); ++collisionFilledMeshes; }
     }
     if(output.size()>std::numeric_limits<uint32_t>::max()) throw std::runtime_error("Visible collision fill exceeds Vulkan draw vertex count");
     static EnemyHealthBarGeometry enemyBars;
@@ -771,11 +801,13 @@ static uint32_t collectVertices(const GameCamera& camera,std::vector<Vertex>& ou
             });
         }
     }
+    auto syncTarget=!smokeTest()&&!sceneTest()&&!occlusionCase()?syncTargetForDraw(camera):nullptr;
+    if(syncTarget) appendSyncTargetGeometry(camera,*syncTarget,output,false);
     if(healthTriangles) *healthTriangles=static_cast<uint32_t>(enemyBars.triangles.size());
     output.insert(output.end(),enemyBars.triangles.begin(),enemyBars.triangles.end());
     if(output.size()>std::numeric_limits<uint32_t>::max()) throw std::runtime_error("Visible fill exceeds Vulkan draw vertex count");
     uint32_t triangles=static_cast<uint32_t>(output.size());
-    uint32_t drawn[3]{},segments[3]{};
+    uint32_t drawn[4]{},segments[4]{};
     for(const Candidate& candidate:visible) {
         const Mesh* mesh=candidate.mesh;
         VolumeStyle style=volumeStyle(*mesh,mesh==selected.mesh,now);
@@ -786,9 +818,9 @@ static uint32_t collectVertices(const GameCamera& camera,std::vector<Vertex>& ou
             Vec3 a=positions?(*positions)[firstLine+i]:mesh->world(lines[i]);
             Vec3 b=positions?(*positions)[firstLine+i+1]:mesh->world(lines[i+1]);
             if(!style.dashed) { append(a,style.line); append(b,style.line); }
-            else for(unsigned dash=0;dash<3;++dash) {
+            else for(unsigned segment=0;segment<3;++segment) {
                 auto point=[&](float t) { return Vec3{a.x+(b.x-a.x)*t,a.y+(b.y-a.y)*t,a.z+(b.z-a.z)*t}; };
-                append(point(float(dash)*.4f),style.line); append(point(float(dash)*.4f+.2f),style.line);
+                append(point(float(segment)*.4f),style.line); append(point(float(segment)*.4f+.2f),style.line);
             }
         }
         ++drawn[mesh->kind]; segments[mesh->kind]+=static_cast<uint32_t>(mesh->geometry->lines.size()/2);
@@ -805,17 +837,31 @@ static uint32_t collectVertices(const GameCamera& camera,std::vector<Vertex>& ou
         }
     }
     output.insert(output.end(),enemyBars.lines.begin(),enemyBars.lines.end());
+    if(syncTarget) appendSyncTargetGeometry(camera,*syncTarget,output,true);
     if(!smokeTest()&&!sceneTest()&&!occlusionCase()&&motionProcess==GetCurrentProcessId()) appendMovementVertices(camera,output);
     if(!smokeTest()&&!sceneTest()&&!occlusionCase()) {
         auto highlight=levelStates().snapshot(); if(highlight) appendStateHighlight(camera,output,*highlight,runtimeLevel,encounterEpochMillis());
     }
     static ULONGLONG lastReport=0;
     if(output.size()>std::numeric_limits<uint32_t>::max()) throw std::runtime_error("Visible collision geometry exceeds Vulkan draw vertex count");
+    const double elapsed=std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-started).count();
+    // Presentation-call rate is an FPS proxy, not a GPU timestamp. A/B runs
+    // must keep the camera, rendering options and scene activity unchanged.
+    static unsigned sampleMode=~0u,samples=0;
+    static double prepareSum=0,prepareMax=0;
+    static auto sampleStart=started;
+    unsigned mode=trimShotCollision?(runtimeTrim?2u:1u):0u;
+    if(sampleMode!=mode) { sampleMode=mode; samples=0; prepareSum=prepareMax=0; sampleStart=started; }
+    ++samples; prepareSum+=elapsed; prepareMax=std::max(prepareMax,elapsed);
     if(GetTickCount64()-lastReport>5000) {
-        double elapsed=std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-started).count();
         size_t total=runtimeRendering?(runtimeWorld?runtimeWorld->meshes.size():0):meshes.size();
         char message[520]; sprintf_s(message,"Geometry: triggers=%u (%u edges), walls=%u (%u edges), collisionWire=%u (%u edges), collisionFill=%u (%u triangles), candidates=%zu, examined=%u/%zu prepare=%.3fms radius=%.0f camera=(%.2f,%.2f,%.2f)",drawn[0],segments[0],drawn[2],segments[2],drawn[1],segments[1],collisionFilledMeshes,collisionTriangleVertices/3,visible.size(),examined,total,elapsed,radius,camera.position[0],camera.position[1],camera.position[2]); note(message);
         lastReport=GetTickCount64();
+        double seconds=std::chrono::duration<double>(started-sampleStart).count();
+        uint64_t shotTriangles=0;
+        for(const auto& candidate:visible) if(candidate.mesh->kind==3) shotTriangles+=candidate.mesh->geometry->triangles.size()/3;
+        sprintf_s(message,"Projectile A/B: trim=%s samples=%u prepareMean=%.3fms prepareMax=%.3fms overlayHz=%.2f visibleShotTriangles=%llu visibleShotEdges=%u camera=(%.3f,%.3f,%.3f) radius=%.0f style=%u",mode==2?"on":mode==1?"pending":"off",samples,prepareSum/samples,prepareMax,seconds>0&&samples>1?(samples-1)/seconds:0,shotTriangles,segments[3],camera.position[0],camera.position[1],camera.position[2],radius,collisionMode); note(message);
+        samples=0; prepareSum=prepareMax=0; sampleStart=std::chrono::steady_clock::now();
     }
     return triangles;
 }
@@ -1040,7 +1086,7 @@ EXPORT VKAPI_ATTR VkResult VKAPI_CALL vkCreateInstance(const VkInstanceCreateInf
 EXPORT VKAPI_ATTR void VKAPI_CALL vkDestroyInstance(VkInstance instance,const VkAllocationCallbacks* allocator) {
     std::lock_guard<std::recursive_mutex> lock(guard); void* handleKey=key(instance);
     auto found=instances.find(handleKey); if(found==instances.end()) return;
-    runtimeManager.stop(); runtimeWorld.reset(); runtimeEntities.reset(); runtimeLevel={}; runtimeRendering=false;
+    runtimeManager.stop(); runtimeTrim.reset(); runtimeWorld.reset(); runtimeEntities.reset(); runtimeLevel={}; runtimeRendering=false;
     auto destroy=reinterpret_cast<PFN_vkDestroyInstance>(found->second->gipa(instance,"vkDestroyInstance")); destroy(instance,allocator); instances.erase(handleKey);
 }
 
@@ -1117,13 +1163,14 @@ EXPORT VKAPI_ATTR void VKAPI_CALL vkDestroySwapchainKHR(VkDevice device,VkSwapch
 }
 
 static bool companionRuntimeActive=false;
+
 static bool applyCompanionAvailability(bool available) {
     if(!available) {
         if(companionRuntimeActive) {
             enabled=false;inspectVolumes=false;showResearchPath=false;recordResearch=false;showPlayerCollider=false;showMotionPaths=false;
-            showEnemyHealthHud=false;showEnemyHealthBars=false;showGameTimersHud=false;showSpeedrunTechsHud=false;showSupportHud=false;showActiveEncountersHud=false;
+            showEnemyHealthHud=false;showEnemyHealthBars=false;showGameTimersHud=false;showSpeedrunTechsHud=false;showSupportHud=false;showPlayerPositionHud=false;showPlayerAnglesHud=false;showActiveEncountersHud=false;
             inspectorHud().publish({});movementLab().control(nullptr,0,false,false,false);
-            runtimeManager.pause();runtimeManager.retire(std::move(runtimeWorld));runtimeEntities.reset();runtimeRoute.reset();runtimeLevel={};runtimeRendering=false;
+            runtimeManager.pause();runtimeManager.retire(std::move(runtimeWorld),std::move(runtimeTrim));runtimeEntities.reset();runtimeRoute.reset();runtimeLevel={};runtimeRendering=false;
         }
         companionRuntimeActive=false;return false;
     }

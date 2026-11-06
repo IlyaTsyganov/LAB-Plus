@@ -52,6 +52,24 @@ struct Sources {
     }
 };
 int main() {
+    {
+        std::array<unsigned char,256> entity{},physics{};
+        const auto player=reinterpret_cast<uintptr_t>(entity.data()),ph=reinterpret_cast<uintptr_t>(physics.data());
+        memcpy(entity.data()+16,&ph,8);Vec3 position{12.5f,-20.25f,3.125f},angles{-15,179.5f,0};
+        memcpy(physics.data()+32,&position,12);memcpy(physics.data()+64,&angles,12);
+        auto pose=readPlayerPose(WallMemory{},player,{16,32,64});
+        auto rows=playerPoseLines(pose,true,true);
+        expect(rows.size()==3&&rows[1].find("X 12.500  Y -20.250  Z 3.125")!=std::string::npos&&rows[2].find("Pitch -15.00  Yaw 179.50  Roll 0.00")!=std::string::npos,"player pose preserves signed XYZ and degree axis order");
+        expect(playerPoseLines(pose,true,false).size()==2&&playerPoseLines(pose,false,true).size()==2&&playerPoseLines(pose,false,false).empty(),"coordinates and angles toggle independently");
+        angles.x=NAN;memcpy(physics.data()+64,&angles,12);pose=readPlayerPose(WallMemory{},player,{16,32,64});
+        expect(pose.positionKnown&&!pose.anglesKnown&&playerPoseLines(pose,true,true).size()==2,"invalid angles cannot contaminate valid coordinates");
+        entity[0xa4]=1;pose=readPlayerPose(WallMemory{},player,{16,32,64});expect(!pose.positionKnown&&!pose.anglesKnown,"removed player leaves no stale pose");
+        drawn.clear();MeathookHudApi poseApi{};poseApi.addText=add;poseApi.removeText=remove;
+        DebugHudStack poseStack;poseStack.publish(DebugHudBlock::PlayerPose,&poseApi,rows,16,.72f,1);
+        expect(drawn.size()==3,"new pose block participates in shared debug HUD layout");
+        poseStack.clear(DebugHudBlock::PlayerPose);expect(drawn.empty(),"disabling pose removes its HUD rows");
+    }
+
     MeathookHudApi api{};api.addText=add;api.removeText=remove;api.executeCommand=execute;api.consolePrint=print;api.registerPreFrame=registerFrame;
     for(bool reverse:{false,true})for(float scale:{.5f,1.f,1.5f,3.f}) {
         DebugHudStack stack;Sources source{&stack,&api};drawn.clear();registrations=0;debugHudScale=scale;
@@ -106,7 +124,7 @@ int main() {
         expect(frame->rows[2].text.size()>120,"long encounter labels are preserved for viewport wrapping instead of truncated");
     }
     // Exercise real block formatters together, including stale/menu/disable
-    // removal. A stale higher block must not leave space above lower blocks.
+    // removal. Briefly missing support keeps a fixed-size placeholder block.
     {
         DebugHudStack stack;SupportPlaneHud support(&stack);ActiveEncounterHud encounters(&api,&stack);drawn.clear();debugHudScale=1;
         PlayerMotion player;player.valid=true;player.contact=true;player.gravity=true;player.normal={0,0,1};player.up={0,0,1};player.tick=1000;
@@ -116,7 +134,8 @@ int main() {
         player.contact=false;player.tick=1100;support.update(api,&player,true,1100);
         expect(drawn[{8,108}].text=="LAB Plus | Active encounters"&&drawn[{8,88}].text=="YZ tangent: -","loss of ground contact keeps every fixed support row and lower-block position");
         support.update(api,&player,true,1400);
-        expect(drawn.begin()->first.second==8&&drawn.begin()->second.text=="LAB Plus | Active encounters","stale support consumes zero space immediately");
+        expect(drawn[{8,108}].text=="LAB Plus | Active encounters"&&drawn[{8,24}].text=="n: -","stale support preserves lower-block position with dashes");
+        support.update(api,nullptr,false,1400);
         encounters.update(&snapshot,true,false,1400);expect(drawn.empty(),"menu or console gates clear every encounter row");
         encounters.update(&snapshot,true,true,4000);expect(drawn.empty(),"stale encounter data consumes zero rows");
     }

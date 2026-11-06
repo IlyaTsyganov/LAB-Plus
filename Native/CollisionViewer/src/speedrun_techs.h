@@ -28,6 +28,9 @@ static bool techInline(const GraphField* field,const char* type,const GraphLooku
 struct TechBoolBit { uint32_t byte=~0u; unsigned char mask=0; explicit operator bool() const { return byte!=~0u&&mask; } };
 static TechBoolBit resolveTechBoolProperty(const WallMemory& memory,uintptr_t base,const GameProfile& profile,
                                           const GraphLookup& lookup,const std::string& type,const char* name);
+static bool inverseBatsObserved(bool modChange,bool animation,bool firing,bool pending,bool dryfire,bool aborted) {
+    return modChange&&animation&&!firing&&pending&&!dryfire&&aborted;
+}
 static std::string configuredBatsState(float actual,float modScale,float dexterity,float clamp) {
     if(!std::isfinite(actual)||!std::isfinite(modScale)||!std::isfinite(dexterity)||!std::isfinite(clamp)||
        actual<=0||modScale<=0||clamp<0) return "unavailable";
@@ -36,7 +39,7 @@ static std::string configuredBatsState(float actual,float modScale,float dexteri
     if(!std::isfinite(normal)||normal<=0||normal>10000||actual>10000) return "unavailable";
     const float tolerance=std::max(.0001f,normal*.001f);
     if(actual>normal+tolerance) return "active";
-    return std::abs(actual-normal)<=tolerance?"inactive":"unavailable";
+    return std::abs(actual-normal)<=tolerance?"inactive":"slower";
 }
 struct ConfiguredBatsCode {
     uint32_t timestamp,imageSize;
@@ -107,7 +110,7 @@ static bool configuredBatsFingerprint(const WallMemory& memory,uintptr_t base,co
 // comparing all weapons with a Ballista-specific rate learned from a demo.
 static SpeedrunTechRow captureConfiguredBats(const WallMemory& memory,uintptr_t base,const GameProfile& profile,
                                             const LevelIdentity& level,uintptr_t player,const GraphLookup& lookup) {
-    SpeedrunTechRow row{"bats","BATS","inactive","No accelerated weapon appearance observed"};
+    SpeedrunTechRow row{"bats","Weapon switch","inactive","No accelerated weapon appearance observed"};
     ConfiguredBatsCode discovered{};
     const auto* code=configuredBatsCode(profile);
     if(!code&&resolveBatsSignature(memory,base,profile,discovered)) code=&discovered;
@@ -240,9 +243,10 @@ static SpeedrunTechRow captureConfiguredBats(const WallMemory& memory,uintptr_t 
        (desiredMS>0&&(!batsModeDefinition(memory,equipped,definition,mode,lookup,finalClipDefinition)||finalClipDefinition!=clipDefinition)))return row;
     const auto observed=configuredBatsState(actual,clipScale*modScale,speed,clamp);
     row.verified=observed!="unavailable";
-    row.state=observed=="active"?"active":"inactive";
+    row.state=observed=="active"?"BATS":observed=="slower"?"slower":"inactive";
     row.detail=observed=="active"?"Weapon raise speed exceeds its current normal configuration":
-        observed=="inactive"?"Weapon raise speed matches its current normal configuration":"Weapon animation has not reached a supported state";
+        observed=="inactive"?"Weapon raise speed matches its current normal configuration":
+        observed=="slower"?"Weapon raise speed is below current configuration; Hot Swapper may require a weapon switch after loading, or a mod-swap may have retained a slower rate":"Weapon animation has not reached a supported state";
     return row;
 }
 static bool fastDestroyerBladeArmed(int64_t once,int64_t nominal) { return once>0&&nominal>once&&nominal<=999960LL*60; }
@@ -271,6 +275,34 @@ static TechBoolBit resolveTechBoolProperty(const WallMemory& memory,uintptr_t ba
         return decodeTechBoolGetter(code,sizeof(code),schema.size);
     }
     return {};
+}
+// Independent of bring-up rate and the weapon used before Plasma.
+static SpeedrunTechRow captureInverseBats(const WallMemory& memory,uintptr_t base,const GameProfile& profile,
+                                         const LevelIdentity& level,uintptr_t player,const GraphLookup& lookup) {
+    SpeedrunTechRow row{"bats","Weapon switch","inactive","No plasma ghost-fire signature"};
+    auto hands=techField(lookup,"idPlayer","hands"),right=techField(lookup,"idHands","rightItem"),held=techField(lookup,"idHandsItem","item"),
+        flags=techField(lookup,"idHands","handsFlags"),ptr=techField(lookup,"idManagedClassPtr < idInventoryItem >","ptr"),
+        token=techField(lookup,"idManagedClassPtr < idInventoryItem >","spawnId"),decl=techField(lookup,"idInventoryItem","decl"),mode=techField(lookup,"idWeapon","fireMode");
+    if(!techInline(hands,"idHands",lookup)||!techInline(right,"idHandsItem",lookup)||!techInline(held,"idManagedClassPtr < idInventoryItem >",lookup)||
+       !techInline(flags,"idHands::handsFlags_t",lookup)||!techPointer(ptr,"idInventoryItem")||!token||token->type!="idSpawnId"||token->size!=4||!token->ops.empty()||
+       !techPointer(decl,"idDeclInventory")||!mode||mode->type!="weaponFireMode_t"||mode->size!=4||!mode->ops.empty())return row;
+    uintptr_t address=player+hands->offset+right->offset+held->offset,item=0,definition=0,vtable=0;uint32_t generation=0;int32_t fireMode=-1;
+    if(!memory.get(address+ptr->offset,item)||!item||!memory.get(address+token->offset,generation)||!memory.get(item,vtable)||readEntityClass(memory,vtable,base,profile)!="idWeapon"||
+       !memory.get(item+decl->offset,definition)||techResourceName(memory,definition,lookup)!="weapon/player/plasma_rifle"||!memory.get(item+mode->offset,fireMode)||fireMode!=0)return row;
+    const char* names[]{"modChangeAnimPlaying","isFireAnimPlaying","isWeaponFiring","weaponWillFire","weaponWillDryfire","weaponFireAborted"};
+    bool values[6]{};TechBoolBit bits[6];unsigned char bytes[6]{};
+    for(size_t i=0;i<6;++i) {
+        bits[i]=resolveTechBoolProperty(memory,base,profile,lookup,"idHands::handsFlags_t",names[i]);
+        if(!bits[i]||!memory.get(player+hands->offset+flags->offset+bits[i].byte,bytes[i]))return row;
+        values[i]=(bytes[i]&bits[i].mask)!=0;
+    }
+    if(!inverseBatsObserved(values[0],values[1],values[2],values[3],values[4],values[5]))return row;
+    uintptr_t finalItem=0;uint32_t finalGeneration=0;int32_t finalMode=-1;
+    if(!memory.get(address+ptr->offset,finalItem)||finalItem!=item||!memory.get(address+token->offset,finalGeneration)||finalGeneration!=generation||
+       !memory.get(item+mode->offset,finalMode)||finalMode!=fireMode||readLevelIdentity(memory,base,profile)!=level)return row;
+    for(size_t i=0;i<6;++i){unsigned char final=0;if(!memory.get(player+hands->offset+flags->offset+bits[i].byte,final)||final!=bytes[i])return row;}
+    row.state="inverse BATS";row.verified=true;
+    row.detail="Plasma ghost-fire interval: retained mod-change, pending fire animation and aborted shot; no actual firing or dry-fire";return row;
 }
 struct FastBladeIdentity {
     uintptr_t map=0,world=0,player=0,weapon=0; uint32_t token=0;
@@ -316,16 +348,20 @@ public:
 };
 static FastBladeTracker& fastBladeTracker() { static auto* tracker=new FastBladeTracker; return *tracker; }
 static std::mutex& fastBladeTrackerMutex() { static auto* mutex=new std::mutex; return *mutex; }
+#include "combo_swap_chain.h"
 static SpeedrunTechSnapshot captureSpeedrunTechs(const WallMemory& memory,uintptr_t base,const GameProfile& profile,
                                                const LevelIdentity& level,const GraphLookup& lookup) {
-    SpeedrunTechSnapshot result; result.rows={{"bats","BATS","inactive","No accelerated weapon appearance observed"},
-        {"fast_dblade","Fast DBlade","unavailable","Weapon charge metadata unavailable"}};
+    SpeedrunTechSnapshot result; result.rows={{"bats","Weapon switch","inactive","No accelerated weapon appearance observed"},
+        {"fast_dblade","Fast DBlade","unavailable","Weapon charge metadata unavailable"},
+        {"csc","CSC","unavailable","Combo Swap Chain metadata unavailable"}};
     auto& bats=result.rows[0]; auto& blade=result.rows[1];
     uintptr_t system=0,map=0,player=0,playerVtable=0; unsigned char removed=1;
     if(!level||!memory.get(base+profile.gameSystemRva,system)||!memory.get(system+0x50,map)||map!=level.map||
        !memory.get(map+profile.mapPlayerOffset,player)||!player||!memory.get(player,playerVtable)||playerVtable!=base+profile.playerVtableRva||
-       !memory.get(player+0xa4,removed)||removed) return result;
+       !memory.get(player+0xa4,removed)||removed) { comboChainTracker().clear();return result; }
+    result.rows[2]=captureComboSwapChain(memory,base,profile,level,player,lookup);
     bats=captureConfiguredBats(memory,base,profile,level,player,lookup);
+    auto inverse=captureInverseBats(memory,base,profile,level,player,lookup);if(inverse.verified)bats=std::move(inverse);
     auto inventory=techField(lookup,"idActor","inventory");
     auto items=techField(lookup,"idInventoryCollection","inventory");
     const auto& inventorySchema=lookup("idInventoryCollection");

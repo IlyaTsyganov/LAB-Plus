@@ -5,12 +5,54 @@ template<class T> static void set(void* data,size_t offset,T value) { memcpy(sta
 
 // Public fixtures are synthetic. Retail EXE audit data stays local in private/.
 int main() {
+    {
+        std::unordered_map<std::string,GraphType> types;
+        auto add=[&](const char* name,const char* parent,uint32_t size){GraphType type;type.complete=true;type.parent=parent;type.size=size;types[name]=std::move(type);};
+        add("idWeapon","idInventoryItem",256);
+        add("idPlasmaRifleCharged","idWeapon",384);add("idChaingun","idWeapon",320);
+        add("idDoubleBarrelShotgun","idWeapon",352);add("idBFG","idWeapon",256);
+        add("FurtherPlasmaSubclass","idPlasmaRifleCharged",512);
+        GraphLookup lookup=[&](const std::string& name)->const GraphType& {static const GraphType missing;auto found=types.find(name);return found==types.end()?missing:found->second;};
+        for(const char* name:{"idWeapon","idPlasmaRifleCharged","idChaingun","idDoubleBarrelShotgun","idBFG","FurtherPlasmaSubclass"})
+            expect(comboChainWeaponClass(name,lookup),"CSC accepts verified weapon subclasses, including multi-level inheritance");
+        add("NotAWeapon","idInventoryItem",384);
+        expect(!comboChainWeaponClass("NotAWeapon",lookup)&&!comboChainWeaponClass("MissingWeaponType",lookup)&&!comboChainWeaponClass("",lookup),"unrelated or unknown class names cannot masquerade as weapons");
+        add("BrokenChild","idWeapon",128);add("HugeChild","idWeapon",0x200001);
+        expect(!comboChainWeaponClass("BrokenChild",lookup)&&!comboChainWeaponClass("HugeChild",lookup),"incompatible child sizes are rejected");
+        add("CycleA","CycleB",300);add("CycleB","CycleA",300);
+        expect(!comboChainWeaponClass("CycleA",lookup),"cyclic parent metadata terminates without accepting a weapon");
+        types["idWeapon"].complete=false;
+        expect(!comboChainWeaponClass("idPlasmaRifleCharged",lookup),"incomplete base metadata cannot certify a derived weapon");
+    }
+    ComboChainTracker chain;ComboChainSample chainSample{1,2,3,10,1,false,false,100};
+    expect(!chain.update(chainSample),"ordinary idle has no CSC");
+    chainSample.modChange=true;chainSample.observed=150;
+    expect(!chain.update(chainSample),"ordinary mod change is not CSC");
+    chainSample.observed=300;expect(!chain.update(chainSample),"a long ordinary mod animation is not CSC");
+    chainSample.weapon=11;chainSample.observed=350;
+    expect(chain.update(chainSample),"a handoff retaining mod-change starts CSC");
+    chainSample.observed=450;expect(chain.update(chainSample),"CSC survives samples without a new input");
+    chainSample.modChange=false;chainSample.observed=500;
+    expect(!chain.update(chainSample),"clearing the native mod-change flag ends CSC immediately");
+    chainSample.modChange=true;chainSample.ghostFire=true;chainSample.observed=550;
+    expect(chain.update(chainSample),"coherent ghost-fire evidence can acquire an already-running chain");
+    chainSample.ghostFire=false;chainSample.map=9;chainSample.observed=600;
+    expect(!chain.update(chainSample),"a new map never inherits a previous CSC");
+    chainSample.weapon=12;chainSample.observed=1200;
+    expect(!chain.update(chainSample),"stale sample gaps cannot invent a handoff");
+    chain.clear();chainSample.observed=1250;
+    expect(!chain.update(chainSample),"an unreadable observation clears retained chain history");
+    expect(inverseBatsObserved(true,true,false,true,false,true),"observed plasma ghost-fire flags identify Inverse BATS");
+    expect(!inverseBatsObserved(false,true,false,true,false,true),"ordinary pending fire has no retained mod-change");
+    expect(!inverseBatsObserved(true,true,true,true,false,true),"actual plasma firing is not ghost-fire");
+    expect(!inverseBatsObserved(true,true,false,true,true,true),"dry-fire never becomes Inverse BATS");
+    expect(!inverseBatsObserved(true,false,false,true,false,true),"mod-change alone does not prove a ghost shot");
     expect(fastDestroyerBladeArmed(999960,1999920),"shorter next-charge override is armed");
     for(int64_t once:{-1LL,0LL,1999920LL,2999880LL}) expect(!fastDestroyerBladeArmed(once,1999920),"consumed, zero and ordinary/long overrides are not fast");
     expect(configuredBatsState(5,1,.6f,.3f)=="active","faster configured bring-up is active");
     expect(configuredBatsState(1.6666666269302368f,1,.6f,.3f)=="inactive","Dexterity is part of the normal rate");
     expect(configuredBatsState(1,1,1,.3f)=="inactive"&&configuredBatsState(2,2,1,.3f)=="inactive","unupgraded and mode-scaled normal rates stay inactive");
-    expect(configuredBatsState(.1f,1,1,.3f)=="unavailable"&&configuredBatsState(NAN,1,1,.3f)=="unavailable","invalid samples remain internally unverified");
+    expect(configuredBatsState(.1f,1,1,.3f)=="slower"&&configuredBatsState(NAN,1,1,.3f)=="unavailable","slower rates remain distinct from invalid samples");
     const unsigned char flagCode[]{0x0f,0xb6,0x41,0x05,0xc1,0xe8,0x07,0xc3};
     auto bit=decodeTechBoolGetter(flagCode,sizeof(flagCode),7);
     expect(bit&&bit.byte==5&&bit.mask==128,"synthetic packed bool getter decodes its actual bit");

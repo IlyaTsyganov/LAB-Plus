@@ -5,6 +5,7 @@ static constexpr LabCvarDefinition labCvarDefinitions[]{
     {"labplus_viewer_show",L"Enabled","labplus_viewer",0,0,1},
     {"labplus_triggers_show",L"ShowTriggers","labplus_triggers",1,0,1},
     {"labplus_collision_show",L"ShowCollision","labplus_collision",1,0,1},
+    {"labplus_shots_show",L"ShowShotCollision","labplus_shots",0,0,1},
     {"labplus_walls_show",L"ShowWalls","labplus_walls",1,0,1},
     {"labplus_inspector_show",L"InspectVolumes","labplus_inspector",0,0,1},
     {"labplus_disabled_volumes_show",L"ShowDisabledVolumes","labplus_disabled",0,0,1},

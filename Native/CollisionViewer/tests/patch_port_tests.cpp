@@ -50,6 +50,19 @@ int wmain(int argc,wchar_t** argv) {
             auto address=addresses.find(type);if(address==addresses.end()) {printf("Missing type: %s\n",type.c_str());static const GraphType empty;return empty;}
             return schemas.emplace(type,readGraphType(memory,address->second,type)).first->second;
         };
+        requirePort(comboChainWeaponClass("idWeapon",lookup),"CSC base weapon metadata failed");
+        unsigned cscSubclasses=0;
+        for(const char* type:{"idPlasmaRifleCharged","idChaingun","idDoubleBarrelShotgun","idBFG","idChainsaw"}) {
+            if(!addresses.count(type)){printf("CSC optional type not indexed: %s\n",type);continue;}
+            if(!comboChainWeaponClass(type,lookup))printf("CSC rejected reflected weapon subclass: %s\n",type);
+            requirePort(comboChainWeaponClass(type,lookup),"CSC weapon inheritance failed");++cscSubclasses;
+        }
+        for(const char* property:{"modChangeAnimPlaying","isFireAnimPlaying","isWeaponFiring","weaponWillFire","weaponWillDryfire","weaponFireAborted"})
+            requirePort(bool(resolveTechBoolProperty(memory,base,*profile,lookup,"idHands::handsFlags_t",property)),"CSC animation property getter failed");
+        const auto* flameConfig=timerField(lookup,"idDeclPlayerProps","flameBelchCooldownTimeMS");
+        const bool flameMaximum=flameConfig&&flameConfig->ops.empty()&&flameConfig->size==4&&
+            (flameConfig->type=="int"||flameConfig->type=="idTypesafeTime < int , millisecondUnique_t , 1000 >");
+        printf("CSC: base and %u reflected subclasses verified; six animation getters verified. Flame maximum fallback metadata: %s.\n",cscSubclasses,flameMaximum?"available":"unavailable (runtime duration may still supply maximum)");
         auto layout=resolveEnemyTelemetryLayout(lookup);
         if(!layout.valid) {
             printf("Health layout: pending=%d think=%x name=%x health=%x lists=%zu\n",layout.pending,layout.think,layout.name,layout.health,layout.lists.size());

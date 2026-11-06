@@ -445,7 +445,9 @@ static GameTimerSnapshot captureGameTimers(const WallMemory& memory,uintptr_t ba
         int64_t deadline=0,reuseTime=0; int32_t available=0;
         if(!memory.get(address+recharge->offset,deadline)||!memory.get(address+reuse->offset,reuseTime)||
            !memory.get(address+uses->offset,available)||available<0||available>16) { row.detail="Equipment timer read failed"; continue; }
-        if(slot==2&&timerTimeField(flame)) { int64_t gate=0; if(!memory.get(player+flame->offset,gate)) continue; reuseTime=std::max(reuseTime,gate); }
+        // flameBelchNextUseTime is also written after a rejected button
+        // attempt. It identifies the clock domain, not a consumed charge.
+        // The equipment recharge/reuse records track the actual cooldown.
         if(!timerRemaining(std::max(deadline,reuseTime),clock.ticks,row.remaining,3600)) { row.detail="Equipment timer value outside supported range"; continue; }
         if(row.remaining==0&&available==0){row.state="unavailable";row.remaining=-1;row.detail="No charge available and no active recharge timer";continue;}
         row.state=row.remaining>0?"cooldown":"ready";
@@ -453,6 +455,17 @@ static GameTimerSnapshot captureGameTimers(const WallMemory& memory,uintptr_t ba
         int64_t fullDuration=0;
         if(timerTimeField(duration)&&memory.get(address+duration->offset,fullDuration)&&fullDuration>0&&fullDuration<=int64_t(gameTimerTicksPerSecond*3600))
             timerSetMaximum(row,double(fullDuration)/gameTimerTicksPerSecond);
+        if(slot==2&&row.maximum<0) {
+            // Flame Belch can use only equipmentReuseTime, leaving the grenade
+            // recharge-duration record zero. Its configured cooldown is stored
+            // in the active player declaration in milliseconds.
+            auto props=timerField(lookup,"idPlayer","playerProps"),cooldown=timerField(lookup,"idDeclPlayerProps","flameBelchCooldownTimeMS");
+            uintptr_t definition=0;int32_t milliseconds=0;
+            if(timerPointer(props,"idDeclPlayerProps")&&cooldown&&cooldown->ops.empty()&&cooldown->size==4&&
+               cooldown->type=="idTypesafeTime < int , millisecondUnique_t , 1000 >"&&memory.get(player+props->offset,definition)&&definition&&
+               memory.get(definition+cooldown->offset,milliseconds)&&milliseconds>0&&milliseconds<=3600000)
+                timerSetMaximum(row,double(milliseconds)/1000);
+        }
     }
     auto status=timerField(lookup,"idActor","statusEffectComponent");
     auto active=timerField(lookup,"idStatusEffectComponent","activeStatusEffects");

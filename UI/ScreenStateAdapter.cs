@@ -31,6 +31,7 @@ internal sealed class ScreenStateAdapter : IDisposable
         control.TabStop = false;
         string id = Id(control); float scale = control.DeviceDpi / 96f;
         var node = new Dictionary<string, object?> { ["id"] = id, ["kind"] = "column", ["text"] = control.Text, ["enabled"] = control.Enabled, ["width"] = Math.Round(control.Width / scale), ["height"] = Math.Round(control.Height / scale), ["small"] = control.Font.SizeInPoints <= 9.5f, ["fill"]=control.Dock==DockStyle.Fill, ["presentation"]=control.Presentation };
+        if (!string.IsNullOrWhiteSpace(control.ToolTipText)) node["tip"] = control.ToolTipText;
         switch (control)
         {
             case UiChoice radio:
@@ -121,7 +122,7 @@ internal sealed class ScreenStateAdapter : IDisposable
         node["selected"] = grid.CurrentCell?.RowIndex ?? -1;
         node["checks"] = grid.MultiSelect && grid.ShowSelectionChecks;
         node["selectionCount"] = grid.SelectedIndices.Count;
-        node["empty"] = grid.FindForm() is PracticeSaveForm ? "No checkpoints match this account, category and search. Save a checkpoint to add one." : "No data yet.";
+        node["empty"] = grid.EmptyText;
     }
     private object[] CaptureTree(UiTreeNodes nodes) => nodes.Cast<UiTreeNode>().Select(n => new
     { id = Id(n), text = n.Text, check = n.Checked, expanded = n.IsExpanded, hasChildren = n.Nodes.Count > 0, nodes = n.IsExpanded ? CaptureTree(n.Nodes) : [] }).Cast<object>().ToArray();

@@ -31,9 +31,9 @@ static std::string readEntityClass(const WallMemory& memory,uintptr_t vtable,uin
 }
 
 enum class EntityStatus { Unavailable, Removed, Disabled, Enabled };
-static EntityStatus volumeCollisionStatus(uint32_t type,uint32_t contents,bool disabled,uint32_t body,bool inWorld,bool trigger) {
+static EntityStatus volumeCollisionStatus(uint32_t type,uint32_t contents,bool disabled,uint32_t body,bool inWorld,bool trigger,bool shots=false) {
     if(type!=2&&type!=7) return EntityStatus::Unavailable;
-    if(disabled||(contents&0x40000000)||!(contents&(trigger?0x4000u:9u))||body==~0u||!inWorld) return EntityStatus::Disabled;
+    if(disabled||(contents&0x40000000)||!(contents&(trigger?0x4000u:(shots?0x80u:9u)))||body==~0u||!inWorld) return EntityStatus::Disabled;
     return EntityStatus::Enabled;
 }
 static const char* entityStatusText(EntityStatus status) {
@@ -65,5 +65,5 @@ static EntityStatus readEntityStatus(const WallMemory& memory,const EntityRefere
         if(!memory.get(physics+0x210,inWorld)) return EntityStatus::Unavailable;
         present=inWorld!=0;
     }
-    return volumeCollisionStatus(type,contents,disabled!=0,body,present,trigger);
+    return volumeCollisionStatus(type,contents,disabled!=0,body,present,trigger&&!((contents&0x80u)&&!(contents&9u)),(contents&0x80u)&&!(contents&9u));
 }

@@ -6,6 +6,11 @@ namespace LabPlus;
 internal sealed class PracticeSaveForm : LabPlusForm
 {
     private const int ActionWidth = 170;
+    private const string DefaultSaveFolderHint = @"Default location: C:\Program Files (x86)\Steam\userdata\<SteamID>\782330\remote. Select the remote folder at this path; the location may differ if Steam is installed elsewhere.";
+    private const string SteamCloudInstructions =
+        "Disable Steam Cloud for all games:\n1. In Steam's top-left corner, open Steam.\n2. Select Settings.\n3. Open Cloud.\n4. Turn off \"Enable Steam Cloud Sync for applications that support it\".\n"
+        + "Older clients call it \"Enable Steam Cloud synchronization for applications which support it\".\n\n"
+        + "For DOOM Eternal only: Library → right-click DOOM Eternal → Properties → General → turn off Steam Cloud.\nEither option is enough. LAB Plus checks the game's actual Cloud status.";
     private readonly string _directory;
     private readonly Func<int> _gameProcess;
     private readonly PracticeSaveVault _vault;
@@ -15,6 +20,7 @@ internal sealed class PracticeSaveForm : LabPlusForm
     private readonly UiInput _name = new() { Dock = DockStyle.Fill, MaxLength = 160, PlaceholderText = "Checkpoint name — optional" };
     private readonly UiInput _search = new() { Dock = DockStyle.Fill, PlaceholderText = "Search checkpoints…" };
     private readonly UiInput _folder = new() { Dock = DockStyle.Fill, ReadOnly = true, PlaceholderText = "Select the Steam save folder" };
+    private readonly UiText _folderLabel = new() { Text = "Steam save folder", Dock = DockStyle.Fill, Presentation = "saves-folder-label" };
     private readonly UiInput _newCategory = new() { Dock = DockStyle.Fill, MaxLength = 160, PlaceholderText = "New category" };
     private readonly UiTable _grid = new() { MultiSelect = true, ShowSelectionChecks = true, Presentation = "saves-table" };
     private readonly UiAction _save = MakeButton("Save", ActionWidth), _load = MakeButton("Load", ActionWidth), _delete = MakeButton("Delete", ActionWidth);
@@ -26,8 +32,16 @@ internal sealed class PracticeSaveForm : LabPlusForm
     private readonly UiText _categoryMenuTitle = new() { Text = "Categories", Dock = DockStyle.Fill };
     private bool _movingCategory;
     private readonly UiText _categoryHeading = new() { Dock = DockStyle.Fill, Presentation = "saves-category-heading" };
-    private readonly UiText _selection = new() { Dock = DockStyle.Fill, UseMnemonic = false }, _status = new() { Dock = DockStyle.Fill, UseMnemonic = false };
+    private readonly UiText _selection = new() { Dock = DockStyle.Fill, UseMnemonic = false, Presentation = "saves-selection" }, _status = new() { Dock = DockStyle.Fill, UseMnemonic = false, Presentation = "saves-status" };
     private readonly UiText _connection = new() { Dock = DockStyle.Fill, UseMnemonic = false, Presentation = "saves-destination" };
+    private readonly UiText _cloudNotice = new() { Dock = DockStyle.Fill, Font = LabPlusTheme.Ui(9.5f), ToolTipText = SteamCloudInstructions, Presentation = "saves-cloud-notice" };
+    private readonly UiText _sourceNotice = new() { Dock = DockStyle.Fill, Font = LabPlusTheme.Ui(9.5f), ToolTipText = DefaultSaveFolderHint };
+    private readonly UiText _checkpointNotice = new() { Dock = DockStyle.Fill, Font = LabPlusTheme.Ui(9.5f) };
+    private bool? _cloudDisabled;
+    private readonly Func<string, SteamCloudPreference> _readCloudSettings;
+    private SteamCloudPreference _configuredCloud = SteamCloudPreference.Unknown("not checked yet.");
+    private Task? _cloudRefresh;
+    private long _nextCloudRefresh;
     private string _categorySignature = "";
     private readonly System.Windows.Forms.Timer _timer = new() { Interval = 1000 };
     private IReadOnlyList<PracticeSave> _all = [];
@@ -44,39 +58,46 @@ internal sealed class PracticeSaveForm : LabPlusForm
         if (process != _buildProcess) { _buildProcess = process; _runningBuild = PracticeSaveSource.RuntimeBuild(process); }
         return _runningBuild;
     }
-    public PracticeSaveForm(string directory, Action<PracticeSave>? link = null, PracticeSaveVault? vault = null, ResearchBookmark? context = null, Func<int>? gameProcess = null)
+    public PracticeSaveForm(string directory, Action<PracticeSave>? link = null, PracticeSaveVault? vault = null, ResearchBookmark? context = null, Func<int>? gameProcess = null,
+        Func<string, SteamCloudPreference>? cloudSettings = null)
     {
         _directory = directory; _gameProcess = gameProcess ?? (() => 0); _vault = vault ?? new(directory); _library = new(directory); _link = link; _context = context;
+        _readCloudSettings = cloudSettings ?? (Environment.GetEnvironmentVariable("LABPLUS_PREVIEW") == "1"
+            ? _ => SteamCloudPreference.Unknown("not checked yet.") : SteamCloudSettings.Read);
         Text = "LAB Plus — Checkpoints"; ClientSize = new(900, 780); MinimumSize = new(720, 570); StartPosition = FormStartPosition.CenterParent; ShowInTaskbar = false;
         AutoScaleMode = AutoScaleMode.Font; BackColor = LabPlusTheme.Canvas; ForeColor = LabPlusTheme.Text; Font = LabPlusTheme.Ui(10f); KeyPreview = true;
-        var root = new UiGrid { Dock = DockStyle.Fill, Padding = new(16), ColumnCount = 1, RowCount = 11, Presentation = "saves-layout" }; Controls.Add(root);
-        root.Controls.Add(new UiText { Text = "Archive the latest completed checkpoint, including before entering a loaded level.", Dock = DockStyle.Fill, Font = LabPlusTheme.Ui(9.5f) }, 0, 0);
+        var root = new UiStack { Dock = DockStyle.Fill, Padding = new(16), Presentation = "saves-layout" }; Controls.Add(root);
+        var introduction = new UiStack { Dock = DockStyle.Fill, Presentation = "saves-requirements" };
+        introduction.Controls.Add(new UiText { Text = "Before using Save or Load:", Dock = DockStyle.Fill, Font = LabPlusTheme.Ui(9.5f) });
+        introduction.Controls.Add(_sourceNotice); introduction.Controls.Add(_cloudNotice); introduction.Controls.Add(_checkpointNotice);
+        root.Controls.Add(introduction);
+        var folderArea = new UiStack { Dock = DockStyle.Fill, Presentation = "saves-folder-area" };
+        folderArea.Controls.Add(_folderLabel);
+        _folder.ToolTipText = DefaultSaveFolderHint; _chooseFolder.Icon = "folder";
+        folderArea.Controls.Add(Bar(_folder, _chooseFolder, "saves-folder-row")); root.Controls.Add(folderArea);
         UiGrid Bar(UiNode fill, UiNode button, string presentation)
         {
             var bar = new UiGrid { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 1, Margin = Padding.Empty, Presentation = presentation };
             bar.ColumnStyles.Add(new(SizeType.Percent, 100)); bar.ColumnStyles.Add(new(SizeType.Absolute, button.Width)); fill.Dock = button.Dock = DockStyle.Fill;
             bar.Controls.Add(fill, 0, 0); bar.Controls.Add(button, 1, 0); return bar;
         }
-        root.Controls.Add(Bar(_name, _save, "saves-create"), 0, 1);
+        root.Controls.Add(Bar(_name, _save, "saves-create"));
         var anchor = new UiStack { Dock = DockStyle.Fill, Width = ActionWidth, Presentation = "saves-category-anchor" };
         anchor.Controls.Add(_categories); anchor.Controls.Add(_categoryMenu);
         _categoryMenu.Controls.Add(_categoryMenuTitle); _categoryMenu.Controls.Add(_categoryButtons);
         var add = MakeButton("+", 38, false); _categoryMenu.Controls.Add(Bar(_newCategory, add, "saves-add-category"));
-        root.Controls.Add(Bar(_search, anchor, "saves-filters"), 0, 2); root.Controls.Add(_categoryHeading, 0, 3);
+        root.Controls.Add(Bar(_search, anchor, "saves-filters")); root.Controls.Add(_categoryHeading);
         _grid.Dock = DockStyle.Fill; _grid.ReadOnly = true; _grid.AllowUserToAddRows = _grid.AllowUserToDeleteRows = false; _grid.RowHeadersVisible = false;
         _grid.SelectionMode = DataGridViewSelectionMode.FullRowSelect; _grid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
         foreach (var title in new[] { "Checkpoint", "Campaign", "Created" }) _grid.Columns.Add(new UiTableColumn { HeaderText = title, SortMode = DataGridViewColumnSortMode.NotSortable });
-        root.Controls.Add(_grid, 0, 4); root.Controls.Add(_selection, 0, 5);
+        root.Controls.Add(_grid); root.Controls.Add(_selection);
         var actions = new UiGrid { Dock = DockStyle.Fill, ColumnCount = 3, RowCount = 1, Presentation = "saves-actions" };
         actions.ColumnStyles.Add(new(SizeType.Percent, 100)); actions.ColumnStyles.Add(new(SizeType.Absolute, ActionWidth)); actions.ColumnStyles.Add(new(SizeType.Absolute, ActionWidth));
         var order = new UiToolbar { Dock = DockStyle.Fill, Presentation = "saves-order" }; order.Controls.Add(_up); order.Controls.Add(_down); order.Controls.Add(_moveCategory);
-        actions.Controls.Add(order, 0, 0); actions.Controls.Add(_delete, 1, 0); actions.Controls.Add(_load, 2, 0); root.Controls.Add(actions, 0, 6);
-        root.Controls.Add(_connection, 0, 7); root.Controls.Add(_status, 0, 8);
-        var folderArea = new UiStack { Dock = DockStyle.Fill, Presentation = "saves-folder-area" };
-        folderArea.Controls.Add(new UiText { Text = "Steam save folder", Dock = DockStyle.Fill }); _chooseFolder.Icon = "folder";
-        folderArea.Controls.Add(Bar(_folder, _chooseFolder, "saves-folder-row")); root.Controls.Add(folderArea, 0, 9);
+        actions.Controls.Add(order, 0, 0); actions.Controls.Add(_delete, 1, 0); actions.Controls.Add(_load, 2, 0); root.Controls.Add(actions);
+        root.Controls.Add(_connection); root.Controls.Add(_status);
         // Keep the advanced implementation available internally, outside Saves.
-        _tools.Visible = false; root.Controls.Add(_tools, 0, 10); _tools.Click += (_, _) => OpenTools();
+        _tools.Visible = false; root.Controls.Add(_tools); _tools.Click += (_, _) => OpenTools();
         if (context is not null) _name.Text = context.Name;
         _save.Click += (_, _) => _ = SaveCheckpoint(); _load.Click += (_, _) => _ = LoadCheckpoint(); _delete.Click += (_, _) => _ = DeleteSelected();
         _up.Click += (_, _) => _ = MoveSelected(-1); _down.Click += (_, _) => _ = MoveSelected(1);
@@ -93,8 +114,9 @@ internal sealed class PracticeSaveForm : LabPlusForm
         _name.KeyDown += (_, e) => { if (e.KeyCode == Keys.Enter) { e.SuppressKeyPress = true; _save.PerformClick(); } };
         _grid.KeyDown += (_, e) => { if (e.KeyCode == Keys.Enter) { e.SuppressKeyPress = true; _load.PerformClick(); } };
         KeyDown += (_, e) => { if (e.Control && e.KeyCode == Keys.S) { e.SuppressKeyPress = true; _save.PerformClick(); } };
-        _lastProcess = _gameProcess(); Discover(); Reload(); _status.Text = "Save or choose checkpoints.";
+        _lastProcess = _gameProcess(); Discover(); Reload();
         _timer.Tick += (_, _) => Tick(); _timer.Start(); FormClosed += (_, _) => { _timer.Stop(); _timer.Dispose(); };
+        _nextCloudRefresh = Environment.TickCount64 + 2000; _cloudRefresh = RefreshCloudSettings();
     }
     private static UiAction MakeButton(string text, int width, bool primary = true) => new WorkspaceButton
     { Primary = primary, Text = text, Size = new(width, primary ? 42 : 38), Presentation = primary ? "saves-primary" : "", BackColor = LabPlusTheme.Canvas, ForeColor = LabPlusTheme.Text };
@@ -110,30 +132,31 @@ internal sealed class PracticeSaveForm : LabPlusForm
         string? preferred = null;
         try { PracticeSaveVault.NoLinks(PreferencePath); if (File.Exists(PreferencePath) && new FileInfo(PreferencePath).Length < 4096) preferred = JsonSerializer.Deserialize<Preferences>(File.ReadAllText(PreferencePath))?.Remote; }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException) { }
-        string? account = PracticeSaveSource.RuntimeAccount(_directory, _gameProcess()) ?? PracticeSaveSource.ActiveAccount();
-        if (preferred is not null)
-        {
-            try { var previous = SteamSaveLocation.Parse(preferred); if (account is null || previous.Account == account) { _remote = previous.Remote; _folder.Text = _remote; return; } }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
-        }
-        _remote = PracticeSaveSource.Choose(SteamSaveLocation.Discover(), account, null) ?? ""; _folder.Text = _remote;
+        // Keep the explicit choice across launches and Steam account changes.
+        // Runtime account/path validation still gates every live operation.
+        _remote = preferred ?? ""; _folder.Text = _remote;
     }
     private void UseSource(string remote)
     {
-        var location = SteamSaveLocation.Parse(remote); _remote = location.Remote; _folder.Text = _remote; _sourceGeneration++; _runtimeReady = false; _slot = ""; _nextRuntimeRefresh = 0;
+        // Show and remember the user's choice even when it is not a save folder.
+        // SaveLocation still validates it before listing archives or live operations.
+        _remote = remote; _folder.Text = _remote; _sourceGeneration++; _runtimeReady = false; _cloudDisabled = null; _slot = ""; _nextRuntimeRefresh = 0; _status.Text = "";
+        _nextCloudRefresh = 0; _configuredCloud = SteamCloudPreference.Unknown("Checking Steam Cloud settings.");
         Directory.CreateDirectory(_directory); PracticeSaveVault.NoLinks(PreferencePath); PracticeSaveVault.NoLinks(PreferencePath + ".tmp");
         File.WriteAllText(PreferencePath + ".tmp", JsonSerializer.Serialize(new Preferences(_remote))); File.Move(PreferencePath + ".tmp", PreferencePath, true); Populate();
     }
     private void BrowseFolder()
     {
-        using var picker = new FolderBrowserDialog { Description = "Steam/userdata/<account>/782330/remote", SelectedPath = _remote };
+        using var picker = new FolderBrowserDialog { Description = SteamSaveLocation.Pattern, SelectedPath = _remote };
         if (picker.ShowDialog(OwnerScreen) == DialogResult.OK) _ = Run(() => { UseSource(picker.SelectedPath); return Task.CompletedTask; });
     }
     private void Tick()
     {
         if (!_runtimePolling) return;
+        if (Environment.TickCount64 >= _nextCloudRefresh && (_cloudRefresh is null || _cloudRefresh.IsCompleted))
+        { _nextCloudRefresh = Environment.TickCount64 + 2000; _cloudRefresh = RefreshCloudSettings(); }
         int process = _gameProcess();
-        if (!_busy && process != _lastProcess) { _lastProcess = process; _sourceGeneration++; _runtimeReady = false; _slot = ""; _nextRuntimeRefresh = 0; Discover(); Populate(); }
+        if (!_busy && process != _lastProcess) { _lastProcess = process; _sourceGeneration++; _runtimeReady = false; _cloudDisabled = null; _slot = ""; _nextRuntimeRefresh = 0; Discover(); Populate(); }
         if (!_busy && process > 0 && SaveLocation() is not null && Environment.TickCount64 >= _nextRuntimeRefresh && (_runtimeRefresh is null || _runtimeRefresh.IsCompleted))
         { _nextRuntimeRefresh = Environment.TickCount64 + 2000; _runtimeRefresh = RefreshRuntime(); }
         RefreshState();
@@ -141,7 +164,17 @@ internal sealed class PracticeSaveForm : LabPlusForm
     internal void SetRuntimePolling(bool active)
     {
         if (_runtimePolling == active) return; _runtimePolling = active;
-        if (active) { _runtimeReady = false; _nextRuntimeRefresh = 0; Tick(); }
+        if (active) { _runtimeReady = false; _cloudDisabled = null; _nextRuntimeRefresh = _nextCloudRefresh = 0; Tick(); }
+    }
+    private async Task RefreshCloudSettings()
+    {
+        int generation = _sourceGeneration; string remote = _remote;
+        SteamCloudPreference result;
+        try { result = await Task.Run(() => _readCloudSettings(remote)); }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or InvalidOperationException)
+        { result = SteamCloudPreference.Unknown("Steam Cloud settings could not be read. Check Steam's Cloud settings."); }
+        if (IsDisposed || generation != _sourceGeneration) return;
+        _configuredCloud = result; RefreshState();
     }
     private async Task RefreshRuntime()
     {
@@ -150,12 +183,12 @@ internal sealed class PracticeSaveForm : LabPlusForm
         {
             var result = await LivePracticeBridge.Execute(_directory, _gameProcess, "status", remote, "*", false);
             if (IsDisposed || process != _gameProcess() || generation != _sourceGeneration) return;
-            _slot = result.Slot; _runningBuild = result.Build; _buildProcess = process; _runtimeReady = true; _runtimeMessage = "";
+            _slot = result.Slot; _runningBuild = result.Build; _buildProcess = process; _runtimeReady = true; _cloudDisabled = result.SteamCloudDisabled; _runtimeMessage = "";
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException or System.ComponentModel.Win32Exception)
         {
             if (IsDisposed || process != _gameProcess() || generation != _sourceGeneration) return;
-            _runtimeReady = false; _runtimeMessage = FriendlyError(ex.Message);
+            _runtimeReady = false; _cloudDisabled = null; _runtimeMessage = FriendlyError(ex.Message);
         }
         if (!IsDisposed) { UpdateAvailability(); RefreshState(); }
     }
@@ -210,16 +243,38 @@ internal sealed class PracticeSaveForm : LabPlusForm
     }
     private void RefreshState()
     {
-        bool running = _gameProcess() > 0, ready = running && _runtimeReady && SaveLocation() is not null; var selected = SelectedArchives; var one = Selected;
+        bool running = _gameProcess() > 0, ready = running && _runtimeReady && _cloudDisabled == true && SaveLocation() is not null; var selected = SelectedArchives; var one = Selected;
         _save.Enabled = !_busy && ready; _load.Enabled = !_busy && ready && one is not null && PracticeSaveSource.LoadBlockReason(one, RunningBuild(), _slot) is null;
         _delete.Enabled = !_busy && selected.Count > 0; _categories.Enabled = _chooseFolder.Enabled = _categoryMenu.Enabled = !_busy; _grid.Enabled = _search.Enabled = _name.Enabled = !_busy;
         _moveCategory.Enabled = !_busy && selected.Count > 0;
         var ids = _visible.Select(s => s.Id).ToArray(); var chosen = selected.Select(s => s.Id).ToHashSet();
         _up.Enabled = !_busy && PracticeSaveLibrary.CanMove(ids, chosen, -1); _down.Enabled = !_busy && PracticeSaveLibrary.CanMove(ids, chosen, 1);
         _selection.Text = selected.Count > 1 ? $"{selected.Count} checkpoints selected · Load is unavailable" : one is not null ? "Selected: " + one.Name : "Select checkpoints.";
-        _connection.Text = SaveLocation() is null ? "Choose the Steam save folder below." : !running ? "Launch the game through LAB Plus and open a campaign slot."
-            : !_runtimeReady ? _runtimeMessage : one is not null && PracticeSaveSource.LoadBlockReason(one, RunningBuild(), _slot) is string reason ? reason
+        bool sourceReady = SaveLocation() is not null;
+        _grid.EmptyText = !sourceReady ? "Choose the Steam save folder to view your checkpoints." : ready ? "No checkpoints match this account, category and search. Save a checkpoint to add one." : "No checkpoints here. Complete the steps above to enable Save and Load.";
+        if (_status.Text.Length == 0 || _status.Text == "Ready to save or load checkpoints.") _status.Text = ready ? "Ready to save or load checkpoints." : "";
+        _sourceNotice.Text = sourceReady ? "Save folder: selected." : _remote.Length == 0 ? "Save folder: not selected. Choose the Steam save folder below. (?)"
+            : "Save folder: unavailable or invalid. Select " + SteamSaveLocation.Pattern + ". (?)";
+        _sourceNotice.Presentation = sourceReady ? "saves-step-ready" : "saves-step-required";
+        _cloudNotice.Text = _cloudDisabled == true ? "Steam Cloud: disabled."
+            : _cloudDisabled == false ? "Steam Cloud: enabled. Disable it to use Save and Load."
+            : _configuredCloud.Disabled == true ? (_runtimeReady ? "Steam Cloud: disabled. Restart the game through LAB Plus to confirm its status." : "Steam Cloud: disabled.")
+            : _configuredCloud.Disabled == false ? "Steam Cloud: enabled. Disable it to use Save and Load."
+            : _runtimeReady ? "Steam Cloud: status unavailable. Sign in to Steam and restart the game through LAB Plus."
+            : "Steam Cloud: " + _configuredCloud.Detail;
+        bool cloudReady = _cloudDisabled == true || _cloudDisabled is null && !_runtimeReady && _configuredCloud.Disabled == true;
+        if (!cloudReady) _cloudNotice.Text += " (?)";
+        _cloudNotice.Presentation = cloudReady ? "saves-step-ready" : "saves-step-required";
+        _checkpointNotice.Text = !running ? "Game checkpoint: launch the game through LAB Plus and load a campaign slot."
+            : _runtimeReady ? "Game checkpoint: loaded · " + PracticeSaveSource.SlotLabel(_slot) + "."
+            : !sourceReady ? "Game checkpoint: select the save folder to check the running game."
+            : "Game checkpoint: " + _runtimeMessage;
+        _checkpointNotice.Presentation = running && _runtimeReady ? "saves-step-ready" : "saves-step-required";
+        _connection.Text = SaveLocation() is null ? (_remote.Length == 0 ? "Choose the Steam save folder below." : "The selected Steam save folder is unavailable. Choose it again below.") : !running ? "Launch the game through LAB Plus and open a campaign slot."
+            : !_runtimeReady ? _runtimeMessage : _cloudDisabled != true ? (_cloudDisabled == false ? "Disable Steam Cloud to enable Save and Load." : "Waiting for Steam Cloud status; Save and Load are unavailable.")
+            : one is not null && PracticeSaveSource.LoadBlockReason(one, RunningBuild(), _slot) is string reason ? reason
             : "Load into " + PracticeSaveSource.SlotLabel(_slot) + " · Current slot in the game";
+        _connection.Visible = running && _runtimeReady && sourceReady && one is not null && PracticeSaveSource.LoadBlockReason(one, RunningBuild(), _slot) is not null;
     }
     private async Task Run(Func<Task> action, bool needsRuntime = false, Action<Exception>? failure = null)
     {
@@ -245,7 +300,11 @@ internal sealed class PracticeSaveForm : LabPlusForm
         return message;
     }
     private void RequireRuntime()
-    { if (_gameProcess() <= 0 || !_runtimeReady || !PracticeSaveVault.ValidSlot(_slot)) throw new IOException("Load a campaign slot in the game first."); }
+    {
+        if (SaveLocation() is null) throw new IOException("Choose the Steam save folder in Saves first.");
+        if (_gameProcess() <= 0 || !_runtimeReady || !PracticeSaveVault.ValidSlot(_slot)) throw new IOException("Load a campaign slot in the game first.");
+        if (_cloudDisabled != true) throw new IOException(_cloudDisabled == false ? "Disable Steam Cloud for DOOM Eternal before saving or loading." : "Steam Cloud status is unavailable. Save and Load are blocked.");
+    }
     private Task SaveCheckpoint() => Run(async () =>
     {
         RequireRuntime(); string remote = SaveLocation()?.Remote ?? throw new IOException("Choose the Steam save folder below."), name = _name.Text.Trim();

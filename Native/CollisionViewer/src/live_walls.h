@@ -8,8 +8,15 @@
 struct ShapeContentsFilter {
     static constexpr uintptr_t shapeUserData=0x30, tableList=0x08, tableCount=0x10;
     static constexpr size_t entrySize=0x58;
-    static constexpr uint32_t solid=0x1, playerClip=0x8, noCollision=0x40000000;
-    struct Table { uintptr_t data=0; std::vector<uint32_t> contents; };
+    static constexpr uint32_t solid=0x1, playerClip=0x8, shotClip=0x80, noCollision=0x40000000;
+    bool shotsOnly=false;
+    static bool blocksShotsOnly(uint32_t flags) {
+        // Retail contents enum: SHOTCLIP=0x80. Both MASK_SHOT and
+        // MASK_PROJECTILE include it; neither player SOLID nor PLAYERCLIP.
+        return (flags&shotClip)&&!blocksPlayer(flags)&&!(flags&noCollision);
+    }
+    bool allows(uint32_t flags) const { return shotsOnly?blocksShotsOnly(flags):blocksPlayer(flags); }
+    struct Table { uintptr_t data=0; std::vector<uint32_t> contents; bool shots=false; };
     WallMemory memory;
     std::unordered_map<uintptr_t,Table> tables;
     void clear() { tables.clear(); }
@@ -31,7 +38,7 @@ struct ShapeContentsFilter {
                         uintptr_t owner=0; uint32_t flags=0;
                         memcpy(&owner,rows.data()+i*entrySize,8);
                         if(owner!=wrapper) { table.contents.clear(); break; }
-                        memcpy(&flags,rows.data()+i*entrySize+8,4); table.contents.push_back(flags);
+                        memcpy(&flags,rows.data()+i*entrySize+8,4); table.contents.push_back(flags); table.shots=table.shots||blocksShotsOnly(flags);
                     }
                 }
             }
@@ -42,13 +49,21 @@ struct ShapeContentsFilter {
         index=(entry-table.data)/entrySize;
         return index<table.contents.size()?&table:nullptr;
     }
+    bool hasShotTags(uintptr_t shape) {
+        size_t index=0; const Table* table=lookup(shape,index);
+        return table&&table->shots;
+    }
+    bool knownPlayerBlocker(uintptr_t shape) {
+        size_t index=0; const Table* table=lookup(shape,index);
+        return table&&blocksPlayer(table->contents[index]);
+    }
     bool allowsShape(uintptr_t shape) {
         size_t index=0; const Table* table=lookup(shape,index);
-        return !table||blocksPlayer(table->contents[index]);
+        return table?allows(table->contents[index]):!shotsOnly;
     }
     bool allowsTag(uintptr_t shape,uint16_t tag) {
         size_t index=0; const Table* table=lookup(shape,index);
-        return !table||tag==0xffff||tag>=table->contents.size()||blocksPlayer(table->contents[tag]);
+        return table&&tag!=0xffff&&tag<table->contents.size()?allows(table->contents[tag]):!shotsOnly;
     }
 };
 struct WallTransform {
@@ -159,6 +174,7 @@ struct LiveWalls {
             for(unsigned i=0;i<(primitiveDesc&255);++i) {
                 const auto& p=primitives[(primitiveDesc>>8)+i];
                 if(p==std::array<unsigned char,4>{0xde,0xad,0xde,0xad}) continue;
+                if(contents&&contents->shotsOnly&&!haveTags) continue;
                 if(haveTags&&!contents->allowsTag(address,tags[i])) continue;
                 for(unsigned v:p) if(v>=points.size()) return shapeFailure("compressed primitive vertex index");
                 triangle(p[0],p[1],p[2]); triangle(p[0],p[2],p[3]);
@@ -196,7 +212,7 @@ struct LiveWalls {
             }
             return true;
         }
-        if(contents&&!contents->allowsShape(address)) return true;
+        if(contents&&!(contents->shotsOnly&&data[0x22]==9)&&!contents->allowsShape(address)) return true;
         if(data[0x22]==9) return compressed(address,transform,geometry,contents);
         // Box shapes (type 6) are also convex polytopes, with the same reflected arrays.
         if(!(u16(0x20)&2)) { shapeError="shape type "+std::to_string(data[0x22]); return false; }
@@ -295,14 +311,15 @@ struct LiveWalls {
             // object with only NOCOLLISION flags is identified as a wall only
             // if this exact entity/generation was previously a playerclip.
             bool playerClip=(contents&8)&&!(contents&3);
-            if(!trigger&&!playerClip&&!history.knownWall(ref)) continue;
+            bool shotClip=ShapeContentsFilter::blocksShotsOnly(contents)||(!ShapeContentsFilter::blocksPlayer(contents)&&history.knownShotWall(ref));
+            if(!trigger&&!playerClip&&!shotClip&&!history.knownWall(ref)) continue;
             bool inWorld=true;
             if(type==7) {
                 unsigned char present=0;
                 if(!memory.get(physicsAddress+0x210,present)) { history.missing(ref,EntityStatus::Unavailable,now); continue; }
                 inWorld=present!=0;
             }
-            EntityStatus status=volumeCollisionStatus(type,contents,physics[0x4f]!=0,body,inWorld,trigger);
+            EntityStatus status=volumeCollisionStatus(type,contents,physics[0x4f]!=0,body,inWorld,trigger&&!shotClip,shotClip);
             if(status==EntityStatus::Unavailable) { history.missing(ref,status,now); continue; }
             if(status==EntityStatus::Enabled) { if(trigger) ++triggers; else ++active; }
             auto lostGeometry=[&] {
@@ -312,7 +329,7 @@ struct LiveWalls {
             };
             uintptr_t wrapper=0,root=0; memcpy(&wrapper,physics+0x1c0,8);
             if(!memory.get(wrapper,root)||!root) { lostGeometry(); continue; }
-            auto geometry=std::make_shared<Geometry>(); geometry->kind=trigger?0u:2u;
+            auto geometry=std::make_shared<Geometry>(); geometry->kind=shotClip?3u:(trigger?0u:2u);
             if(!shape(root,WallTransform{},*geometry)||geometry->triangles.empty()) { lostGeometry(); continue; }
             // Reject a torn snapshot if an entity was removed or its slot reused.
             uintptr_t stillPhysics=0; uint32_t stillContents=0; unsigned char removedFlag=1;
@@ -324,6 +341,10 @@ struct LiveWalls {
             if(current.id!=entry.id||current.generation!=entry.generation||current.entity!=entry.entity) { history.missing(ref,EntityStatus::Removed,now); continue; }
             Mesh mesh{}; mesh.kind=geometry->kind; mesh.geometry=geometry;
             mesh.entity=ref;
+            // Retail 1.1's dash touching-bounds path explicitly recognizes
+            // idTrigger_Teleporter (including its Fade subclass). Other trigger
+            // classes have no such implication. Use the native broadphase
+            // body bounds, not a guessed extent of the rendered shape.
             mesh.triggerNameKnown=!namePath.empty(); mesh.triggerPath=std::move(namePath);
             mesh.triggerDefinitionPath=std::move(definitionPath);
             float axis[9],origin[3]; memcpy(axis,physics+0x8c,36); memcpy(origin,physics+0xb0,12);

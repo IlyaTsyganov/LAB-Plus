@@ -38,6 +38,8 @@ int main() {
     snapshot.barEnemies[0].health=100;
     expect(cleanNumberLabel("100%\t^1imp")=="100???1imp","engine formatting characters are escaped");
     snapshot.enemies=snapshot.barEnemies;
+    snapshot.syncAction=1;snapshot.syncTarget="1:2";snapshot.syncAnimations={"cut_front","cut_back"};snapshot.syncAutomaticAnimation="cut_back";
+    snapshot.syncHints={{"cut_front","Hell Knight","No specific body part"},{"cut_back","Hell Knight","No specific body part"}};
     snapshot.timers.push_back({"flame_belch","Equipment","Flame belch","cooldown","",1.25,true,20});
     snapshot.timers.push_back({"sticky_bomb","Weapon mods","Sticky Bomb","cooldown","",.25,true,1.5});
     snapshot.timers.push_back({"sticky_charge_1","sticky_charges","Charge 1","cooldown","",.25,true,1.5});
@@ -51,6 +53,8 @@ int main() {
     auto file=std::filesystem::path(path)/(L"invisible-numbers-"+std::to_wstring(snapshot.process)+L".tsv");
     std::ifstream input(file,std::ios::binary); std::string protocol((std::istreambuf_iterator<char>(input)),{}); input.close();
     expect(protocol.find("#LABPLUS_NUMBERS_V1\t")==0&&protocol.find("\t100\t200\n")!=std::string::npos&&protocol.find("\tcooldown\t1.25\t\t20\n")!=std::string::npos,"native protocol carries exact HP and invariant countdown/maximum values");
+    expect(protocol.find("P\t1\t1:2\tcut_back\nA\tcut_front\nA\tcut_back\n")!=std::string::npos,"native worker protocol carries resolved automatic choice, animation choices and target identity");
+    expect(protocol.find("H\tcut_front\tHell Knight\tNo specific body part\n")!=std::string::npos,"per-enemy animation guidance is published separately from its stable selection key");
     DeleteFileW(file.c_str());RemoveDirectoryW(path);
     puts("PASS: enemy bar depth geometry, refreshed pose, identity/age/level gates, deduplication and numbers protocol.");
 }

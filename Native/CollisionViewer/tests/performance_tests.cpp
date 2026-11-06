@@ -29,6 +29,14 @@ static void cacheBoundaries() {
     cache.begin(firstOwner,visible);
     auto positions=cache.positions(mesh);
     expect(positions&&positions->size()==5&&(*positions)[0].x==1,"immutable world positions are cached without color/style state");
+    const auto* originalPositions=positions;
+    auto trim=std::make_shared<ProjectileTrim>(); trim->meshes.push_back(mesh); trim->meshes.back().kind=3;
+    visible.push_back({&trim->meshes[0],0,0}); cache.begin(firstOwner,visible,trim);
+    expect(cache.positions(mesh)==originalPositions&&cache.positions(trim->meshes[0]),"publishing a trim batch retains the original world's warm positions");
+    auto nextTrim=std::make_shared<ProjectileTrim>(*trim); nextTrim->meshes[0].matrix[3]=20;
+    visible[1].mesh=&nextTrim->meshes[0]; cache.begin(firstOwner,visible,nextTrim);
+    expect(cache.positions(mesh)==originalPositions&&cache.positions(nextTrim->meshes[0])->at(0).x==21,"a subsequent batch refreshes only replacement positions");
+    visible.resize(1);
     firstOwner.reset();
     mesh.matrix[3]=10;
     // Deliberately reuse exactly the same RuntimeScene and Mesh addresses with a

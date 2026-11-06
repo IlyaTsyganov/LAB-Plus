@@ -10,6 +10,15 @@ internal static class LivePracticeChecks
         var location = SteamSaveLocation.Parse(remote); string token = new('a', 32); long now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         string response = $"#LABPLUS_LIVE_PRACTICE_V1\t1234\t{token}\t{now}\tarchived\t{location.Account}\tDLC1-AUTOSAVE5\tgame/dlc/e4m1_rig/e4m1_rig\tcp1\tCopied\n";
         var capture = LivePracticeResult.Parse(response) ?? throw new Exception("Valid live response rejected");
+        foreach (var (detail, expected) in new (string, bool?)[] {
+            ("fixture Steam Cloud flags: account=1, app=1.", false),
+            ("fixture Steam Cloud flags: account=1, app=0.", true),
+            ("fixture Steam Cloud flags: account=0, app=1.", true),
+            ("fixture Steam Cloud flags: account=0, app=0. More detail.", true),
+            ("fixture", null), ("Steam Cloud flags: account=-1, app=0.", null),
+            ("Steam Cloud flags: account=1, app=0.x", null),
+            ("Steam Cloud flags: account=1, app=0. Steam Cloud flags: account=1, app=1.", null)
+        }) Check((capture with { Detail = detail }).SteamCloudDisabled == expected, "Cloud state must be explicit, valid and unambiguous");
         Check(LivePracticeResult.Parse(response.Replace("DLC1-AUTOSAVE5", "GAME-AUTOSAVE0")) is null, "Main slot accepted by prototype");
         Check(LivePracticeResult.Parse(response.Replace(token, "../escape")) is null, "Capture path traversal accepted");
         Check(LivePracticeResult.Parse(response + "another row\n") is null, "Extra response data accepted");

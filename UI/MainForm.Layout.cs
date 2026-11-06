@@ -9,7 +9,7 @@ internal sealed partial class MainForm
         _distance.Minimum=20;_distance.Maximum=200;
         _distanceInput.Minimum=20;_distanceInput.Maximum=200;
         var choices=new UiStack();choices.Controls.AddRange([_outlines,_filled]);Controls.Add(choices);
-        Controls.AddRange([_viewerEnabled,_worldCollision,_triggers,_invisibleWalls,_inspector,_disabledVolumes,_volumeHistory,_distance,_distanceInput,_triggerTypes,_launchButton,_gameStatus,_desruStatus,_gameVersion,_viewerStatus,_pathValue]);
+        Controls.AddRange([_viewerEnabled,_shotCollision,_trimShotCollision,_worldCollision,_triggers,_invisibleWalls,_inspector,_disabledVolumes,_volumeHistory,_distance,_distanceInput,_triggerTypes,_launchButton,_gameStatus,_desruStatus,_gameVersion,_viewerStatus,_pathValue]);
         _triggerTypes.Click+=(_,_)=>{using var tool=new TriggerTypesForm(_settings,_settingsStore.TriggerClassesPath,SaveSettings);tool.ShowDialog(this);};
         _launchButton.Click+=(_,_)=>{if(!_preview)LaunchGame();};
     }

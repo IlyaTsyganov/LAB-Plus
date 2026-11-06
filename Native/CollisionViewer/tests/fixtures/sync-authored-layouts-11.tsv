@@ -1,0 +1,180 @@
+# Retail 1.1 reflected source / web layouts; offline schema, no fabricated getters.
+T	idAI2	86288
+F	idAI2	aiConstants	19376	2136	idAI2::idAIConstant
+F	idAI2	aiEditable	21512	1176	idAIEditable
+F	idAI2	aiVolatile	22688	8	idAIVolatile
+F	idAI2	fxActionGroupStagger	22696	8	idHandle < unsigned long long , unsigned long long , UINT64_MAX >
+F	idAI2	aiSerialize	22704	2776	idAI2::idAISerialize
+F	idAI2	damageMitigationNames	25480	24	idList < idAtomicString , TAG_IDLIST , false >
+F	idAI2	aiHealth	25504	280	idAIHealth
+F	idAI2	actionScript	25784	128	idComponentActionScript
+F	idAI2	goreComponent	25912	3904	idGoreComponent
+F	idAI2	dotComponent	29816	55800	idDOTComponent
+F	idAI2	damageScaleTableComponent	85616	24	idDamageScaleTableComponent
+F	idAI2	aiComponents	85640	248	idArray < idAI2Component * , 31 >
+F	idAI2	myPreThinkParms	85888	8	aiPreThinkJobParms_t
+F	idAI2	invulnerableDamageGroups	85896	56	idStaticList < const idDamageGroup * , 4 , false , TAG_IDLIST >
+F	idAI2	activeWeakSpots	85952	88	idStaticList < const idDamageGroup * , 8 , false , TAG_IDLIST >
+F	idAI2	invulnerableEnviromentDamage	86040	24	idList < environmentalDamageType_t , TAG_AI_UNIT , false >
+F	idAI2	startDeathSmokeFx	86064	24	idNetEvent < 15 >
+F	idAI2	contributesToLevelScoring	86088	1	bool
+F	idAI2	equipmentPullStartTime	86096	8	idTypesafeTime < long long , gameTimeUnique_t , 999960 >
+F	idAI2	actionTarget	86104	8	aiEntityProxy_t
+F	idAI2	empDiminishingReturnLevel	86112	4	int
+F	idAI2	empTimeFrozen	86120	8	idTypesafeTime < long long , gameTimeUnique_t , 999960 >
+F	idAI2	touchAI2Component	86128	8	idTouchComponent
+F	idAI2	hack_prevent_optimize	86136	4	int
+F	idAI2	goreOverride	86144	16	idAI2::goreOverride_t
+F	idAI2	botSlaveEntity	86160	24	idEntityPtr_ThreadSafe < idAnimatedEntity >
+F	idAI2	botUserCmd	86184	8	idUserCmd
+F	idAI2	fxStartReliableMessageQueue	86192	24	idList < fxStartInfo_t , TAG_IDLIST , false >
+F	idAI2	fxStopReliableMessageQueue	86216	24	idList < fxStopInfo_t , TAG_IDLIST , false >
+F	idAI2	idleFXAllowed	86240	1	bool
+F	idAI2	poolIndex	86244	4	int
+F	idAI2	isDebugEnt	86248	1	bool
+F	idAI2	meatHookEnabled	86249	1	bool
+F	idAI2	myJobs	86256	32	perAIJobs_t
+T	idAI2::idAIConstant	2136
+F	idAI2::idAIConstant	components	0	496	idArray < idAI2::idAIConstant::componentDecl_type_tuple_t , 31 >
+F	idAI2::idAIConstant	aiDeathStat	496	4	gameStat_t
+F	idAI2::idAIConstant	aiDeathCodex	504	8	idDeclCodexEntry
+F	idAI2::idAIConstant	syncMelee	512	1576	idSyncAttack
+F	idAI2::idAIConstant	positioningParms	2088	24	idList < const idDeclAIPositioningParms * , TAG_AI_UNIT , false >
+F	idAI2::idAIConstant	deadThinkDelay	2112	16	milliToGameTime_t
+F	idAI2::idAIConstant	defaultHitJoint	2128	8	idAtomicString
+T	idSyncAttack	1576
+F	idSyncAttack	working	0	1	bool
+F	idSyncAttack	possibleSyncInteractionAllocIndex	4	4	interlockedInt_t
+F	idSyncAttack	lastInstigator	8	32	idManagedClassPtr < idAnimatedEntity >
+F	idSyncAttack	lastTarget	40	32	idManagedClassPtr < idAnimatedEntity >
+F	idSyncAttack	lastSyncEntity	72	32	idManagedClassPtr < const idSyncEntity >
+F	idSyncAttack	cachedInteractions	104	264	idCircularBuffer < idSyncAttack::idCachedInteraction , 16 >
+F	idSyncAttack	interactionToExecute	368	8	idSyncAttackInteraction
+F	idSyncAttack	possibleSyncInteractions	376	24	idList < idSyncAttackInteraction * , TAG_IDLIST , false >
+F	idSyncAttack	syncMeleeMutex	400	8	idSysMutex
+F	idSyncAttack	debugInteraction	408	8	idDeclSyncInteraction
+F	idSyncAttack	disableSyncAttack	416	1	bool
+F	idSyncAttack	alwaysDoSync	424	8	idDeclSyncInteraction
+F	idSyncAttack	syncMeleeEntityDefs	432	24	idList < const idDeclEntityDef * , TAG_IDLIST , false >
+F	idSyncAttack	syncFailure	456	32	idSyncFailureParms
+F	idSyncAttack	syncGroups	488	24	idList < idSyncGroup , TAG_IDLIST , false >
+F	idSyncAttack	defaultGroup	512	8	idAtomicString
+F	idSyncAttack	randomizeSlideMoveOrder	520	1	bool
+F	idSyncAttack	aimAssistDef	528	8	idDeclAimAssist
+F	idSyncAttack	alwaysAllowChainsawGloryKill	536	1	bool
+F	idSyncAttack	alwaysAllowChainsawGloryKillWithCVar	537	1	bool
+F	idSyncAttack	msAfterAttackBeforeCanSync	540	4	int
+F	idSyncAttack	savedInstigator	544	32	idManagedClassPtr < idAnimatedEntity >
+F	idSyncAttack	savedTarget	576	32	idManagedClassPtr < idAnimatedEntity >
+F	idSyncAttack	savedValidState	608	216	validSyncState_t
+F	idSyncAttack	savedInteraction	824	8	idDeclSyncInteraction
+F	idSyncAttack	queriedGroups	832	24	idList < idStr , TAG_IDLIST , false >
+F	idSyncAttack	mpDamageDecl	856	8	idDeclDamage
+F	idSyncAttack	ignoreOutlineDistanceCheck	864	1	bool
+F	idSyncAttack	showOutlineDistance	868	4	float
+F	idSyncAttack	neverSeeDefaultColor	872	1	bool
+F	idSyncAttack	thirdPersonRemoteInstigatorStatusEffect	880	8	idDeclStatusEffect
+F	idSyncAttack	currentSyncEntity	888	32	idManagedClassPtr < idSyncEntity >
+F	idSyncAttack	currentSyncLight	920	32	idManagedClassPtr < idLight >
+F	idSyncAttack	currentSyncLightUnlinkTime	952	8	idTypesafeTime < long long , gameTimeUnique_t , 999960 >
+F	idSyncAttack	postSyncInvulnerabilityEndTime	960	8	idTypesafeTime < long long , gameTimeUnique_t , 999960 >
+F	idSyncAttack	fxHandle	968	8	idHandle < unsigned long long , unsigned long long , UINT64_MAX >
+F	idSyncAttack	fxHandleInit	976	1	bool
+F	idSyncAttack	fxDecl	984	8	idDeclFX
+F	idSyncAttack	traceProcessor	992	144	idSyncAttack_TraceValidation
+F	idSyncAttack	attackHistory	1136	72	idSyncAttack_History
+F	idSyncAttack	lastRequestId	1208	4	int
+F	idSyncAttack	useLights	1212	1	bool
+F	idSyncAttack	chainsawMinigame	1216	12	idSyncAttack::chainsawMinigame_t
+F	idSyncAttack	defaultLightParms	1232	112	idSyncAttack::lightingParms_t
+F	idSyncAttack	soundParms	1344	56	idSyncAttack::soundParms_t
+F	idSyncAttack	unitTestParms	1400	120	idSyncAttack::unitTestParms_t
+F	idSyncAttack	queuedUnitTestData	1520	24	idList < idSyncAttack::unitTestQueueData_t , TAG_IDLIST , false >
+F	idSyncAttack	syncInteractionData	1544	24	idList < const idDeclSyncInteraction * , TAG_IDLIST , false >
+F	idSyncAttack	hasAnyMeshKitGroups	1568	1	bool
+T	idDeclSyncInteraction	920
+F	idDeclSyncInteraction	syncClass	144	8	idTypeInfoPtr < idSyncAttackInteraction >
+F	idDeclSyncInteraction	syncInputs	152	8	idArray < playerInput_t , 2 >
+F	idDeclSyncInteraction	syncFlags	160	4	syncFlags_t
+F	idDeclSyncInteraction	syncFilter	164	4	syncFilter_t
+F	idDeclSyncInteraction	syncType	168	4	syncType_t
+F	idDeclSyncInteraction	syncIsKill	172	1	bool
+F	idDeclSyncInteraction	syncNoVisuals	173	1	bool
+F	idDeclSyncInteraction	meshKitGroup	176	48	idStr
+F	idDeclSyncInteraction	mpDamageDeclOverride	224	8	idDeclDamage
+F	idDeclSyncInteraction	syncStats	232	24	idList < gameStat_t , TAG_IDLIST , false >
+F	idDeclSyncInteraction	syncCodex	256	8	idDeclCodexEntry
+F	idDeclSyncInteraction	instigatorCentric	264	1	bool
+F	idDeclSyncInteraction	instigatorCentricSwappedPos	265	1	bool
+F	idDeclSyncInteraction	instigatorCentricStairHack	266	1	bool
+F	idDeclSyncInteraction	instigatorCentricHackNoTest	267	1	bool
+F	idDeclSyncInteraction	recalculateSyncEntityPos	268	1	bool
+F	idDeclSyncInteraction	syncStageTransition	272	48	idStr
+F	idDeclSyncInteraction	bypassPlayerPhysics	320	1	bool
+F	idDeclSyncInteraction	bypassSounds	321	1	bool
+F	idDeclSyncInteraction	requiresHeightCheck	322	1	bool
+F	idDeclSyncInteraction	clockwiseDegreeRotation	324	4	float
+F	idDeclSyncInteraction	defaultSyncPriority	328	4	float
+F	idDeclSyncInteraction	isServerInitiated	332	1	bool
+F	idDeclSyncInteraction	markInstigatorOffLimits	333	1	bool
+F	idDeclSyncInteraction	maxAnimRate	336	4	float
+F	idDeclSyncInteraction	hideHandsSelect	340	4	idHandsGenericHideAnimSelect
+F	idDeclSyncInteraction	syncUniqueStat	344	4	gameStat_t
+F	idDeclSyncInteraction	visuals	352	88	idDeclSyncInteraction::visualData_t
+F	idDeclSyncInteraction	animations	440	32	idDeclSyncInteraction::animationData_t
+F	idDeclSyncInteraction	validation	472	184	idDeclSyncInteraction::validationRules_t
+F	idDeclSyncInteraction	requiresAmmo	656	16	idDeclSyncInteraction::ammoRequirement_t
+F	idDeclSyncInteraction	playerRequirements	672	120	idDeclSyncInteraction::playerRequirements_t
+F	idDeclSyncInteraction	aiRequirements	792	112	idDeclSyncInteraction::aiRequirements_t
+F	idDeclSyncInteraction	autoDof	904	16	idDeclSyncInteraction::autoDOF_t
+T	idDeclSyncInteraction::animationData_t	32
+F	idDeclSyncInteraction::animationData_t	anims	0	24	idList < syncAnimationInfo_t , TAG_IDLIST , false >
+F	idDeclSyncInteraction::animationData_t	chosenBy	24	4	syncAnimChoice_t
+F	idDeclSyncInteraction::animationData_t	debug_forceAnimIndex	28	4	int
+T	syncAnimationInfo_t	48
+F	syncAnimationInfo_t	subwebName	0	8	idAtomicString
+F	syncAnimationInfo_t	stateName	8	8	idAtomicString
+F	syncAnimationInfo_t	slomotionTable	16	8	idDeclTable
+F	syncAnimationInfo_t	alwaysSlowMo	24	1	bool
+F	syncAnimationInfo_t	desiredHeightDelta	28	4	float
+F	syncAnimationInfo_t	animWeb	32	8	idDeclAnimWeb
+F	syncAnimationInfo_t	animNode	40	8	idDeclAnimWebNode
+T	idDeclAnimWeb	472
+F	idDeclAnimWeb	nodes	120	24	idList < idDeclAnimWebNode * , TAG_DECL_ANIMWEB , false >
+F	idDeclAnimWeb	subWebs	144	24	idList < idDeclAnimWeb::idSubWebInfo , TAG_DECL_ANIMWEB , false >
+F	idDeclAnimWeb	subWebNameHashes	168	24	idList < unsigned int , TAG_DECL_ANIMWEB , false >
+F	idDeclAnimWeb	states	192	24	idList < idAtomicString , TAG_DECL_ANIMWEB , false >
+F	idDeclAnimWeb	stateNameHashes	216	24	idList < unsigned int , TAG_DECL_ANIMWEB , false >
+F	idDeclAnimWeb	models	240	24	idList < idDeclAnimWeb::idModelAnimInfo , TAG_DECL_ANIMWEB , false >
+F	idDeclAnimWeb	edges	264	24	idList < idDeclAnimWebEdge , TAG_DECL_ANIMWEB , false >
+F	idDeclAnimWeb	edgeCache	288	24	idList < idDeclAnimWeb::idEdgeCache , TAG_DECL_ANIMWEB , false >
+F	idDeclAnimWeb	nodeCache	312	24	idList < idDeclAnimWeb::idNodeCache , TAG_DECL_ANIMWEB , false >
+F	idDeclAnimWeb	scalars	336	24	idList < idAnimWebScalar , TAG_DECL_ANIMWEB , false >
+F	idDeclAnimWeb	layers	360	24	idList < idDeclAnimWeb::idLayerInfo , TAG_DECL_ANIMWEB , false >
+F	idDeclAnimWeb	edgeIndexCache	384	8	idIndex < short , idAnimWeb::invalidEdgeIndex_t , - 1 >
+F	idDeclAnimWeb	nodeAllocator	392	8	idMD6Allocator
+F	idDeclAnimWeb	edgeIndexCacheSize	400	4	unsigned int
+F	idDeclAnimWeb	changeId	404	4	int
+F	idDeclAnimWeb	expandSubWebLinks	408	1	bool
+F	idDeclAnimWeb	settings	416	56	idDeclAnimWeb::idSettings
+T	idDeclAnimWeb::idSubWebInfo	56
+F	idDeclAnimWeb::idSubWebInfo	nodes	0	24	idList < idIndex < idAnimWeb::NodeIndexType , idAnimWeb::invalidNodeIndex_t > , TAG_DECL_ANIMWEB , false >
+F	idDeclAnimWeb::idSubWebInfo	name	24	8	idAtomicString
+F	idDeclAnimWeb::idSubWebInfo	color	32	16	idColor
+F	idDeclAnimWeb::idSubWebInfo	isHub	48	1	bool
+F	idDeclAnimWeb::idSubWebInfo	isVisible	49	1	bool
+F	idDeclAnimWeb::idSubWebInfo	used	50	1	bool
+T	idDeclAnimWebNode	176
+F	idDeclAnimWebNode	exportHackPath	0	48	idStr
+F	idDeclAnimWebNode	nodeIndex	48	2	idIndex < short , idAnimWeb::invalidNodeIndex_t , - 1 >
+F	idDeclAnimWebNode	subWebIndex	50	2	idIndex < short , idAnimWeb::invalidSubWebIndex_t , - 1 >
+F	idDeclAnimWebNode	stateIndex	52	2	idIndex < short , idAnimWeb::invalidStateIndex_t , - 1 >
+F	idDeclAnimWebNode	animDelta	54	1	unsigned char
+F	idDeclAnimWebNode	transition	56	4	idDeclAnimWebNode::nodeTransition_t
+F	idDeclAnimWebNode	customFlags	64	8	animWebNodeCustomFlag_t
+F	idDeclAnimWebNode	debugFlags	72	4	animWebNodeDebugFlag_t
+F	idDeclAnimWebNode	metaData	80	8	idMetaDataSetBase
+F	idDeclAnimWebNode	edges	88	24	idList < idIndex < idAnimWeb::EdgeIndexType , idAnimWeb::invalidEdgeIndex_t > , TAG_DECL_ANIMWEB , false >
+F	idDeclAnimWebNode	modelInfo	112	24	idList < idAnimWebModelInfo , TAG_DECL_ANIMWEB , false >
+F	idDeclAnimWebNode	blendTrees	136	24	idList < idDeclAnimWebBlendTree , TAG_DECL_ANIMWEB , false >
+F	idDeclAnimWebNode	settings	160	12	idDeclAnimWebNode::toolSettings_t

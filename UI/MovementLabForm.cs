@@ -13,6 +13,8 @@ internal sealed class MovementLabForm : LabPlusForm
     private readonly MotionStore _store;
     private readonly UiCheckList _attempts = new() { Dock = DockStyle.Fill, CheckOnClick = true, IntegralHeight = false, HorizontalScrollbar = true };
     private readonly UiToggle _collider = new() { Text = "Show player collider", AutoSize = true };
+    private readonly UiToggle _positionHud = new() { Text = "Show coordinates in game", AutoSize = true };
+    private readonly UiToggle _anglesHud = new() { Text = "Show angles in game", AutoSize = true };
     private readonly UiToggle _paths = new() { Text = "Show compared paths in game", AutoSize = true };
     private readonly UiToggle _follow = new() { Text = "Follow aimed volume", AutoSize = true };
     private readonly UiToggle _latest = new() { Text = "Latest sample", AutoSize = true };
@@ -46,16 +48,19 @@ internal sealed class MovementLabForm : LabPlusForm
         BackColor = Color.FromArgb(35, 35, 35); ForeColor = Color.Gainsboro; Font = LabPlusTheme.Ui(10f);
         var layout = new UiGrid { Dock = DockStyle.Fill, Padding = new Padding(12), ColumnCount = 1, RowCount = 8 };
         layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        foreach (float height in new[] { 35f, 38f, 110f }) layout.RowStyles.Add(new RowStyle(SizeType.Absolute, height));
+        foreach (float height in new[] { 70f, 38f, 110f }) layout.RowStyles.Add(new RowStyle(SizeType.Absolute, height));
         layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100)); layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 40));
         layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 150)); layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 32)); layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 64));
         Controls.Add(layout);
-        var switches = new UiToolbar { Dock = DockStyle.Fill, WrapContents = false, Margin = Padding.Empty };
+        var switches = new UiToolbar { Dock = DockStyle.Fill, WrapContents = true, Margin = Padding.Empty };
         _collider.Checked = settings.ShowPlayerCollider; _paths.Checked = settings.ShowMotionPaths; _follow.Checked = settings.MotionFollowTarget;
-        switches.Controls.AddRange([_collider, _paths, _follow]); layout.Controls.Add(switches, 0, 0);
+        _positionHud.Checked = settings.ShowPlayerPositionHud; _anglesHud.Checked = settings.ShowPlayerAnglesHud;
+        switches.Controls.AddRange([_collider, _paths, _follow, _positionHud, _anglesHud]); layout.Controls.Add(switches, 0, 0);
         _collider.CheckedChanged += (_, _) => { if (!_loading) { _settings.ShowPlayerCollider = _collider.Checked; SaveSwitches(); } };
         _paths.CheckedChanged += (_, _) => { if (!_loading) { _settings.ShowMotionPaths = _paths.Checked; SaveSwitches(); } };
         _follow.CheckedChanged += (_, _) => { if (!_loading) { _settings.MotionFollowTarget = _follow.Checked; SaveSwitches(); } };
+        _positionHud.CheckedChanged += (_, _) => { if (!_loading) { _settings.ShowPlayerPositionHud = _positionHud.Checked; SaveSwitches(); } };
+        _anglesHud.CheckedChanged += (_, _) => { if (!_loading) { _settings.ShowPlayerAnglesHud = _anglesHud.Checked; SaveSwitches(); } };
         var actions = new UiToolbar { Dock = DockStyle.Fill, WrapContents = false, Margin = Padding.Empty };
         actions.Controls.Add(_name); actions.Controls.Add(_record); _record.Click += (_, _) => { if (_active is null) StartAttempt(); else StopAttempt("Attempt saved."); };
         actions.Controls.Add(new UiText { Text = "Result:", AutoSize = true, Margin = new Padding(4, 6, 0, 0) });
@@ -154,7 +159,7 @@ internal sealed class MovementLabForm : LabPlusForm
         if (_busy || IsDisposed) return; _busy = true;
         try
         {
-            _loading = true; _collider.Checked = _settings.ShowPlayerCollider; _paths.Checked = _settings.ShowMotionPaths; _follow.Checked = _settings.MotionFollowTarget; _loading = false;
+            _loading = true; _collider.Checked = _settings.ShowPlayerCollider; _paths.Checked = _settings.ShowMotionPaths; _follow.Checked = _settings.MotionFollowTarget; _positionHud.Checked = _settings.ShowPlayerPositionHud; _anglesHud.Checked = _settings.ShowPlayerAnglesHud; _loading = false;
             int process = _gameProcess();
             if (process != _process) { StopAttempt("Game process changed; attempt ended."); _process = process; _snapshot = null; _settings.MotionProcess = process; _save(); }
             if (process <= 0) { _telemetry.Text = "The selected game is not running. Saved attempts remain available below."; UpdateComparison(); return; }

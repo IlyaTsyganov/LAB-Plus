@@ -12,7 +12,7 @@ static VolumeStyle volumeStyle(const Mesh& mesh,bool selected,ULONGLONG now) {
     VolumeStyle style;
     // Settings order: World=0, Trigger=1, Wall=2, Inspector=3.
     // Mesh kinds use Trigger=0 and World=1, so their indexes are reversed.
-    const size_t appearanceIndex=selected?3:(mesh.kind==1?0:(mesh.kind==0?1:2));
+    const size_t appearanceIndex=selected?3:(mesh.kind==3?4:mesh.kind==1?0:(mesh.kind==0?1:2));
     const auto& appearance=volumeAppearances[appearanceIndex];
     const auto& rgb=appearance.color;
     style.fill={rgb[0],rgb[1],rgb[2],appearance.opacity};

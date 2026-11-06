@@ -4,15 +4,16 @@ struct VolumeAppearance {
     std::array<float,3> color;
     float opacity;
 };
-static std::array<VolumeAppearance,4> volumeAppearances{{
+static std::array<VolumeAppearance,5> volumeAppearances{{
     {{38.f/255,204.f/255,1.f},.09f},
     {{64.f/255,242.f/255,31.f/255},.09f},
     {{1.f,.45f,.05f},.09f},
-    {{1.f,217.f/255,26.f/255},.20f}
+    {{1.f,217.f/255,26.f/255},.20f},
+    {{.8f,.35f,1.f},.09f}
 }};
 static void readVolumeAppearances(const std::wstring& path) {
-    const wchar_t* colors[]={L"WorldColor",L"TriggerColor",L"WallColor",L"InspectorColor"};
-    const wchar_t* opacities[]={L"WorldFillOpacity",L"TriggerFillOpacity",L"WallFillOpacity",L"InspectorFillOpacity"};
+    const wchar_t* colors[]={L"WorldColor",L"TriggerColor",L"WallColor",L"InspectorColor",L"ShotColor"};
+    const wchar_t* opacities[]={L"WorldFillOpacity",L"TriggerFillOpacity",L"WallFillOpacity",L"InspectorFillOpacity",L"ShotFillOpacity"};
     for(size_t i=0;i<volumeAppearances.size();++i) {
         wchar_t value[32]{};
         GetPrivateProfileStringW(L"Viewer",colors[i],L"",value,32,path.c_str());

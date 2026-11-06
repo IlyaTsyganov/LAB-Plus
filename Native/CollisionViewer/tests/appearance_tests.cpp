@@ -1,6 +1,9 @@
 #include "../src/vulkan_layer.cpp"
 static void check(bool condition,const char* text){if(!condition){fprintf(stderr,"FAIL: %s\n",text);exit(1);}}
 int main(){
+    Mesh shot{};shot.kind=3;
+    auto purple=volumeStyle(shot,false,0);
+    check(purple.fill[0]==.8f&&purple.fill[1]==.35f&&purple.fill[2]==1.f&&purple.fill[3]==.09f,"shot-only default is purple at existing fill opacity");
     wchar_t temporaryFolder[MAX_PATH]{},file[MAX_PATH]{};
     check(GetTempPathW(MAX_PATH,temporaryFolder)&&GetTempFileNameW(temporaryFolder,L"lpa",0,file),"temporary settings");
     const wchar_t* colors[]={L"WorldColor",L"TriggerColor",L"WallColor",L"InspectorColor"};

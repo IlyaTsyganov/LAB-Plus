@@ -86,7 +86,7 @@ int main() {
     hud.update(&snapshot,true,true,1300); expect(hudVisibilityRequests==1,"HUD visibility cvar is requested once per visible interval");
     hud.update(&snapshot,true,true,4000); expect(hudRows.size()==1&&hudRows[280]=="Inspector text","stale encounter block consumes no stack rows");
     hud.update(&snapshot,false,true,4100); expect(hudRows.size()==1&&hudRows[280]=="Inspector text","hiding encounters removes only their own native HUD rows");
-    expect(std::size(labCvarDefinitions)==14,"state preferences including collider, surface HUD and attempt overlays are native cvars");
+    expect(std::size(labCvarDefinitions)==15,"state preferences including collider, surface HUD and attempt overlays are native cvars");
     std::array<unsigned char,96> variable{},data{}; const char* cvarName="labplus_encounters_show"; const char* value="1";
     put(variable.data(),0,reinterpret_cast<uintptr_t>(data.data())); put(data.data(),40,reinterpret_cast<uintptr_t>(cvarName));
     put(data.data(),8,int32_t(1)); put(data.data(),0,reinterpret_cast<uintptr_t>(value)); int numeric=0; std::string string;

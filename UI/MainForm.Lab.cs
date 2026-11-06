@@ -21,7 +21,7 @@ internal sealed partial class MainForm
             try { BeginInvoke(() => { if (!_labClosing && !IsDisposed) Workspace?.Publish(); }); }
             catch (InvalidOperationException) { /* The native host has finished closing. */ }
         };
-        FormClosing += (_, _) => _labClosing = true;
+        FormClosing += (_, _) => { _labClosing = true; _launchCancellation.Cancel(); };
         FormClosed += (_, _) =>
         {
             _labClosing = true;
@@ -69,7 +69,8 @@ internal sealed partial class MainForm
         if (!_settings.CollisionViewerEnabled) return;
         Configuration.VolumeAppearance? appearance = message.GetProperty("name").GetString() switch
         {
-            "world" => _settings.WorldAppearance,
+            "shots" => _settings.ShotAppearance,
+                "world" => _settings.WorldAppearance,
             "triggers" => _settings.TriggerAppearance,
             "walls" => _settings.WallAppearance,
             "inspector" => _settings.InspectorAppearance,

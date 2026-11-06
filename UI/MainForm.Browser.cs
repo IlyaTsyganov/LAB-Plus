@@ -7,13 +7,13 @@ internal sealed partial class MainForm
     internal object WorkspaceSnapshot(ScreenStateAdapter projection) => new
     {
         appVersion = Updates.AppVersion.Display,
-        enabled = _viewerEnabled.Checked, world = _worldCollision.Checked, triggers = _triggers.Checked, walls = _invisibleWalls.Checked,
+        enabled = _viewerEnabled.Checked, shots = _shotCollision.Checked, trimShots = _trimShotCollision.Checked, world = _worldCollision.Checked, triggers = _triggers.Checked, walls = _invisibleWalls.Checked,
         inspector = _inspector.Checked, disabled = _disabledVolumes.Checked, history = _volumeHistory.Checked,
         style = _outlines.Checked ? "Outlines" : "Filled", distance = (int)_distanceInput.Value,
         gamePath = _settings.GameExecutablePath, gameVersion = _gameVersion.Text.Replace("Version: ", "", StringComparison.Ordinal),
         gameStatus = _gameStatus.Text, viewerStatus = _viewerStatus.Text, desruStatus = _desruStatus.Text,
-        canLaunch = _launchButton.Enabled, preview = _preview,
-        appearances = new { world = _settings.WorldAppearance, triggers = _settings.TriggerAppearance, walls = _settings.WallAppearance, inspector = _settings.InspectorAppearance },
+        canLaunch = _launchButton.Enabled, launchStatus = _launchStatus, preview = _preview,
+        appearances = new { shots = _settings.ShotAppearance, world = _settings.WorldAppearance, triggers = _settings.TriggerAppearance, walls = _settings.WallAppearance, inspector = _settings.InspectorAppearance },
         lab = _hudStore.Snapshot(), labFeatures = _hudMonitor.Features, labStatus = _hudMonitor.Status,
         saves = _practiceSaves is null ? null : projection.Snapshot(_practiceSaves.Controls.Cast<UiNode>())
     };
@@ -43,7 +43,7 @@ internal sealed partial class MainForm
                 else if (name == "style") { if (message.GetProperty("value").GetString() == "Outlines") _outlines.Checked = true; else _filled.Checked = true; }
                 else
                 {
-                    UiToggle? control = name switch { "enabled" => _viewerEnabled, "world" => _worldCollision, "triggers" => _triggers, "walls" => _invisibleWalls, "inspector" => _inspector, "disabled" => _disabledVolumes, "history" => _volumeHistory, _ => null };
+                    UiToggle? control = name switch { "enabled" => _viewerEnabled, "shots" => _shotCollision, "trimShots" => _trimShotCollision, "world" => _worldCollision, "triggers" => _triggers, "walls" => _invisibleWalls, "inspector" => _inspector, "disabled" => _disabledVolumes, "history" => _volumeHistory, _ => null };
                     if (control is not null) control.Checked = message.GetProperty("value").GetBoolean();
                 }
                 break;

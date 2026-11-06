@@ -35,10 +35,16 @@ if (args.Length == 2 && args[0] == "--archive-layout")
     return 0;
 }
 
+if (args.Length is 1 or 2 && args[0] == "--steam-cloud-status")
+{
+    var cloud = SteamCloudSettings.Read(args.Length == 2 ? args[1] : "");
+    Console.WriteLine($"Steam Cloud: {(cloud.Disabled == true ? "disabled" : cloud.Disabled == false ? "enabled" : "unknown")}. {cloud.Detail}");
+    return cloud.Disabled is null ? 2 : 0;
+}
 if (args.Length == 2 && args[0] == "--numbers-snapshot")
 {
     var snapshot = InvisibleNumbersSnapshot.Parse(File.ReadAllLines(args[1]));
-    Check(snapshot is { Ready: true } && snapshot.Timers.Count >= 3 && snapshot.Techs.Count == 2, "Actual numbers snapshot rejected or incomplete.");
+    Check(snapshot is { Ready: true } && snapshot.Timers.Count >= 3 && snapshot.Techs.Count >= 2, "Actual numbers snapshot rejected or incomplete.");
     Console.WriteLine($"PASS: actual native numbers protocol accepted: {snapshot!.Enemies.Count} enemy rows, {snapshot.Timers.Count} timers, {snapshot.Techs.Count} technique states; {snapshot.Map}.");
     return 0;
 }
@@ -258,6 +264,14 @@ try
     Check(LabCommands.Apply(researchSettings, ["labplus_encounters", "1"], 1234, 102) && researchSettings.ShowActiveEncountersHud, "Encounter HUD value did not reach shared UI settings");
     store.Save(researchSettings);
     Check(File.ReadAllText(store.ViewerSettingsPath).Contains("ShowActiveEncountersHud=1"), "Encounter HUD setting did not reach the native layer");
+    Check(!new LabPlusSettings().ShowShotCollision && new LabPlusSettings().ShotAppearance.Color == "#cc59ff", "Shot collision defaults preserve old visibility and use purple");
+    Check(LabCommands.Apply(researchSettings, ["labplus_shots", "1"], 1234, 102), "Shot-only console toggle rejected");
+    researchSettings.ShotAppearance.Color = "#aabbcc"; researchSettings.ShotAppearance.FillOpacity = 37; store.Save(researchSettings);
+    Check(store.Load().ShowShotCollision && File.ReadAllText(store.ViewerSettingsPath).Contains("ShotColor=#aabbcc") && File.ReadAllText(store.ViewerSettingsPath).Contains("ShotFillOpacity=37"), "Shot visibility and appearance must persist through UI/native settings");
+    Check(LabCommands.Apply(researchSettings, ["labplus_position", "1"], 1234, 102) && LabCommands.Apply(researchSettings, ["labplus_angles", "1"], 1234, 102), "Player pose settings rejected");
+    store.Save(researchSettings);
+    Check(store.Load().ShowPlayerPositionHud && store.Load().ShowPlayerAnglesHud && File.ReadAllText(store.ViewerSettingsPath).Contains("ShowPlayerPositionHud=1") && File.ReadAllText(store.ViewerSettingsPath).Contains("ShowPlayerAnglesHud=1"), "Player pose HUD toggles must persist and reach native settings");
+    Check(new LabPlusSettings { ShowPlayerPositionHud = true }.NeedsNativeLayer && new LabPlusSettings { ShowPlayerAnglesHud = true }.NeedsNativeLayer, "Pose HUD must work with Viewer disabled");
     long encounterTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
     string[] encounterLines = [$"#LABPLUS_ENCOUNTERS_V1\t1234\t{encounterTime}\tlive\tgame/dlc/e4m1_rig/e4m1_rig\t1",
         "id\tgeneration\tmanager\tlabel\tthinkFlags\tenabled\tpaused\tspawnPaused\twaitingExit\tscript\tcommands",
@@ -378,6 +392,9 @@ try
     SaveLibraryChecks.Run(temporary);
     LatestSaveChecks.Run(temporary);
     FirewallSourceChecks.Run(temporary);
+    SteamStartupChecks.Run(temporary);
+    SteamCloudSettingsChecks.Run(temporary);
+    SaveFolderPatternChecks.Run(temporary);
     return 0;
 }
 finally

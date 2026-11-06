@@ -16,6 +16,19 @@ public sealed record LivePracticeResult(int Process, string Token, long Captured
             || (legacy ? h[6] != "DLC1-AUTOSAVE5" || h[4] == "ready" : !PracticeSaveVault.ValidSlot(h[6]) && !(h[6] == "*" && h[4] == "error")) || h[7].Length > 512 || h[8].Length > 1023 || h[9].Length > 2048 || (current && h[10].Length is < 1 or > 64) || h.Any(s => s.Any(char.IsControl))) return null;
         return new(process, h[2], epoch, h[4], h[5], h[6], h[7], h[8], h[9], current ? h[10] : "6.66 Rev 3");
     }
+    public bool? SteamCloudDisabled
+    {
+        get
+        {
+            const string marker = "Steam Cloud flags: account=";
+            int at = Detail.IndexOf(marker, StringComparison.Ordinal);
+            if (at < 0 || Detail.IndexOf(marker, at + marker.Length, StringComparison.Ordinal) >= 0) return null;
+            ReadOnlySpan<char> flags = Detail.AsSpan(at + marker.Length);
+            if (flags.Length < 9 || flags[0] is not ('0' or '1') || !flags.Slice(1, 6).SequenceEqual(", app=")
+                || flags[7] is not ('0' or '1') || flags[8] != '.' || flags.Length > 9 && flags[9] != ' ') return null;
+            return flags[0] == '0' || flags[7] == '0';
+        }
+    }
     public string CaptureFolder(string directory)
     {
         if (Phase != "archived" || !LevelStateSnapshot.ValidToken(Token) || Process <= 0) throw new IOException("Not a completed live checkpoint capture.");

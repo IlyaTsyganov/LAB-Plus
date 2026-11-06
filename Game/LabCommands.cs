@@ -35,6 +35,7 @@ public static class LabCommands
             case "labplus_viewer": settings.CollisionViewerEnabled = value; break;
             case "labplus_triggers": settings.ShowTriggers = value; break;
             case "labplus_collision": settings.ShowWorldCollision = value; break;
+            case "labplus_shots": settings.ShowShotCollision = value; break;
             case "labplus_walls": settings.ShowInvisibleWalls = value; break;
             case "labplus_inspector": settings.InspectVolumes = value; break;
             case "labplus_disabled": settings.ShowDisabledVolumes = value; break;
@@ -47,6 +48,8 @@ public static class LabCommands
             case "labplus_fill": settings.Style = value ? RenderStyle.Filled : RenderStyle.Outlines; break;
             case "labplus_path": settings.ShowResearchPath = value; break;
             case "labplus_player": settings.ShowPlayerCollider = value; settings.MotionProcess = gameProcess; break;
+            case "labplus_position": settings.ShowPlayerPositionHud = value; break;
+            case "labplus_angles": settings.ShowPlayerAnglesHud = value; break;
             case "labplus_surface": settings.ShowSupportHud = value; settings.MotionProcess = gameProcess; break;
             case "labplus_attempts": settings.ShowMotionPaths = value; settings.MotionProcess = gameProcess; break;
             case "labplus_record": settings.RecordResearch = value; settings.ResearchProcess = gameProcess; break;

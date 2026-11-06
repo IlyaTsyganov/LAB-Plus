@@ -16,6 +16,8 @@ struct InvisibleNumbersSnapshot {
     std::vector<InvisibleEnemyRow> enemies,barEnemies;
     std::vector<InvisibleTimerRow> timers;
     std::vector<InvisibleTechRow> techs;
+    int syncAction=-1;std::string syncTarget,syncAutomaticAnimation;std::vector<std::string> syncAnimations;
+    std::vector<SyncAnimationDisplayHint> syncHints;
 };
 static InvisibleNumbersSnapshot captureInvisibleNumbers(const WallMemory&,uintptr_t,const GameProfile&,const LevelIdentity&,const GraphLookup&,unsigned features=7);
 static bool numbersRequestFresh(const std::filesystem::path& directory,uint64_t now) {
@@ -69,10 +71,16 @@ static bool writeInvisibleNumbers(const InvisibleNumbersSnapshot& snapshot,const
             if(std::isfinite(row.maximum)&&row.maximum>0) output<<row.maximum; else output<<'?'; output<<'\n';
         }
         for(const auto& row:snapshot.techs) output<<"S\t"<<row.key<<'\t'<<cleanNumberLabel(row.label)<<'\t'<<row.state<<'\t'<<cleanNumberLabel(row.detail)<<'\n';
+        if(snapshot.syncAction>=0){output<<"P\t"<<snapshot.syncAction<<'\t'<<snapshot.syncTarget<<'\t'<<cleanNumberLabel(snapshot.syncAutomaticAnimation)<<'\n';
+            for(const auto& name:snapshot.syncAnimations)output<<"A\t"<<cleanNumberLabel(name)<<'\n';
+            for(const auto& hint:snapshot.syncHints)output<<"H\t"<<cleanNumberLabel(hint.animation)<<'\t'<<cleanNumberLabel(hint.enemy)<<'\t'<<cleanNumberLabel(hint.aim)<<'\n';}
         output.close(); return bool(output)&&MoveFileExW(temporary.c_str(),path.c_str(),MOVEFILE_REPLACE_EXISTING)!=0;
     } catch(...) { return false; }
 }
+#include "player_pose_hud.h"
 class InvisibleNumbersBridge {
+    PlayerPoseHud poseHud;
+    SyncTargetHud syncHud;
     const MeathookHudApi* api=nullptr;
     const GameProfile* profile=nullptr;
     std::mutex exchange;
@@ -86,7 +94,7 @@ class InvisibleNumbersBridge {
     static void callback(void* self) { static_cast<InvisibleNumbersBridge*>(self)->onFrame(); }
     void clearHud() { debugHudStack().clear(DebugHudBlock::Enemies); debugHudStack().clear(DebugHudBlock::Timers); debugHudStack().clear(DebugHudBlock::Techs); hudRequested=false; rendered.reset(); }
     void onFrame() {
-        if(!labAppAvailable()) { wanted=false; clearHud(); return; }
+        if(!labAppAvailable()) { wanted=false; clearHud(); poseHud.clear(); syncHud.clear(); return; }
         frameReady=true;
         for(unsigned i=0;i<4;++i) {
             std::string type;
@@ -94,6 +102,18 @@ class InvisibleNumbersBridge {
             auto schema=std::make_shared<const GraphType>(readGraphType(WallMemory{},reinterpret_cast<uintptr_t>(api->findClass(type.c_str())),type));
             std::lock_guard<std::mutex> lock(exchange); schemas[type]=std::move(schema);
         }
+        poseHud.frame(api,profile);
+        if(showSyncTarget.load()) {
+            std::unordered_map<std::string,std::shared_ptr<const GraphType>> copied;
+            { std::lock_guard<std::mutex> lock(exchange); copied=schemas; }
+            GraphLookup lookup=[&](const std::string& type)->const GraphType& {
+                const auto found=copied.find(type);if(found!=copied.end())return *found->second;
+                std::lock_guard<std::mutex> lock(exchange);
+                if(std::find(requested.begin(),requested.end(),type)==requested.end())requested.push_back(type);
+                static const GraphType empty;return empty;
+            };
+            syncHud.frame(api,profile,lookup);
+        } else syncHud.clear();
         bool enemies=showEnemyHealthHud.load(),timers=showGameTimersHud.load(),techs=showSpeedrunTechsHud.load();
         auto now=encounterEpochMillis();
         // Request-file I/O is confined to the worker.
@@ -166,6 +186,15 @@ class InvisibleNumbersBridge {
                     }
                 }
             } catch(...) { value.phase="read_error"; value.enemies.clear(); value.barEnemies.clear(); value.timers.clear(); value.techs.clear(); }
+            if(window&&showSyncTarget.load()) {
+                const auto preview=std::atomic_load(&syncTargetFrame);
+                if(preview&&preview->phase=="ready"&&preview->level==value.level&&GetTickCount64()-preview->captured<=100&&preview->action==syncTargetAction.load()){
+                    value.syncAction=preview->action;value.syncTarget=std::to_string(preview->entity.id)+":"+std::to_string(preview->entity.generation);
+                    value.syncAnimations=syncAnimationChoices(*preview);
+                    value.syncAutomaticAnimation=preview->automaticAnimation;
+                    value.syncHints=syncAnimationDisplayHints(*preview);
+                }
+            }
             { std::lock_guard<std::mutex> lock(exchange); latest=std::make_shared<const InvisibleNumbersSnapshot>(value); }
             writeInvisibleNumbers(value,directory);
         }

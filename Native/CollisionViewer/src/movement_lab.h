@@ -232,7 +232,7 @@ static void appendMovementVertices(const GameCamera& camera,std::vector<Vertex>&
     appendMovementFrame(camera,output,player,overlay,showPlayerCollider,showMotionPaths,runtimeLevel.name,profile?profile->name:"");
 }
 class SupportPlaneHud {
-    bool visible=false,requested=false;
+    bool visible=false,requested=false,lastFresh=false;
     ULONGLONG lastFormat=0;
     std::array<std::string,6> previous;
     DebugHudStack localLayout;
@@ -245,18 +245,22 @@ public:
     void update(const MeathookHudApi& api,const PlayerMotion* player,bool wanted,ULONGLONG now) {
         ++callbacks;
         if(!api.executeCommand||!api.addText||!api.removeText) return;
-        if(!wanted||!player||!player->valid||now-player->tick>=250) {
+        if(!wanted) {
             state=0;
             layout->clear(DebugHudBlock::SupportPlane);
-            visible=requested=false; previous={}; return;
+            visible=requested=lastFresh=false; previous={}; return;
         }
-        if(visible&&now-lastFormat<100) return;
-        lastFormat=now;
+        // A missing/torn/late sample must not remove this block or replay
+        // the old surface angles. Keep its six rows until the option is off
+        // or gameplay/console gates explicitly hide it.
+        const bool fresh=player&&player->valid&&now>=player->tick&&now-player->tick<250;
+        if(visible&&now-lastFormat<100&&fresh==lastFresh) return;
+        lastFormat=now; lastFresh=fresh;
         if(!requested) { api.executeCommand("com_debugHUD 1"); requested=true; ++visibilityRequests; }
         state=1;
-        std::array<std::string,6> lines{"LAB Plus | Support plane","n: No current ground-trace contact",
+        std::array<std::string,6> lines{"LAB Plus | Support plane","n: -",
             "Slope: -","XY tangent: -","XZ tangent: -","YZ tangent: -"};
-        if(!player->contact) state=1;
+        if(!fresh||!player->contact) state=1;
         else {
             state=2;
             char text[160]; sprintf_s(text,"n: %+.2f %+.2f %+.2f",player->normal.x,player->normal.y,player->normal.z); lines[1]=text;
