@@ -5,7 +5,7 @@ struct CapturedSyncDeclaration {
     float priority=0;unsigned char position=0,lunge=0;float limits[6]{};
 };
 struct CapturedSyncMatrix {std::string blueprint,state;float player[12]{},target[12]{};};
-static void checkCapturedZombieAndSoldier() {
+static SyncTargetFrame loadCapturedZombieSoldierFrame(const std::string& blueprint,const std::string& family) {
     std::ifstream input("Native/CollisionViewer/tests/fixtures/sync-zombie-soldier-authoring-11.tsv");
     requireTarget(bool(input),"actual Zombie/Soldier declaration and attachment capture exists");
     std::vector<CapturedSyncDeclaration> declarations;std::vector<CapturedSyncMatrix> matrices;std::string line;
@@ -14,7 +14,6 @@ static void checkCapturedZombieAndSoldier() {
             for(auto& f:d.limits)fields>>f;fields>>lunge;d.position=static_cast<unsigned char>(position);d.lunge=static_cast<unsigned char>(lunge);declarations.push_back(d);}
         else if(kind=='M'){CapturedSyncMatrix m;fields>>m.blueprint>>m.state;for(auto& f:m.player)fields>>f;for(auto& f:m.target)fields>>f;matrices.push_back(m);}
         else requireTarget(false,"known captured authoring row");requireTarget(!fields.fail(),"captured authoring parses");}
-    auto makeFrame=[&](const std::string& blueprint,const std::string& family){
         SyncTargetFrame frame;frame.regionState="ready";frame.ranges.known=true;frame.ranges.gloryKillTarget=10;frame.ranges.chainsawTarget=10;frame.ranges.lunge=10;frame.ranges.ignoreQuickLunge=true;
         frame.facing.axis[0]=frame.facing.axis[4]=frame.facing.axis[8]=1;frame.aim.known=true;frame.aim.quadrant=4;frame.jointFocus={true,"right_arm"};
         frame.playerFootprint={true,{-.25f,-.25f,0},{.25f,.25f,0}};const float bounds[]{-.5f,-.5f,0,.5f,.5f,2};memcpy(frame.shotBounds,bounds,24);
@@ -27,13 +26,20 @@ static void checkCapturedZombieAndSoldier() {
             const auto matrix=std::find_if(matrices.begin(),matrices.end(),[&](const auto& m){return m.blueprint==blueprint&&m.state==d.state;});requireTarget(matrix!=matrices.end(),"actual GK state has a captured frame-zero matrix");
             std::vector<unsigned char> decl(0x398),node(0xb0),joints(0x3030);targetPut(decl,0x1d8,d.position);targetPut(decl,0x250,d.lunge);
             memcpy(decl.data()+0x254,d.limits,sizeof(d.limits));targetPut(decl,0x310,d.quadrants);
-            const auto strings=d.groups=="-"?std::vector<std::string>{}:aim.damageGroups;std::vector<uintptr_t> ptrs;for(const auto& g:strings)ptrs.push_back(reinterpret_cast<uintptr_t>(g.c_str()));
+            // Match the production reader's bounded 160-byte native strings;
+            // c_str() alone can straddle an unreadable heap/page boundary.
+            std::vector<std::array<char,160>> strings(aim.damageGroups.size());std::vector<uintptr_t> ptrs;
+            for(size_t i=0;i<strings.size();++i){const auto& group=aim.damageGroups[i];requireTarget(group.size()<strings[i].size(),"captured group fits native string storage");
+                memcpy(strings[i].data(),group.c_str(),group.size()+1);ptrs.push_back(reinterpret_cast<uintptr_t>(strings[i].data()));}
             targetPut(decl,0x2a0,SyncPreviewList{reinterpret_cast<uintptr_t>(ptrs.data()),int(ptrs.size()),int(ptrs.size()),0});
             memcpy(joints.data(),matrix->player,48);memcpy(joints.data()+48,matrix->target,48);joints[0x301c]=1;
             SyncFacingRegion region;requireTarget(readSyncFacingRegion(WallMemory{},targetAddress(decl),targetAddress(node),targetAddress(joints),0,1,d.state,region),"production facing reader accepts actual matrices and ranges");
+            requireTarget(region.aim.known&&syncSameAimRule(region.aim,aim),"captured Zombie/Soldier native group storage preserves complete aim rules");
             region.audit=audit;region.priorityKnown=true;region.priority=d.priority;frame.regions.push_back(region);}
         requireTarget(syncNormalizeFacingRegions(frame.regions),"same-state native branches retain compatible actual aim requirements");syncMergeAnimationRules(frame.animationRules);return frame;
-    };
+}
+static void checkCapturedZombieAndSoldier() {
+    const auto makeFrame=loadCapturedZombieSoldierFrame;
     for(const char* variant:{"zombie_tier1","zombie_tier1_hell","zombie_tier1_scientist","zombie_worshipper"}){
         auto frame=makeFrame(std::string("syncmelee/")+variant,"zombie_tier1");frame.selectedAnimation="kill_front_rightarm";
         requireTarget(frame.regions.size()==15,"T1 preserves both native right-arm interactions instead of deleting or disabling all zones");

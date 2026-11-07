@@ -35,7 +35,7 @@ static void checkLimbStandingReference() {
     requireTarget(!feedback.selectedOnlyObserved&&feedback.tone==SyncSectorTone::Waiting,"a conditional limb reference never confirms activation with the wrong native focus");
     const auto mesh=syncBuildSectorMesh(planned,frame.shotBounds);requireTarget(mesh.known&&!mesh.fill.empty()&&!mesh.outline.empty(),"the actual zombie parameters produce a filled standing volume as well as the arm aim patch");
     std::vector<Vertex> fill;appendSyncTargetGeometry(camera,frame,fill,false);bool limb=false,standing=false;
-    for(const auto& v:fill){limb|=v.color[0]>.9f&&v.color[1]>.7f&&v.color[2]<.3f;standing|=v.position.z==frame.shotBounds[2]||v.position.z==frame.shotBounds[5];}
+    for(const auto& v:fill){limb|=v.color[0]==1&&v.color[1]==.48f&&v.color[2]==.08f;standing|=v.position.z==frame.shotBounds[2]||v.position.z==frame.shotBounds[5];}
     requireTarget(limb&&standing,"arm aiming and standing geometry are rendered together for the verified live enemy");
     std::ofstream output("build/sync-limb-v16-zombie-mesh.tsv");output.precision(9);for(auto p:mesh.fill)output<<"F\t"<<p.x<<'\t'<<p.y<<'\t'<<p.z<<'\n';for(auto p:mesh.outline)output<<"L\t"<<p.x<<'\t'<<p.y<<'\t'<<p.z<<'\n';
 }

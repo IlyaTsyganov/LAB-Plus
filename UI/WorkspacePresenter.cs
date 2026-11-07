@@ -112,7 +112,7 @@ internal sealed class WorkspacePresenter : IDisposable
     internal static string ToolTitle(LabPlusForm form) => form switch
     {
         MovementLabForm => "MOVEMENT LAB", ResearchForm => "RESEARCH TIMELINE", EntityGraphForm => "ENTITY LINKS",
-        LevelStateForm => "LEVEL COMPARISON", ActiveEncountersForm => "ACTIVE ENCOUNTERS", InvisibleNumbersForm => "INVISIBLE NUMBERS", ResearchPointsForm => "RESEARCH POINTS",
+        LevelStateForm => "LEVEL COMPARISON", ActiveEncountersForm => "ACTIVE ENCOUNTERS", InvisibleNumbersForm => "INVISIBLE NUMBERS", FinisherVisualizerForm => "FINISHER VISUALIZER", ResearchPointsForm => "RESEARCH POINTS",
         SupportPlaneForm => "SURFACE PROJECTIONS", TriggerTypesForm => "TRIGGER TYPES", PracticeSaveAdvancedForm => "ARCHIVES AND RECOVERY",
         PracticeSaveForm => "CHECKPOINT LIBRARY", _ => form.Text.Replace("LAB Plus — ", "", StringComparison.Ordinal)
     };
@@ -120,6 +120,7 @@ internal sealed class WorkspacePresenter : IDisposable
     {
         MovementLabForm => "Record attempts, inspect movement and compare paths.", ResearchForm => "Record paths, mark observations and review the journal.",
         EntityGraphForm => "Explore entity references and their exact fields.", LevelStateForm => "Capture and compare observations before and after an action.",
+        FinisherVisualizerForm => "Explore Glory Kill and Chainsaw choices, aim areas and position zones.",
         InvisibleNumbersForm => "Living enemies, health and engine countdowns.", ActiveEncountersForm => "Inspect live encounter managers and their observed state.", ResearchPointsForm => "Keep named observations, notes and archive links.",
         SupportPlaneForm => "Inspect tangent-plane cuts and support angles.", TriggerTypesForm => "Choose classes and folders to display.",
         PracticeSaveAdvancedForm => "Validated checkpoint archives, diagnostics and recovery.", _ => ""

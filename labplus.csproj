@@ -25,6 +25,9 @@
     <Compile Remove="Tools\**\*.cs" />
     <Compile Remove="build\**\*.cs" />
     <EmbeddedResource Include="Assets\trigger-paths.tsv" LogicalName="LabPlus.TriggerPaths.tsv" />
+    <EmbeddedResource Include="Assets\help\finisher-guide.en.txt" LogicalName="LabPlus.FinisherGuide.en.txt" WithCulture="false" />
+    <EmbeddedResource Include="Assets\help\finisher-guide.ru.txt" LogicalName="LabPlus.FinisherGuide.ru.txt" WithCulture="false" />
+    <Content Include="Assets\help\*.txt" CopyToOutputDirectory="PreserveNewest" TargetPath="help\%(Filename)%(Extension)" />
     <Content Include="Assets\labplus.ico" CopyToOutputDirectory="PreserveNewest" TargetPath="Assets\labplus.ico" />
     <Content Include="Assets\fonts\*.ttf" CopyToOutputDirectory="PreserveNewest" TargetPath="Assets\fonts\%(Filename)%(Extension)" />
     <Content Include="Native\CollisionViewer\bin\labplus-layer.dll" Condition="Exists('Native\CollisionViewer\bin\labplus-layer.dll')" CopyToOutputDirectory="PreserveNewest" TargetPath="Native\CollisionViewer\bin\labplus-layer.dll" />

@@ -1,0 +1,1262 @@
+#pragma once
+
+// Finisher layouts for the additional audited retail executables.
+// RVAs and reflection deltas only. Instruction fingerprints are checked before reading live data.
+
+// DOOM Eternal 1.0 (Release).
+static constexpr SyncPatchMember kSyncMembers10[]{
+    {"idHands", 0x2988, 0xd78, 0x2980, 0xd78},
+    {"idPlayer", 0x70e8, 0x628, 0x73f8, 0x628},
+    {"idPlayer", 0x7768, 0x18, 0x7a78, 0x18},
+    {"idPlayer", 0x7d28, 0x4870, 0x7f98, 0x4870},
+    {"idPlayer", 0xc5a0, 0x9160, 0xc810, 0x9150},
+    {"idPlayer", 0x159a0, 0x2f0, 0x15c00, 0x2f0},
+    {"idPlayer", 0x377a4, 0x24, 0x379f4, 0x24},
+    {"idPlayer", 0x377c8, 0xc, 0x37a18, 0xc},
+    {"idPlayer", 0x3b000, 0x4, 0x3b250, 0x4},
+    {"idPlayer", 0x3b078, 0x8, 0x3b2c8, 0x8},
+};
+static constexpr SyncPatchCode kSyncCode10[]{
+    {0x5d1870,18,0xfad9e400b7364b26ull},
+    {0x167d67e,14,0x225418de1fb01b69ull},
+    {0x117cc68,31,0xa69caf76501a2cd4ull},
+    {0x117cca8,31,0x83a11fda8cf22c63ull},
+    {0x1d52ea0,11,0xa66ce55f5a9dee1aull},
+    {0x1888b86,11,0xe0dfd557e56d283dull},
+    {0x188833d,13,0x9cfc687a26341f02ull},
+    {0x1880940,16,0xf439d29f76792288ull},
+    {0x1880c95,36,0x3f64121219c7261eull},
+    {0x165cc37,5,0xc91d9ee9d10d5814ull},
+    {0x165cdc7,5,0xba3c14b5072abe2bull},
+};
+static const SyncPatchLayout kSyncPatch10=[](){
+    SyncPatchLayout p{};
+    p.modern=true;
+    p.game=0x6136a10;
+    p.viewManager=0x136090;
+    p.sphereVtable=0x2ec7168;
+    p.groupCode=0x5d187d;
+    p.monsterGetter=0xc1bde0;
+    p.monsterSlot=0x1090;
+    p.monsterField=0x56f0;
+    p.monsterValue=0x1f0;
+    p.bindSlot=0x620;
+    p.bindField=0x1e20;
+    p.physicsSlot=0xe28;
+    p.aiAxisGetter=0xd34170;
+    p.aiAxisSlot=0x70;
+    p.useHistory=0x61b7060;
+    p.semiRandom=0x61b6f60;
+    p.historyCount=0x61b6fe0;
+    p.maxDistance=0x61d6060;
+    p.ignoreChainsawLunge=0x61b6c60;
+    p.emptyEquipment=0x2584910;
+    p.members=kSyncMembers10;p.count=std::size(kSyncMembers10);
+    p.code=kSyncCode10;p.codeCount=std::size(kSyncCode10);
+    return p;
+}();
+
+// DOOM Eternal 2.0.
+static constexpr SyncPatchMember kSyncMembers20[]{
+    {"idAI2", 0x4bb0, 0x858, 0x4ab8, 0x878},
+    {"idAI2", 0x58a0, 0x8, 0x57c8, 0x8},
+    {"idAI2", 0x63a0, 0x118, 0x6370, 0x130},
+    {"idAI2::idAIConstant", 0x200, 0x628, 0x200, 0x648},
+    {"idActor", 0x1c28, 0x1c8, 0x1c40, 0x1c8},
+    {"idActor", 0x1e20, 0x4c0, 0x1e38, 0x4c0},
+    {"idAnimatedEntity", 0xbd0, 0x8, 0xbe8, 0x8},
+    {"idAnimatedEntity", 0x1a10, 0x70, 0x1a28, 0x70},
+    {"idDeclWeapon", 0x748, 0x8, 0x750, 0x8},
+    {"idDeclWeapon", 0x1f40, 0x8, 0x1f50, 0x8},
+    {"idHealthT < aiHealthComponent_t , AI_HEALTH_MAX , AI_HEALTH_HITPOINTS >", 0xe8, 0x1, 0x100, 0x1},
+    {"idJointAnimator", 0x0, 0x8, 0x8, 0x8},
+    {"idPlayer", 0x70e8, 0x628, 0x76e8, 0x648},
+    {"idPlayer", 0x7768, 0x18, 0x7d88, 0x18},
+    {"idPlayer", 0x7d28, 0x4870, 0x8350, 0x4870},
+    {"idPlayer", 0xc5a0, 0x9160, 0xcbc8, 0x9168},
+    {"idPlayer", 0x159a0, 0x2f0, 0x15fd0, 0x2f0},
+    {"idPlayer", 0x377a4, 0x24, 0x3859c, 0x24},
+    {"idPlayer", 0x377c8, 0xc, 0x385c0, 0xc},
+    {"idPlayer", 0x3b000, 0x4, 0x3be20, 0x4},
+    {"idPlayer", 0x3b078, 0x8, 0x3be98, 0x8},
+    {"idSyncAttack", 0x1a8, 0x8, 0x1c8, 0x8},
+    {"idSyncAttack", 0x1b0, 0x18, 0x1d0, 0x18},
+    {"idSyncAttack", 0x210, 0x8, 0x230, 0x8},
+    {"idSyncAttack", 0x608, 0x18, 0x628, 0x18},
+    {"idSyncEntity", 0x1bf8, 0x8, 0x1c10, 0x8},
+    {"idSyncEntity", 0x1c18, 0x18, 0x1c30, 0x18},
+    {"idSyncEntity", 0x1caa, 0x1, 0x1cc2, 0x1},
+    {"idSyncEntity", 0x2bc8, 0xc, 0x2be0, 0xc},
+    {"idSyncEntity", 0x2c08, 0x18, 0x2c20, 0x18},
+};
+static constexpr SyncPatchCode kSyncCode20[]{
+    {0x5e2ae0,18,0xfad9e400b7364b26ull},
+    {0x16e862e,14,0x230f883bcd9e52f0ull},
+    {0x11b1e68,31,0x738e24f107cfed24ull},
+    {0x11b1ea8,31,0xf260fd933a6232a4ull},
+    {0x1df52c0,11,0xa66ce55f5a9dee1aull},
+    {0x1911a76,11,0xe0dfd557e56d283dull},
+    {0x191122d,13,0x9cfc687a26341f02ull},
+    {0x1909830,16,0xf439d29f76792288ull},
+    {0x1909b85,36,0x3f64121219c7261eull},
+    {0x16c751f,5,0xbe78912d9e8c5ec8ull},
+    {0x16c76af,5,0xfa92fef74c1ea2cbull},
+};
+static const SyncPatchLayout kSyncPatch20=[](){
+    SyncPatchLayout p{};
+    p.modern=true;
+    p.game=0x64a8538;
+    p.viewManager=0x135a90;
+    p.sphereVtable=0x2f8a0a8;
+    p.groupCode=0x5e2aed;
+    p.monsterGetter=0xc463b0;
+    p.monsterSlot=0x10b0;
+    p.monsterField=0x5618;
+    p.monsterValue=0x1f0;
+    p.bindSlot=0x630;
+    p.bindField=0x1e38;
+    p.physicsSlot=0xe40;
+    p.aiAxisGetter=0xd5db30;
+    p.aiAxisSlot=0x80;
+    p.useHistory=0x652c640;
+    p.semiRandom=0x652c540;
+    p.historyCount=0x652c5c0;
+    p.maxDistance=0x654b860;
+    p.ignoreChainsawLunge=0x652c240;
+    p.emptyEquipment=0x2628e10;
+    p.members=kSyncMembers20;p.count=std::size(kSyncMembers20);
+    p.code=kSyncCode20;p.codeCount=std::size(kSyncCode20);
+    return p;
+}();
+
+// DOOM Eternal 2.1.
+static constexpr SyncPatchMember kSyncMembers21[]{
+    {"idAI2", 0x4bb0, 0x858, 0x4ab8, 0x880},
+    {"idAI2", 0x58a0, 0x8, 0x57d0, 0x8},
+    {"idAI2", 0x63a0, 0x118, 0x62e0, 0x130},
+    {"idAI2::idAIConstant", 0x200, 0x628, 0x200, 0x650},
+    {"idActor", 0x1c28, 0x1c8, 0x1c40, 0x1c8},
+    {"idActor", 0x1e20, 0x4c0, 0x1e38, 0x4c0},
+    {"idAnimatedEntity", 0xbd0, 0x8, 0xbe8, 0x8},
+    {"idAnimatedEntity", 0x1a10, 0x70, 0x1a28, 0x70},
+    {"idDeclWeapon", 0x748, 0x8, 0x750, 0x8},
+    {"idDeclWeapon", 0x1f40, 0x8, 0x1f50, 0x8},
+    {"idHealthT < aiHealthComponent_t , AI_HEALTH_MAX , AI_HEALTH_HITPOINTS >", 0xe8, 0x1, 0x100, 0x1},
+    {"idJointAnimator", 0x0, 0x8, 0x8, 0x8},
+    {"idPlayer", 0x70e8, 0x628, 0x7a18, 0x650},
+    {"idPlayer", 0x7768, 0x18, 0x80c0, 0x18},
+    {"idPlayer", 0x7d28, 0x4870, 0x8688, 0x4870},
+    {"idPlayer", 0xc5a0, 0x9160, 0xcf00, 0x9168},
+    {"idPlayer", 0x159a0, 0x2f0, 0x16308, 0x2f0},
+    {"idPlayer", 0x377a4, 0x24, 0x381b4, 0x24},
+    {"idPlayer", 0x377c8, 0xc, 0x381d8, 0xc},
+    {"idPlayer", 0x3b000, 0x4, 0x3ba38, 0x4},
+    {"idPlayer", 0x3b078, 0x8, 0x3bab0, 0x8},
+    {"idSyncAttack", 0x1a8, 0x8, 0x1c8, 0x8},
+    {"idSyncAttack", 0x1b0, 0x18, 0x1d0, 0x18},
+    {"idSyncAttack", 0x210, 0x8, 0x230, 0x8},
+    {"idSyncAttack", 0x608, 0x18, 0x630, 0x18},
+    {"idSyncEntity", 0x1bf8, 0x8, 0x1c10, 0x8},
+    {"idSyncEntity", 0x1c18, 0x18, 0x1c30, 0x18},
+    {"idSyncEntity", 0x1caa, 0x1, 0x1cc2, 0x1},
+    {"idSyncEntity", 0x2bc8, 0xc, 0x2bf0, 0xc},
+    {"idSyncEntity", 0x2c08, 0x18, 0x2c30, 0x18},
+};
+static constexpr SyncPatchCode kSyncCode21[]{
+    {0x5e2e90,18,0xfad9e400b7364b26ull},
+    {0x16eaffe,14,0x5b4b01ab316427cfull},
+    {0x11b3798,31,0x4945dda43ce2a411ull},
+    {0x11b37d8,31,0x83776a8fc111b011ull},
+    {0x1e0b230,11,0xa66ce55f5a9dee1aull},
+    {0x1914316,11,0xe0dfd557e56d283dull},
+    {0x1913acd,13,0x9cfc687a26341f02ull},
+    {0x190c100,16,0xf439d29f76792288ull},
+    {0x190c455,36,0x3f64121219c7261eull},
+    {0x16c9acf,5,0x798e11371ca3636full},
+    {0x16c9c5f,5,0xddc653b2831114baull},
+};
+static const SyncPatchLayout kSyncPatch21=[](){
+    SyncPatchLayout p{};
+    p.modern=true;
+    p.game=0x64ab438;
+    p.viewManager=0x135a90;
+    p.sphereVtable=0x2f8d408;
+    p.groupCode=0x5e2e9d;
+    p.monsterGetter=0xc45db0;
+    p.monsterSlot=0x10b0;
+    p.monsterField=0x5620;
+    p.monsterValue=0x1f0;
+    p.bindSlot=0x630;
+    p.bindField=0x1e38;
+    p.physicsSlot=0xe40;
+    p.aiAxisGetter=0xd5dbe0;
+    p.aiAxisSlot=0x80;
+    p.useHistory=0x652fd20;
+    p.semiRandom=0x652fc20;
+    p.historyCount=0x652fca0;
+    p.maxDistance=0x654efc0;
+    p.ignoreChainsawLunge=0x652f920;
+    p.emptyEquipment=0x2629ed0;
+    p.members=kSyncMembers21;p.count=std::size(kSyncMembers21);
+    p.code=kSyncCode21;p.codeCount=std::size(kSyncCode21);
+    return p;
+}();
+
+// DOOM Eternal 3.0.
+static constexpr SyncPatchMember kSyncMembers30[]{
+    {"idAI2", 0x4bb0, 0x858, 0x4ae8, 0x8a8},
+    {"idAI2", 0x58a0, 0x8, 0x5828, 0x8},
+    {"idAI2", 0x63a0, 0x118, 0x6388, 0x140},
+    {"idAI2::idAIConstant", 0x200, 0x628, 0x228, 0x650},
+    {"idActor", 0x1c28, 0x1c8, 0x1c40, 0x1c8},
+    {"idActor", 0x1e20, 0x4c0, 0x1e38, 0x4c0},
+    {"idAnimatedEntity", 0xbd0, 0x8, 0xbe8, 0x8},
+    {"idAnimatedEntity", 0x1a10, 0x70, 0x1a28, 0x70},
+    {"idDeclAIBehavior", 0x1f0, 0x8, 0x1f8, 0x8},
+    {"idDeclSyncInteraction", 0x144, 0x4, 0x158, 0x4},
+    {"idDeclSyncInteraction", 0x148, 0x4, 0x15c, 0x4},
+    {"idDeclSyncInteraction", 0x1b8, 0x20, 0x1d0, 0x20},
+    {"idDeclSyncInteraction", 0x1d8, 0xb8, 0x1f0, 0xb8},
+    {"idDeclSyncInteraction", 0x2a0, 0x78, 0x2b8, 0x78},
+    {"idDeclSyncInteraction", 0x318, 0x70, 0x330, 0x70},
+    {"idDeclSyncInteraction::playerRequirements_t", 0x76, 0x1, 0x77, 0x1},
+    {"idDeclTargeting", 0xc4, 0x4, 0xcc, 0x4},
+    {"idDeclWeapon", 0x748, 0x8, 0x778, 0x8},
+    {"idDeclWeapon", 0x1f40, 0x8, 0x1f88, 0x8},
+    {"idHealthT < aiHealthComponent_t , AI_HEALTH_MAX , AI_HEALTH_HITPOINTS >", 0xe8, 0x1, 0x110, 0x1},
+    {"idJointAnimator", 0x0, 0x8, 0x8, 0x8},
+    {"idPlayer", 0x70e8, 0x628, 0x7c90, 0x650},
+    {"idPlayer", 0x7768, 0x18, 0x8338, 0x18},
+    {"idPlayer", 0x7d28, 0x4870, 0x8900, 0x4870},
+    {"idPlayer", 0xc5a0, 0x9160, 0xd178, 0x9170},
+    {"idPlayer", 0x159a0, 0x2f0, 0x16588, 0x2f0},
+    {"idPlayer", 0x377a4, 0x24, 0x38c9c, 0x24},
+    {"idPlayer", 0x377c8, 0xc, 0x38cc0, 0xc},
+    {"idPlayer", 0x3b000, 0x4, 0x3c668, 0x4},
+    {"idPlayer", 0x3b078, 0x8, 0x3c6e0, 0x8},
+    {"idRenderView", 0x213f0, 0x40, 0x21410, 0x40},
+    {"idSyncAttack", 0x1a8, 0x8, 0x1c8, 0x8},
+    {"idSyncAttack", 0x1b0, 0x18, 0x1d0, 0x18},
+    {"idSyncAttack", 0x210, 0x8, 0x230, 0x8},
+    {"idSyncAttack", 0x608, 0x18, 0x630, 0x18},
+    {"idSyncEntity", 0x1bf8, 0x8, 0x1c10, 0x8},
+    {"idSyncEntity", 0x1c18, 0x18, 0x1c30, 0x18},
+    {"idSyncEntity", 0x1caa, 0x1, 0x1cc2, 0x1},
+    {"idSyncEntity", 0x2bc8, 0xc, 0x2bf0, 0xc},
+    {"idSyncEntity", 0x2c08, 0x18, 0x2c30, 0x18},
+    {"idWeapon", 0x19d0, 0x4, 0x19e8, 0x4},
+    {"idWeapon", 0x3310, 0x7b0, 0x3328, 0x7b0},
+};
+static constexpr SyncPatchCode kSyncCode30[]{
+    {0x5f84e0,18,0xfad9e400b7364b26ull},
+    {0x17d451e,14,0x342d2fb984bdd231ull},
+    {0x125d888,31,0xd8742750ab4767a2ull},
+    {0x125d8c8,31,0x30557e05b3f130b5ull},
+    {0x1f4f190,11,0xa66ce55f5a9dee1aull},
+    {0x1a54c56,11,0xe0dfd557e56d283dull},
+    {0x1a5440d,13,0xf110f5d9af0d2826ull},
+    {0x1a4ca90,16,0xf439d29f76792288ull},
+    {0x1a4cde5,36,0x3f64121219c7261eull},
+    {0x17b367f,5,0xd742682ad7cf7a60ull},
+    {0x17b380f,5,0x5028e6a6dacf48f5ull},
+};
+static const SyncPatchLayout kSyncPatch30=[](){
+    SyncPatchLayout p{};
+    p.modern=true;
+    p.game=0x677cae0;
+    p.viewManager=0x136140;
+    p.sphereVtable=0x311ce08;
+    p.groupCode=0x5f84ed;
+    p.monsterGetter=0xcc2ed0;
+    p.monsterSlot=0x10c8;
+    p.monsterField=0x5678;
+    p.monsterValue=0x1f8;
+    p.bindSlot=0x638;
+    p.bindField=0x1e38;
+    p.physicsSlot=0xe50;
+    p.aiAxisGetter=0xde04d0;
+    p.aiAxisSlot=0x80;
+    p.useHistory=0x6805110;
+    p.semiRandom=0x6805010;
+    p.historyCount=0x6805090;
+    p.maxDistance=0x6825fa0;
+    p.ignoreChainsawLunge=0x6804d10;
+    p.emptyEquipment=0x2787fa0;
+    p.members=kSyncMembers30;p.count=std::size(kSyncMembers30);
+    p.code=kSyncCode30;p.codeCount=std::size(kSyncCode30);
+    return p;
+}();
+
+// DOOM Eternal 3.1.
+static constexpr SyncPatchCode kSyncCode31[]{
+    {0x5f85f0,18,0xfad9e400b7364b26ull},
+    {0x17d55ae,14,0x5b92b25c7effaeeaull},
+    {0x125daf8,31,0x4e4b3b412b23e3ddull},
+    {0x125db38,31,0x62e773d2b85c815dull},
+    {0x1f4f440,11,0xa66ce55f5a9dee1aull},
+    {0x1a55706,11,0xe0dfd557e56d283dull},
+    {0x1a54ebd,13,0xf110f5d9af0d2826ull},
+    {0x1a4d380,16,0xf439d29f76792288ull},
+    {0x1a4d6d5,36,0x3f64121219c7261eull},
+    {0x17b489f,5,0x514f1f6996e32a1eull},
+    {0x17b4a2f,5,0x5de3dff8156bf543ull},
+};
+static const SyncPatchLayout kSyncPatch31=[](){
+    SyncPatchLayout p{};
+    p.modern=true;
+    p.game=0x677cb60;
+    p.viewManager=0x136140;
+    p.sphereVtable=0x311cec8;
+    p.groupCode=0x5f85fd;
+    p.monsterGetter=0xcc3290;
+    p.monsterSlot=0x10c8;
+    p.monsterField=0x5678;
+    p.monsterValue=0x1f8;
+    p.bindSlot=0x638;
+    p.bindField=0x1e38;
+    p.physicsSlot=0xe50;
+    p.aiAxisGetter=0xde05a0;
+    p.aiAxisSlot=0x80;
+    p.useHistory=0x6805190;
+    p.semiRandom=0x6805090;
+    p.historyCount=0x6805110;
+    p.maxDistance=0x6826020;
+    p.ignoreChainsawLunge=0x6804d90;
+    p.emptyEquipment=0x2787fa0;
+    p.members=kSyncMembers30;p.count=std::size(kSyncMembers30);
+    p.code=kSyncCode31;p.codeCount=std::size(kSyncCode31);
+    return p;
+}();
+
+// DOOM Eternal 4.0.
+static constexpr SyncPatchMember kSyncMembers40[]{
+    {"idAI2", 0x4bb0, 0x858, 0x4b00, 0x8a8},
+    {"idAI2", 0x58a0, 0x8, 0x5840, 0x8},
+    {"idAI2", 0x63a0, 0x118, 0x6388, 0x140},
+    {"idAI2::idAIConstant", 0x200, 0x628, 0x228, 0x650},
+    {"idActor", 0x1c28, 0x1c8, 0x1c58, 0x1c8},
+    {"idActor", 0x1e20, 0x4c0, 0x1e50, 0x4c0},
+    {"idAnimatedEntity", 0xbd0, 0x8, 0xc08, 0x8},
+    {"idAnimatedEntity", 0x1a10, 0x70, 0x1a40, 0x70},
+    {"idDeclAIBehavior", 0x1f0, 0x8, 0x1f8, 0x8},
+    {"idDeclSyncInteraction", 0x144, 0x4, 0x158, 0x4},
+    {"idDeclSyncInteraction", 0x148, 0x4, 0x15c, 0x4},
+    {"idDeclSyncInteraction", 0x1b8, 0x20, 0x1d0, 0x20},
+    {"idDeclSyncInteraction", 0x1d8, 0xb8, 0x1f0, 0xb8},
+    {"idDeclSyncInteraction", 0x2a0, 0x78, 0x2b8, 0x78},
+    {"idDeclSyncInteraction", 0x318, 0x70, 0x330, 0x70},
+    {"idDeclSyncInteraction::playerRequirements_t", 0x76, 0x1, 0x77, 0x1},
+    {"idDeclTargeting", 0xc4, 0x4, 0xcc, 0x4},
+    {"idDeclWeapon", 0x748, 0x8, 0x778, 0x8},
+    {"idDeclWeapon", 0x1f40, 0x8, 0x1f88, 0x8},
+    {"idHealthT < aiHealthComponent_t , AI_HEALTH_MAX , AI_HEALTH_HITPOINTS >", 0xe8, 0x1, 0x110, 0x1},
+    {"idJointAnimator", 0x0, 0x8, 0x8, 0x8},
+    {"idPlayer", 0x70e8, 0x628, 0x7ca8, 0x650},
+    {"idPlayer", 0x7768, 0x18, 0x8350, 0x18},
+    {"idPlayer", 0x7d28, 0x4870, 0x8918, 0x4870},
+    {"idPlayer", 0xc5a0, 0x9160, 0xd190, 0x9170},
+    {"idPlayer", 0x159a0, 0x2f0, 0x165a0, 0x2f0},
+    {"idPlayer", 0x377a4, 0x24, 0x38b94, 0x24},
+    {"idPlayer", 0x377c8, 0xc, 0x38bb8, 0xc},
+    {"idPlayer", 0x3b000, 0x4, 0x3c560, 0x4},
+    {"idPlayer", 0x3b078, 0x8, 0x3c5d8, 0x8},
+    {"idRenderView", 0x213f0, 0x40, 0x21410, 0x40},
+    {"idSyncAttack", 0x1a8, 0x8, 0x1c8, 0x8},
+    {"idSyncAttack", 0x1b0, 0x18, 0x1d0, 0x18},
+    {"idSyncAttack", 0x210, 0x8, 0x230, 0x8},
+    {"idSyncAttack", 0x608, 0x18, 0x630, 0x18},
+    {"idSyncEntity", 0x1bf8, 0x8, 0x1c28, 0x8},
+    {"idSyncEntity", 0x1c18, 0x18, 0x1c48, 0x18},
+    {"idSyncEntity", 0x1caa, 0x1, 0x1cda, 0x1},
+    {"idSyncEntity", 0x2bc8, 0xc, 0x2c08, 0xc},
+    {"idSyncEntity", 0x2c08, 0x18, 0x2c48, 0x18},
+    {"idWeapon", 0x19d0, 0x4, 0x19e8, 0x4},
+    {"idWeapon", 0x3310, 0x7b0, 0x3328, 0x7b0},
+};
+static constexpr SyncPatchCode kSyncCode40[]{
+    {0x5fbce0,18,0xfad9e400b7364b26ull},
+    {0x17eab6e,14,0x6c966367dfbcd422ull},
+    {0x1266f28,31,0x6eac316b2c1d119full},
+    {0x1266f68,31,0xaac5f336be2f701full},
+    {0x1ee5850,11,0xa66ce55f5a9dee1aull},
+    {0x19ebc16,11,0xe0dfd557e56d283dull},
+    {0x19eb3cd,13,0xf110f5d9af0d2826ull},
+    {0x19e3800,16,0xf439d29f76792288ull},
+    {0x19e3b55,36,0x3f64121219c7261eull},
+    {0x17c9a9f,5,0xffa81e8f6bc0c3b7ull},
+    {0x17c9c66,5,0x5548e869cc2a7801ull},
+};
+static const SyncPatchLayout kSyncPatch40=[](){
+    SyncPatchLayout p{};
+    p.modern=true;
+    p.game=0x6797bb0;
+    p.viewManager=0x133090;
+    p.sphereVtable=0x30b8308;
+    p.groupCode=0x5fbced;
+    p.monsterGetter=0xcc9920;
+    p.monsterSlot=0x10d8;
+    p.monsterField=0x5690;
+    p.monsterValue=0x1f8;
+    p.bindSlot=0x648;
+    p.bindField=0x1e50;
+    p.physicsSlot=0xe60;
+    p.aiAxisGetter=0xde7bd0;
+    p.aiAxisSlot=0x80;
+    p.useHistory=0x6820980;
+    p.semiRandom=0x6820880;
+    p.historyCount=0x6820900;
+    p.maxDistance=0x68418c0;
+    p.ignoreChainsawLunge=0x6820500;
+    p.emptyEquipment=0x271f160;
+    p.members=kSyncMembers40;p.count=std::size(kSyncMembers40);
+    p.code=kSyncCode40;p.codeCount=std::size(kSyncCode40);
+    return p;
+}();
+
+// DOOM Eternal 4.1.
+static constexpr SyncPatchCode kSyncCode41[]{
+    {0x5fb7a0,18,0xfad9e400b7364b26ull},
+    {0x17eaabe,14,0x3cf231cbb1819839ull},
+    {0x1267648,31,0x3e95c160e8f4b047ull},
+    {0x1267688,31,0x763fc5d749797747ull},
+    {0x1ee5df0,11,0xa66ce55f5a9dee1aull},
+    {0x19ead66,11,0xe0dfd557e56d283dull},
+    {0x19ea51d,13,0xf110f5d9af0d2826ull},
+    {0x19e2ba0,16,0xf439d29f76792288ull},
+    {0x19e2ef5,36,0x3f64121219c7261eull},
+    {0x17c995f,5,0xd32beeafa81284aeull},
+    {0x17c9b26,5,0xb231fa5ea8ee031eull},
+};
+static const SyncPatchLayout kSyncPatch41=[](){
+    SyncPatchLayout p{};
+    p.modern=true;
+    p.game=0x67987b0;
+    p.viewManager=0x133090;
+    p.sphereVtable=0x30b8508;
+    p.groupCode=0x5fb7ad;
+    p.monsterGetter=0xccb670;
+    p.monsterSlot=0x10d8;
+    p.monsterField=0x5690;
+    p.monsterValue=0x1f8;
+    p.bindSlot=0x648;
+    p.bindField=0x1e50;
+    p.physicsSlot=0xe60;
+    p.aiAxisGetter=0xde8070;
+    p.aiAxisSlot=0x80;
+    p.useHistory=0x6821580;
+    p.semiRandom=0x6821480;
+    p.historyCount=0x6821500;
+    p.maxDistance=0x68424c0;
+    p.ignoreChainsawLunge=0x6821100;
+    p.emptyEquipment=0x271f160;
+    p.members=kSyncMembers40;p.count=std::size(kSyncMembers40);
+    p.code=kSyncCode41;p.codeCount=std::size(kSyncCode41);
+    return p;
+}();
+
+// DOOM Eternal 5.0.
+static constexpr SyncPatchMember kSyncMembers50[]{
+    {"idAI2", 0x4bb0, 0x858, 0x4b80, 0x8a8},
+    {"idAI2", 0x58a0, 0x8, 0x58f8, 0x8},
+    {"idAI2", 0x63a0, 0x118, 0x64f0, 0x140},
+    {"idAI2::idAIConstant", 0x200, 0x628, 0x228, 0x650},
+    {"idActor", 0x1c28, 0x1c8, 0x1c58, 0x1c8},
+    {"idActor", 0x1e20, 0x4c0, 0x1e50, 0x4c8},
+    {"idAnimatedEntity", 0xbd0, 0x8, 0xc08, 0x8},
+    {"idAnimatedEntity", 0x1a10, 0x70, 0x1a40, 0x70},
+    {"idDeclAIBehavior", 0x1f0, 0x8, 0x1f8, 0x8},
+    {"idDeclAnimWeb", 0x78, 0x18, 0x80, 0x18},
+    {"idDeclAnimWeb", 0x90, 0x18, 0x98, 0x18},
+    {"idDeclAnimWeb", 0xc0, 0x18, 0xc8, 0x18},
+    {"idDeclSyncInteraction", 0x144, 0x4, 0x158, 0x4},
+    {"idDeclSyncInteraction", 0x148, 0x4, 0x15c, 0x4},
+    {"idDeclSyncInteraction", 0x1b8, 0x20, 0x1d0, 0x20},
+    {"idDeclSyncInteraction", 0x1d8, 0xb8, 0x1f0, 0xb8},
+    {"idDeclSyncInteraction", 0x2a0, 0x78, 0x2b8, 0x78},
+    {"idDeclSyncInteraction", 0x318, 0x70, 0x330, 0x70},
+    {"idDeclSyncInteraction::playerRequirements_t", 0x76, 0x1, 0x77, 0x1},
+    {"idDeclTargeting", 0xc4, 0x4, 0xcc, 0x4},
+    {"idDeclWeapon", 0x748, 0x8, 0x7d0, 0x8},
+    {"idDeclWeapon", 0x1f40, 0x8, 0x2110, 0x8},
+    {"idHands", 0x2988, 0xd78, 0x29b0, 0xd78},
+    {"idHealthT < aiHealthComponent_t , AI_HEALTH_MAX , AI_HEALTH_HITPOINTS >", 0xe8, 0x1, 0x110, 0x1},
+    {"idJointAnimator", 0x0, 0x8, 0x8, 0x8},
+    {"idPlayer", 0x70e8, 0x628, 0x7d78, 0x650},
+    {"idPlayer", 0x7768, 0x18, 0x8420, 0x18},
+    {"idPlayer", 0x7d28, 0x4870, 0x89e8, 0x4870},
+    {"idPlayer", 0xc5a0, 0x9160, 0xd260, 0x9248},
+    {"idPlayer", 0x159a0, 0x2f0, 0x16748, 0x2f0},
+    {"idPlayer", 0x377a4, 0x24, 0x488a4, 0x24},
+    {"idPlayer", 0x377c8, 0xc, 0x488c8, 0xc},
+    {"idPlayer", 0x3b000, 0x4, 0x4c380, 0x4},
+    {"idPlayer", 0x3b078, 0x8, 0x4c3f8, 0x8},
+    {"idRenderView", 0x213f0, 0x40, 0x21430, 0x40},
+    {"idSyncAttack", 0x1a8, 0x8, 0x1c8, 0x8},
+    {"idSyncAttack", 0x1b0, 0x18, 0x1d0, 0x18},
+    {"idSyncAttack", 0x210, 0x8, 0x230, 0x8},
+    {"idSyncAttack", 0x608, 0x18, 0x630, 0x18},
+    {"idSyncEntity", 0x1bf8, 0x8, 0x1c28, 0x8},
+    {"idSyncEntity", 0x1c18, 0x18, 0x1c48, 0x18},
+    {"idSyncEntity", 0x1caa, 0x1, 0x1cda, 0x1},
+    {"idSyncEntity", 0x2bc8, 0xc, 0x2c08, 0xc},
+    {"idSyncEntity", 0x2c08, 0x18, 0x2c48, 0x18},
+    {"idSyncParticipant", 0xaa, 0x2, 0xac, 0x2},
+    {"idWeapon", 0x19d0, 0x4, 0x19e8, 0x4},
+    {"idWeapon", 0x3310, 0x7b0, 0x3328, 0x7b0},
+};
+static constexpr SyncPatchCode kSyncCode50[]{
+    {0x60af50,18,0xfad9e400b7364b26ull},
+    {0x12c4af8,31,0xc075e41dfb50f701ull},
+    {0x12c4b38,31,0x6662f185e77dd701ull},
+    {0x1fb9640,11,0xa66ce55f5a9dee1aull},
+    {0x1a8bd16,11,0xe0dfd557e56d283dull},
+    {0x1a8b4cd,13,0xf110f5d9af0d2826ull},
+    {0x1a834e0,16,0x3a0a6c5e200bddf9ull},
+    {0x1a837ac,31,0xbf722dfb01ff79b1ull},
+    {0x1857a5b,5,0x9ada0b9b45d7e441ull},
+    {0x1857c4b,5,0xaf8652abc2a97613ull},
+};
+static const SyncPatchLayout kSyncPatch50=[](){
+    SyncPatchLayout p{};
+    p.modern=true;
+    p.game=0x658a5f0;
+    p.viewManager=0x133210;
+    p.sphereVtable=0x31affb8;
+    p.groupCode=0x60af5d;
+    p.monsterGetter=0xcfa4c0;
+    p.monsterSlot=0x10f0;
+    p.monsterField=0x5718;
+    p.monsterValue=0x1f8;
+    p.bindSlot=0x650;
+    p.bindField=0x1e50;
+    p.physicsSlot=0xe70;
+    p.aiAxisGetter=0xe296d0;
+    p.aiAxisSlot=0x80;
+    p.useHistory=0x6617170;
+    p.semiRandom=0x6617070;
+    p.historyCount=0x66170f0;
+    p.maxDistance=0x6638c90;
+    p.ignoreChainsawLunge=0x6616b70;
+    p.emptyEquipment=0x27e0ce0;
+    p.members=kSyncMembers50;p.count=std::size(kSyncMembers50);
+    p.code=kSyncCode50;p.codeCount=std::size(kSyncCode50);
+    return p;
+}();
+
+// DOOM Eternal 6.0.
+static constexpr SyncPatchMember kSyncMembers60[]{
+    {"idAI2", 0x4bb0, 0x858, 0x4b98, 0x8a8},
+    {"idAI2", 0x58a0, 0x8, 0x5910, 0x8},
+    {"idAI2", 0x63a0, 0x118, 0x6508, 0x140},
+    {"idAI2::idAIConstant", 0x200, 0x628, 0x228, 0x650},
+    {"idActor", 0x1c28, 0x1c8, 0x1c70, 0x1c8},
+    {"idActor", 0x1e20, 0x4c0, 0x1e68, 0x4c8},
+    {"idAnimatedEntity", 0xbd0, 0x8, 0xc20, 0x8},
+    {"idAnimatedEntity", 0x1a10, 0x70, 0x1a58, 0x70},
+    {"idDeclAIBehavior", 0x1f0, 0x8, 0x200, 0x8},
+    {"idDeclAnimWeb", 0x78, 0x18, 0x80, 0x18},
+    {"idDeclAnimWeb", 0x90, 0x18, 0x98, 0x18},
+    {"idDeclAnimWeb", 0xc0, 0x18, 0xc8, 0x18},
+    {"idDeclSyncInteraction", 0x144, 0x4, 0x158, 0x4},
+    {"idDeclSyncInteraction", 0x148, 0x4, 0x15c, 0x4},
+    {"idDeclSyncInteraction", 0x1b8, 0x20, 0x1d0, 0x20},
+    {"idDeclSyncInteraction", 0x1d8, 0xb8, 0x1f0, 0xb8},
+    {"idDeclSyncInteraction", 0x2a0, 0x78, 0x2b8, 0x78},
+    {"idDeclSyncInteraction", 0x318, 0x70, 0x330, 0x70},
+    {"idDeclSyncInteraction::playerRequirements_t", 0x76, 0x1, 0x77, 0x1},
+    {"idDeclTargeting", 0xc4, 0x4, 0xcc, 0x4},
+    {"idDeclWeapon", 0x748, 0x8, 0x7f0, 0x8},
+    {"idDeclWeapon", 0x1f40, 0x8, 0x2130, 0x8},
+    {"idHands", 0x2988, 0xd78, 0x29b0, 0xd78},
+    {"idHealthT < aiHealthComponent_t , AI_HEALTH_MAX , AI_HEALTH_HITPOINTS >", 0xe8, 0x1, 0x110, 0x1},
+    {"idJointAnimator", 0x0, 0x8, 0x8, 0x8},
+    {"idPlayer", 0x70e8, 0x628, 0x7d90, 0x650},
+    {"idPlayer", 0x7768, 0x18, 0x8438, 0x18},
+    {"idPlayer", 0x7d28, 0x4870, 0x8a00, 0x4870},
+    {"idPlayer", 0xc5a0, 0x9160, 0xd278, 0x9248},
+    {"idPlayer", 0x159a0, 0x2f0, 0x16760, 0x2f0},
+    {"idPlayer", 0x377a4, 0x24, 0x48974, 0x24},
+    {"idPlayer", 0x377c8, 0xc, 0x48998, 0xc},
+    {"idPlayer", 0x3b000, 0x4, 0x4c478, 0x4},
+    {"idPlayer", 0x3b078, 0x8, 0x4c4f0, 0x8},
+    {"idRenderView", 0x213f0, 0x40, 0x29440, 0x40},
+    {"idSyncAttack", 0x1a8, 0x8, 0x1c8, 0x8},
+    {"idSyncAttack", 0x1b0, 0x18, 0x1d0, 0x18},
+    {"idSyncAttack", 0x210, 0x8, 0x230, 0x8},
+    {"idSyncAttack", 0x608, 0x18, 0x630, 0x18},
+    {"idSyncEntity", 0x1bf8, 0x8, 0x1c40, 0x8},
+    {"idSyncEntity", 0x1c18, 0x18, 0x1c60, 0x18},
+    {"idSyncEntity", 0x1caa, 0x1, 0x1cf2, 0x1},
+    {"idSyncEntity", 0x2bc8, 0xc, 0x2c20, 0xc},
+    {"idSyncEntity", 0x2c08, 0x18, 0x2c60, 0x18},
+    {"idSyncParticipant", 0xaa, 0x2, 0xac, 0x2},
+    {"idWeapon", 0x19d0, 0x4, 0x19e8, 0x4},
+    {"idWeapon", 0x3310, 0x7b0, 0x3328, 0x7b0},
+};
+static constexpr SyncPatchCode kSyncCode60[]{
+    {0x645192,64,0xb154c3855995a5d2ull},
+    {0x1b78e28,63,0x072ae626d559543full},
+    {0x1366aa8,31,0xa84adff88b5d27aaull},
+    {0x1366ae8,31,0x1f46299b7c5b44d1ull},
+    {0x2104040,11,0xa66ce55f5a9dee1aull},
+    {0x1b820cb,11,0x82bb460f02cdb625ull},
+    {0x1b819fd,13,0xf110f5d9af0d2826ull},
+    {0x1b788d0,16,0x92390455bc42ab03ull},
+    {0x1b78ee1,54,0x1ffd9737bc1253bdull},
+    {0x193b305,5,0xd18b06bdaa78c9dbull},
+    {0x193b4e3,5,0xc16edf7d8773227dull},
+};
+static const SyncPatchLayout kSyncPatch60=[](){
+    SyncPatchLayout p{};
+    p.modern=true;
+    p.game=0x69679e8;
+    p.viewManager=0x133460;
+    p.sphereVtable=0x33123c8;
+    p.groupCode=0x645196;
+    p.monsterGetter=0xd7a2a0;
+    p.monsterSlot=0x10f0;
+    p.monsterField=0x5730;
+    p.monsterValue=0x200;
+    p.bindSlot=0x650;
+    p.bindField=0x1e68;
+    p.physicsSlot=0xe70;
+    p.aiAxisGetter=0xeb5890;
+    p.aiAxisSlot=0x80;
+    p.useHistory=0x69ef4b0;
+    p.semiRandom=0x69ef3b0;
+    p.historyCount=0x69ef430;
+    p.maxDistance=0x6a10610;
+    p.ignoreChainsawLunge=0x69eeeb0;
+    p.emptyEquipment=0x29377e0;
+    p.members=kSyncMembers60;p.count=std::size(kSyncMembers60);
+    p.code=kSyncCode60;p.codeCount=std::size(kSyncCode60);
+    return p;
+}();
+
+// DOOM Eternal 6.1.
+static constexpr SyncPatchCode kSyncCode61[]{
+    {0x645192,64,0xb154c3855995a5d2ull},
+    {0x1b78e28,63,0x072ae626d559543full},
+    {0x1366aa8,31,0xa84adff88b5d27aaull},
+    {0x1366ae8,31,0x1f46299b7c5b44d1ull},
+    {0x2104020,11,0xa66ce55f5a9dee1aull},
+    {0x1b820cb,11,0x82bb460f02cdb625ull},
+    {0x1b819fd,13,0xf110f5d9af0d2826ull},
+    {0x1b788d0,16,0x92390455bc42ab03ull},
+    {0x1b78ee1,54,0x1ffd9737bc1253bdull},
+    {0x193b305,5,0xd18b06bdaa78c9dbull},
+    {0x193b4e3,5,0xc16edf7d8773227dull},
+};
+static const SyncPatchLayout kSyncPatch61=[](){
+    SyncPatchLayout p{};
+    p.modern=true;
+    p.game=0x69679e8;
+    p.viewManager=0x133460;
+    p.sphereVtable=0x33123c8;
+    p.groupCode=0x645196;
+    p.monsterGetter=0xd7a2a0;
+    p.monsterSlot=0x10f0;
+    p.monsterField=0x5730;
+    p.monsterValue=0x200;
+    p.bindSlot=0x650;
+    p.bindField=0x1e68;
+    p.physicsSlot=0xe70;
+    p.aiAxisGetter=0xeb5890;
+    p.aiAxisSlot=0x80;
+    p.useHistory=0x69ef4b0;
+    p.semiRandom=0x69ef3b0;
+    p.historyCount=0x69ef430;
+    p.maxDistance=0x6a10610;
+    p.ignoreChainsawLunge=0x69eeeb0;
+    p.emptyEquipment=0x29377e0;
+    p.members=kSyncMembers60;p.count=std::size(kSyncMembers60);
+    p.code=kSyncCode61;p.codeCount=std::size(kSyncCode61);
+    return p;
+}();
+
+// DOOM Eternal 6.2.
+static constexpr SyncPatchCode kSyncCode62[]{
+    {0x645342,64,0xb154c3855995a5d2ull},
+    {0x1b794b8,63,0x7b6f81fa2586aefdull},
+    {0x1366e58,31,0x54cc5296f4b53da3ull},
+    {0x1366e98,31,0x109d07e3f09fe364ull},
+    {0x2103db0,11,0xa66ce55f5a9dee1aull},
+    {0x1b8275b,11,0x82bb460f02cdb625ull},
+    {0x1b8208d,13,0xf110f5d9af0d2826ull},
+    {0x1b78f60,16,0x92390455bc42ab03ull},
+    {0x1b79571,54,0x1ffd9737bc1253bdull},
+    {0x193b6d5,5,0x428463cc1ba08954ull},
+    {0x193b8b3,5,0x41f5148e45715b66ull},
+};
+static const SyncPatchLayout kSyncPatch62=[](){
+    SyncPatchLayout p{};
+    p.modern=true;
+    p.game=0x6969f68;
+    p.viewManager=0x1334e0;
+    p.sphereVtable=0x33137c8;
+    p.groupCode=0x645346;
+    p.monsterGetter=0xd7a570;
+    p.monsterSlot=0x10f8;
+    p.monsterField=0x5730;
+    p.monsterValue=0x200;
+    p.bindSlot=0x658;
+    p.bindField=0x1e68;
+    p.physicsSlot=0xe78;
+    p.aiAxisGetter=0xeb5b60;
+    p.aiAxisSlot=0x80;
+    p.useHistory=0x69f1a30;
+    p.semiRandom=0x69f1930;
+    p.historyCount=0x69f19b0;
+    p.maxDistance=0x6a12b90;
+    p.ignoreChainsawLunge=0x69f1430;
+    p.emptyEquipment=0x29377e0;
+    p.members=kSyncMembers60;p.count=std::size(kSyncMembers60);
+    p.code=kSyncCode62;p.codeCount=std::size(kSyncCode62);
+    return p;
+}();
+
+// DOOM Eternal 6.3.
+static constexpr SyncPatchCode kSyncCode63[]{
+    {0x645342,64,0xb154c3855995a5d2ull},
+    {0x1b79418,63,0x8c838203e4f9f29dull},
+    {0x1366db8,31,0xc97eed5bd7caad43ull},
+    {0x1366df8,31,0xfb41991d61cf2643ull},
+    {0x2103d40,11,0xa66ce55f5a9dee1aull},
+    {0x1b826bb,11,0x82bb460f02cdb625ull},
+    {0x1b81fed,13,0xf110f5d9af0d2826ull},
+    {0x1b78ec0,16,0x92390455bc42ab03ull},
+    {0x1b794d1,54,0x1ffd9737bc1253bdull},
+    {0x193b635,5,0x428463cc1ba08954ull},
+    {0x193b813,5,0x41f5148e45715b66ull},
+};
+static const SyncPatchLayout kSyncPatch63=[](){
+    SyncPatchLayout p{};
+    p.modern=true;
+    p.game=0x6969f68;
+    p.viewManager=0x1334e0;
+    p.sphereVtable=0x33137c8;
+    p.groupCode=0x645346;
+    p.monsterGetter=0xd7a520;
+    p.monsterSlot=0x10f8;
+    p.monsterField=0x5730;
+    p.monsterValue=0x200;
+    p.bindSlot=0x658;
+    p.bindField=0x1e68;
+    p.physicsSlot=0xe78;
+    p.aiAxisGetter=0xeb5b10;
+    p.aiAxisSlot=0x80;
+    p.useHistory=0x69f1a30;
+    p.semiRandom=0x69f1930;
+    p.historyCount=0x69f19b0;
+    p.maxDistance=0x6a12b90;
+    p.ignoreChainsawLunge=0x69f1430;
+    p.emptyEquipment=0x29377e0;
+    p.members=kSyncMembers60;p.count=std::size(kSyncMembers60);
+    p.code=kSyncCode63;p.codeCount=std::size(kSyncCode63);
+    return p;
+}();
+
+// DOOM Eternal 6.4.
+static constexpr SyncPatchCode kSyncCode64[]{
+    {0x645342,64,0xb154c3855995a5d2ull},
+    {0x1b793d8,63,0xdf5df86b74211f5dull},
+    {0x1366d78,31,0xfde2a699ece52903ull},
+    {0x1366db8,31,0xa31ee5661839f583ull},
+    {0x2103d00,11,0xa66ce55f5a9dee1aull},
+    {0x1b8267b,11,0x82bb460f02cdb625ull},
+    {0x1b81fad,13,0xf110f5d9af0d2826ull},
+    {0x1b78e80,16,0x92390455bc42ab03ull},
+    {0x1b79491,54,0x1ffd9737bc1253bdull},
+    {0x193b5f5,5,0x428463cc1ba08954ull},
+    {0x193b7d3,5,0x41f5148e45715b66ull},
+};
+static const SyncPatchLayout kSyncPatch64=[](){
+    SyncPatchLayout p{};
+    p.modern=true;
+    p.game=0x6969f68;
+    p.viewManager=0x1334e0;
+    p.sphereVtable=0x33137c8;
+    p.groupCode=0x645346;
+    p.monsterGetter=0xd7a520;
+    p.monsterSlot=0x10f8;
+    p.monsterField=0x5730;
+    p.monsterValue=0x200;
+    p.bindSlot=0x658;
+    p.bindField=0x1e68;
+    p.physicsSlot=0xe78;
+    p.aiAxisGetter=0xeb5b10;
+    p.aiAxisSlot=0x80;
+    p.useHistory=0x69f1a30;
+    p.semiRandom=0x69f1930;
+    p.historyCount=0x69f19b0;
+    p.maxDistance=0x6a12b90;
+    p.ignoreChainsawLunge=0x69f1430;
+    p.emptyEquipment=0x29377e0;
+    p.members=kSyncMembers60;p.count=std::size(kSyncMembers60);
+    p.code=kSyncCode64;p.codeCount=std::size(kSyncCode64);
+    return p;
+}();
+
+// DOOM Eternal 6.66.
+static constexpr SyncPatchMember kSyncMembers666[]{
+    {"aimAssistData_t", 0xe0, 0x90, 0xe0, 0xa0},
+    {"idAI2", 0x4bb0, 0x858, 0x4bd8, 0x8a8},
+    {"idAI2", 0x58a0, 0x8, 0x5960, 0x8},
+    {"idAI2", 0x63a0, 0x118, 0x6560, 0x1e0},
+    {"idAI2::idAIConstant", 0x200, 0x628, 0x228, 0x650},
+    {"idActor", 0x1c28, 0x1c8, 0x1c70, 0x1c8},
+    {"idActor", 0x1e20, 0x4c0, 0x1e68, 0x4c8},
+    {"idAnimatedEntity", 0xbd0, 0x8, 0xc20, 0x8},
+    {"idAnimatedEntity", 0x1a10, 0x70, 0x1a58, 0x70},
+    {"idDeclAIBehavior", 0x1f0, 0x8, 0x200, 0x8},
+    {"idDeclAimAssist", 0x90, 0x188, 0x90, 0x198},
+    {"idDeclAnimWeb", 0x78, 0x18, 0x80, 0x18},
+    {"idDeclAnimWeb", 0x90, 0x18, 0x98, 0x18},
+    {"idDeclAnimWeb", 0xc0, 0x18, 0xc8, 0x18},
+    {"idDeclSyncInteraction", 0x144, 0x4, 0x158, 0x4},
+    {"idDeclSyncInteraction", 0x148, 0x4, 0x15c, 0x4},
+    {"idDeclSyncInteraction", 0x1b8, 0x20, 0x1d0, 0x20},
+    {"idDeclSyncInteraction", 0x1d8, 0xb8, 0x1f0, 0xb8},
+    {"idDeclSyncInteraction", 0x2a0, 0x78, 0x2b8, 0x78},
+    {"idDeclSyncInteraction", 0x318, 0x70, 0x330, 0x70},
+    {"idDeclSyncInteraction::playerRequirements_t", 0x76, 0x1, 0x77, 0x1},
+    {"idDeclTargeting", 0xc4, 0x4, 0xcc, 0x4},
+    {"idDeclWeapon", 0x748, 0x8, 0x7f0, 0x8},
+    {"idDeclWeapon", 0x1f40, 0x8, 0x2130, 0x8},
+    {"idHands", 0x2988, 0xd78, 0x29b0, 0xd78},
+    {"idHealthT < aiHealthComponent_t , AI_HEALTH_MAX , AI_HEALTH_HITPOINTS >", 0xe8, 0x1, 0x1b0, 0x1},
+    {"idJointAnimator", 0x0, 0x8, 0x8, 0x8},
+    {"idPlayer", 0x70e8, 0x628, 0x7dd0, 0x650},
+    {"idPlayer", 0x7768, 0x18, 0x8478, 0x18},
+    {"idPlayer", 0x7d28, 0x4870, 0x8a40, 0x4870},
+    {"idPlayer", 0xc5a0, 0x9160, 0xd2b8, 0x9280},
+    {"idPlayer", 0x159a0, 0x2f0, 0x167e8, 0x2f0},
+    {"idPlayer", 0x377a4, 0x24, 0x48ebc, 0x24},
+    {"idPlayer", 0x377c8, 0xc, 0x48ee0, 0xc},
+    {"idPlayer", 0x3b000, 0x4, 0x4ce08, 0x4},
+    {"idPlayer", 0x3b078, 0x8, 0x4ce80, 0x8},
+    {"idRenderView", 0x213f0, 0x40, 0x29440, 0x40},
+    {"idSyncAttack", 0x1a8, 0x8, 0x1c8, 0x8},
+    {"idSyncAttack", 0x1b0, 0x18, 0x1d0, 0x18},
+    {"idSyncAttack", 0x210, 0x8, 0x230, 0x8},
+    {"idSyncAttack", 0x608, 0x18, 0x630, 0x18},
+    {"idSyncEntity", 0x1bf8, 0x8, 0x1c40, 0x8},
+    {"idSyncEntity", 0x1c18, 0x18, 0x1c60, 0x18},
+    {"idSyncEntity", 0x1caa, 0x1, 0x1cf2, 0x1},
+    {"idSyncEntity", 0x2bc8, 0xc, 0x2c20, 0xc},
+    {"idSyncEntity", 0x2c08, 0x18, 0x2c60, 0x18},
+    {"idSyncParticipant", 0xaa, 0x2, 0xac, 0x2},
+    {"idWeapon", 0x19d0, 0x4, 0x19e8, 0x4},
+    {"idWeapon", 0x3310, 0x7b0, 0x3328, 0x7b0},
+};
+static constexpr SyncPatchCode kSyncCode666[]{
+    {0x658cd2,64,0xb154c3855995a5d2ull},
+    {0x1c3b168,63,0x12b770d89f49aabaull},
+    {0x13afaf8,31,0xec09235f9f52e1dfull},
+    {0x13afb38,31,0xb80c8d6371e8bdf0ull},
+    {0x21e15c0,11,0xa66ce55f5a9dee1aull},
+    {0x1c4443b,11,0x82bb460f02cdb625ull},
+    {0x1c43d6d,13,0xf110f5d9af0d2826ull},
+    {0x1c3ac10,16,0x92390455bc42ab03ull},
+    {0x1c3b221,54,0x1ffd9737bc1253bdull},
+    {0x19ede75,5,0xf61db649619772fcull},
+    {0x19ee053,5,0x4781e4f2c5975aaaull},
+};
+static const SyncPatchLayout kSyncPatch666=[](){
+    SyncPatchLayout p{};
+    p.modern=true;
+    p.game=0x6ae0e20;
+    p.viewManager=0x133518;
+    p.sphereVtable=0x3424fe8;
+    p.groupCode=0x658cd6;
+    p.monsterGetter=0xdcd710;
+    p.monsterSlot=0x10f8;
+    p.monsterField=0x5780;
+    p.monsterValue=0x200;
+    p.bindSlot=0x658;
+    p.bindField=0x1e68;
+    p.physicsSlot=0xe78;
+    p.aiAxisGetter=0xef2290;
+    p.aiAxisSlot=0x80;
+    p.useHistory=0x6b6bcf0;
+    p.semiRandom=0x6b6bbf0;
+    p.historyCount=0x6b6bc70;
+    p.maxDistance=0x6b8e850;
+    p.ignoreChainsawLunge=0x6b6b6f0;
+    p.emptyEquipment=0x2a19460;
+    p.members=kSyncMembers666;p.count=std::size(kSyncMembers666);
+    p.code=kSyncCode666;p.codeCount=std::size(kSyncCode666);
+    return p;
+}();
+
+// DOOM Eternal 6.66 Rev 1.
+static constexpr SyncPatchCode kSyncCode666Rev1[]{
+    {0x658d92,64,0xb154c3855995a5d2ull},
+    {0x1c55658,63,0x3e4268d8edd241bdull},
+    {0x13c8e18,31,0xf6a44716d140f331ull},
+    {0x13c8e58,31,0x7932c8d58820db12ull},
+    {0x21fc030,11,0xa66ce55f5a9dee1aull},
+    {0x1c5e92b,11,0x82bb460f02cdb625ull},
+    {0x1c5e25d,13,0xf110f5d9af0d2826ull},
+    {0x1c55100,16,0x92390455bc42ab03ull},
+    {0x1c55711,54,0x1ffd9737bc1253bdull},
+    {0x1a081a5,5,0x5b977e616d779b0aull},
+    {0x1a08383,5,0x35cea1084a06651cull},
+};
+static const SyncPatchLayout kSyncPatch666Rev1=[](){
+    SyncPatchLayout p{};
+    p.modern=true;
+    p.game=0x6b04520;
+    p.viewManager=0x133518;
+    p.sphereVtable=0x3445c68;
+    p.groupCode=0x658d96;
+    p.monsterGetter=0xdce220;
+    p.monsterSlot=0x10f8;
+    p.monsterField=0x5780;
+    p.monsterValue=0x200;
+    p.bindSlot=0x658;
+    p.bindField=0x1e68;
+    p.physicsSlot=0xe78;
+    p.aiAxisGetter=0xf0b2c0;
+    p.aiAxisSlot=0x80;
+    p.useHistory=0x6b8f400;
+    p.semiRandom=0x6b8f300;
+    p.historyCount=0x6b8f380;
+    p.maxDistance=0x6bb1f60;
+    p.ignoreChainsawLunge=0x6b8ee00;
+    p.emptyEquipment=0x2a34460;
+    p.members=kSyncMembers666;p.count=std::size(kSyncMembers666);
+    p.code=kSyncCode666Rev1;p.codeCount=std::size(kSyncCode666Rev1);
+    return p;
+}();
+
+// DOOM Eternal 6.66 Rev 1.1.
+static constexpr SyncPatchCode kSyncCode666Rev11[]{
+    {0x658f82,64,0xb154c3855995a5d2ull},
+    {0x1c56868,63,0x78fa90e5f19f7ba6ull},
+    {0x13c9008,31,0x560024a3ce2fc66full},
+    {0x13c9048,31,0x56670aef6ec06070ull},
+    {0x21fd8b0,11,0xa66ce55f5a9dee1aull},
+    {0x1c5fb3b,11,0x82bb460f02cdb625ull},
+    {0x1c5f46d,13,0xf110f5d9af0d2826ull},
+    {0x1c56310,16,0x92390455bc42ab03ull},
+    {0x1c56921,54,0x1ffd9737bc1253bdull},
+    {0x1a08425,5,0xdb6eb6c6332bdafdull},
+    {0x1a08603,5,0xb518275ede326807ull},
+};
+static const SyncPatchLayout kSyncPatch666Rev11=[](){
+    SyncPatchLayout p{};
+    p.modern=true;
+    p.game=0x6b05920;
+    p.viewManager=0x133518;
+    p.sphereVtable=0x3446e28;
+    p.groupCode=0x658f86;
+    p.monsterGetter=0xdce410;
+    p.monsterSlot=0x10f8;
+    p.monsterField=0x5780;
+    p.monsterValue=0x200;
+    p.bindSlot=0x658;
+    p.bindField=0x1e68;
+    p.physicsSlot=0xe78;
+    p.aiAxisGetter=0xf0b4b0;
+    p.aiAxisSlot=0x80;
+    p.useHistory=0x6b90a00;
+    p.semiRandom=0x6b90900;
+    p.historyCount=0x6b90980;
+    p.maxDistance=0x6bb3560;
+    p.ignoreChainsawLunge=0x6b90400;
+    p.emptyEquipment=0x2a354a0;
+    p.members=kSyncMembers666;p.count=std::size(kSyncMembers666);
+    p.code=kSyncCode666Rev11;p.codeCount=std::size(kSyncCode666Rev11);
+    return p;
+}();
+
+// DOOM Eternal 6.66 Rev 2.
+static constexpr SyncPatchMember kSyncMembers666Rev2[]{
+    {"aimAssistData_t", 0xe0, 0x90, 0xe0, 0xa0},
+    {"idAI2", 0x4bb0, 0x858, 0x4bd8, 0x8a8},
+    {"idAI2", 0x58a0, 0x8, 0x5960, 0x8},
+    {"idAI2", 0x63a0, 0x118, 0x6560, 0x1e0},
+    {"idAI2::idAIConstant", 0x200, 0x628, 0x228, 0x650},
+    {"idActor", 0x1c28, 0x1c8, 0x1c70, 0x1c8},
+    {"idActor", 0x1e20, 0x4c0, 0x1e68, 0x4c8},
+    {"idAnimatedEntity", 0xbd0, 0x8, 0xc20, 0x8},
+    {"idAnimatedEntity", 0x1a10, 0x70, 0x1a58, 0x70},
+    {"idDeclAIBehavior", 0x1f0, 0x8, 0x200, 0x8},
+    {"idDeclAimAssist", 0x90, 0x188, 0x90, 0x198},
+    {"idDeclAnimWeb", 0x78, 0x18, 0x80, 0x18},
+    {"idDeclAnimWeb", 0x90, 0x18, 0x98, 0x18},
+    {"idDeclAnimWeb", 0xc0, 0x18, 0xc8, 0x18},
+    {"idDeclSyncInteraction", 0x144, 0x4, 0x158, 0x4},
+    {"idDeclSyncInteraction", 0x148, 0x4, 0x15c, 0x4},
+    {"idDeclSyncInteraction", 0x1b8, 0x20, 0x1d0, 0x20},
+    {"idDeclSyncInteraction", 0x1d8, 0xb8, 0x1f0, 0xb8},
+    {"idDeclSyncInteraction", 0x2a0, 0x78, 0x2b8, 0x78},
+    {"idDeclSyncInteraction", 0x318, 0x70, 0x330, 0x70},
+    {"idDeclSyncInteraction::playerRequirements_t", 0x76, 0x1, 0x77, 0x1},
+    {"idDeclTargeting", 0xc4, 0x4, 0xcc, 0x4},
+    {"idDeclWeapon", 0x748, 0x8, 0x7f0, 0x8},
+    {"idDeclWeapon", 0x1f40, 0x8, 0x2130, 0x8},
+    {"idHands", 0x2988, 0xd78, 0x29b0, 0xd78},
+    {"idHealthT < aiHealthComponent_t , AI_HEALTH_MAX , AI_HEALTH_HITPOINTS >", 0xe8, 0x1, 0x1b0, 0x1},
+    {"idJointAnimator", 0x0, 0x8, 0x8, 0x8},
+    {"idPlayer", 0x70e8, 0x628, 0x7dd0, 0x650},
+    {"idPlayer", 0x7768, 0x18, 0x8478, 0x18},
+    {"idPlayer", 0x7d28, 0x4870, 0x8a50, 0x4870},
+    {"idPlayer", 0xc5a0, 0x9160, 0xd2c8, 0x9280},
+    {"idPlayer", 0x159a0, 0x2f0, 0x167f8, 0x2f0},
+    {"idPlayer", 0x377a4, 0x24, 0x48ee4, 0x24},
+    {"idPlayer", 0x377c8, 0xc, 0x48f08, 0xc},
+    {"idPlayer", 0x3b000, 0x4, 0x4ce50, 0x4},
+    {"idPlayer", 0x3b078, 0x8, 0x4cec8, 0x8},
+    {"idRenderView", 0x213f0, 0x40, 0x29440, 0x40},
+    {"idSyncAttack", 0x1a8, 0x8, 0x1c8, 0x8},
+    {"idSyncAttack", 0x1b0, 0x18, 0x1d0, 0x18},
+    {"idSyncAttack", 0x210, 0x8, 0x230, 0x8},
+    {"idSyncAttack", 0x608, 0x18, 0x630, 0x18},
+    {"idSyncEntity", 0x1bf8, 0x8, 0x1c40, 0x8},
+    {"idSyncEntity", 0x1c18, 0x18, 0x1c60, 0x18},
+    {"idSyncEntity", 0x1caa, 0x1, 0x1cf2, 0x1},
+    {"idSyncEntity", 0x2bc8, 0xc, 0x2c20, 0xc},
+    {"idSyncEntity", 0x2c08, 0x18, 0x2c60, 0x18},
+    {"idSyncParticipant", 0xaa, 0x2, 0xac, 0x2},
+    {"idWeapon", 0x19d0, 0x4, 0x19e8, 0x4},
+    {"idWeapon", 0x3310, 0x7b0, 0x3328, 0x7b0},
+};
+static constexpr SyncPatchCode kSyncCode666Rev2[]{
+    {0x65ab22,64,0xb154c3855995a5d2ull},
+    {0x1c824e8,63,0x9a1d818e279003c7ull},
+    {0x13e2248,31,0x3ec507d4a46de746ull},
+    {0x13e2288,31,0x00e67d77b8314843ull},
+    {0x222abe0,11,0xa66ce55f5a9dee1aull},
+    {0x1c8b7bb,11,0x82bb460f02cdb625ull},
+    {0x1c8b0ed,13,0xf110f5d9af0d2826ull},
+    {0x1c81f90,16,0x92390455bc42ab03ull},
+    {0x1c825a1,54,0x1ffd9737bc1253bdull},
+    {0x1a2a255,5,0xe7513182a2af4655ull},
+    {0x1a2a433,5,0x327156d539a4e384ull},
+};
+static const SyncPatchLayout kSyncPatch666Rev2=[](){
+    SyncPatchLayout p{};
+    p.modern=true;
+    p.game=0x6b409b0;
+    p.viewManager=0x133518;
+    p.sphereVtable=0x34783c8;
+    p.groupCode=0x65ab26;
+    p.monsterGetter=0xde76b0;
+    p.monsterSlot=0x10f8;
+    p.monsterField=0x5780;
+    p.monsterValue=0x200;
+    p.bindSlot=0x658;
+    p.bindField=0x1e68;
+    p.physicsSlot=0xe78;
+    p.aiAxisGetter=0xf24490;
+    p.aiAxisSlot=0x80;
+    p.useHistory=0x6bcc1d0;
+    p.semiRandom=0x6bcc0d0;
+    p.historyCount=0x6bcc150;
+    p.maxDistance=0x6bef0e0;
+    p.ignoreChainsawLunge=0x6bcbbd0;
+    p.emptyEquipment=0x2a62960;
+    p.members=kSyncMembers666Rev2;p.count=std::size(kSyncMembers666Rev2);
+    p.code=kSyncCode666Rev2;p.codeCount=std::size(kSyncCode666Rev2);
+    return p;
+}();
+
+// DOOM Eternal 6.66 Rev 2.2.
+static constexpr SyncPatchMember kSyncMembers666Rev22[]{
+    {"aimAssistData_t", 0xe0, 0x90, 0xe0, 0xa0},
+    {"idAI2", 0x4bb0, 0x858, 0x4bd8, 0x8a8},
+    {"idAI2", 0x58a0, 0x8, 0x5960, 0x8},
+    {"idAI2", 0x63a0, 0x118, 0x6560, 0x1e0},
+    {"idAI2::idAIConstant", 0x200, 0x628, 0x228, 0x650},
+    {"idActor", 0x1c28, 0x1c8, 0x1c70, 0x1c8},
+    {"idActor", 0x1e20, 0x4c0, 0x1e68, 0x4c8},
+    {"idAnimatedEntity", 0xbd0, 0x8, 0xc20, 0x8},
+    {"idAnimatedEntity", 0x1a10, 0x70, 0x1a58, 0x70},
+    {"idDeclAIBehavior", 0x1f0, 0x8, 0x200, 0x8},
+    {"idDeclAimAssist", 0x90, 0x188, 0x90, 0x198},
+    {"idDeclAnimWeb", 0x78, 0x18, 0x80, 0x18},
+    {"idDeclAnimWeb", 0x90, 0x18, 0x98, 0x18},
+    {"idDeclAnimWeb", 0xc0, 0x18, 0xc8, 0x18},
+    {"idDeclSyncInteraction", 0x144, 0x4, 0x158, 0x4},
+    {"idDeclSyncInteraction", 0x148, 0x4, 0x15c, 0x4},
+    {"idDeclSyncInteraction", 0x1b8, 0x20, 0x1d0, 0x20},
+    {"idDeclSyncInteraction", 0x1d8, 0xb8, 0x1f0, 0xb8},
+    {"idDeclSyncInteraction", 0x2a0, 0x78, 0x2b8, 0x78},
+    {"idDeclSyncInteraction", 0x318, 0x70, 0x330, 0x70},
+    {"idDeclSyncInteraction::playerRequirements_t", 0x76, 0x1, 0x77, 0x1},
+    {"idDeclTargeting", 0xc4, 0x4, 0xcc, 0x4},
+    {"idDeclWeapon", 0x748, 0x8, 0x7f0, 0x8},
+    {"idDeclWeapon", 0x1f40, 0x8, 0x2130, 0x8},
+    {"idHands", 0x2988, 0xd78, 0x29b0, 0xd78},
+    {"idHealthT < aiHealthComponent_t , AI_HEALTH_MAX , AI_HEALTH_HITPOINTS >", 0xe8, 0x1, 0x1b0, 0x1},
+    {"idJointAnimator", 0x0, 0x8, 0x8, 0x8},
+    {"idPlayer", 0x70e8, 0x628, 0x7dd0, 0x650},
+    {"idPlayer", 0x7768, 0x18, 0x8478, 0x18},
+    {"idPlayer", 0x7d28, 0x4870, 0x8a50, 0x4870},
+    {"idPlayer", 0xc5a0, 0x9160, 0xd2c8, 0x9280},
+    {"idPlayer", 0x159a0, 0x2f0, 0x167f8, 0x2f0},
+    {"idPlayer", 0x377a4, 0x24, 0x48ecc, 0x24},
+    {"idPlayer", 0x377c8, 0xc, 0x48ef0, 0xc},
+    {"idPlayer", 0x3b000, 0x4, 0x4ce38, 0x4},
+    {"idPlayer", 0x3b078, 0x8, 0x4ceb0, 0x8},
+    {"idRenderView", 0x213f0, 0x40, 0x29440, 0x40},
+    {"idSyncAttack", 0x1a8, 0x8, 0x1c8, 0x8},
+    {"idSyncAttack", 0x1b0, 0x18, 0x1d0, 0x18},
+    {"idSyncAttack", 0x210, 0x8, 0x230, 0x8},
+    {"idSyncAttack", 0x608, 0x18, 0x630, 0x18},
+    {"idSyncEntity", 0x1bf8, 0x8, 0x1c40, 0x8},
+    {"idSyncEntity", 0x1c18, 0x18, 0x1c60, 0x18},
+    {"idSyncEntity", 0x1caa, 0x1, 0x1cf2, 0x1},
+    {"idSyncEntity", 0x2bc8, 0xc, 0x2c20, 0xc},
+    {"idSyncEntity", 0x2c08, 0x18, 0x2c60, 0x18},
+    {"idSyncParticipant", 0xaa, 0x2, 0xac, 0x2},
+    {"idWeapon", 0x19d0, 0x4, 0x19e8, 0x4},
+    {"idWeapon", 0x3310, 0x7b0, 0x3328, 0x7b0},
+};
+static constexpr SyncPatchCode kSyncCode666Rev22[]{
+    {0x65a662,64,0xb154c3855995a5d2ull},
+    {0x1c61868,63,0x3a6c2a7349a1b483ull},
+    {0x13e1c78,31,0xcb387ad478dfde28ull},
+    {0x13e1cb8,31,0xae432cf5833360a8ull},
+    {0x2208760,11,0xa66ce55f5a9dee1aull},
+    {0x1c6ab3b,11,0x82bb460f02cdb625ull},
+    {0x1c6a46d,13,0xf110f5d9af0d2826ull},
+    {0x1c61310,16,0x92390455bc42ab03ull},
+    {0x1c61921,54,0x1ffd9737bc1253bdull},
+    {0x1a20965,5,0x420773dad9335a50ull},
+    {0x1a20b43,5,0xb0ac9a6d9ddcf559ull},
+};
+static const SyncPatchLayout kSyncPatch666Rev22=[](){
+    SyncPatchLayout p{};
+    p.modern=true;
+    p.game=0x6b14930;
+    p.viewManager=0x133518;
+    p.sphereVtable=0x3453ea8;
+    p.groupCode=0x65a666;
+    p.monsterGetter=0xde7180;
+    p.monsterSlot=0x10f8;
+    p.monsterField=0x5780;
+    p.monsterValue=0x200;
+    p.bindSlot=0x658;
+    p.bindField=0x1e68;
+    p.physicsSlot=0xe78;
+    p.aiAxisGetter=0xf23f60;
+    p.aiAxisSlot=0x80;
+    p.useHistory=0x6b9fcd0;
+    p.semiRandom=0x6b9fbd0;
+    p.historyCount=0x6b9fc50;
+    p.maxDistance=0x6bc2ad0;
+    p.ignoreChainsawLunge=0x6b9f6d0;
+    p.emptyEquipment=0x2a408e0;
+    p.members=kSyncMembers666Rev22;p.count=std::size(kSyncMembers666Rev22);
+    p.code=kSyncCode666Rev22;p.codeCount=std::size(kSyncCode666Rev22);
+    return p;
+}();
+
+// DOOM Eternal 6.66 Rev 3.
+static constexpr SyncPatchCode kSyncCode666Rev3[]{
+    {0x1979682,64,0xb154c3855995a5d2ull},
+    {0x15e9c18,63,0x57377cd64b885803ull},
+    {0xd5b6e8,31,0x8bef8c9db3729dc4ull},
+    {0xd5b728,31,0x3ee39938e6ec6a44ull},
+    {0x2205030,11,0xa66ce55f5a9dee1aull},
+    {0x15f312b,11,0x82bb460f02cdb625ull},
+    {0x15f2a5d,13,0xf110f5d9af0d2826ull},
+    {0x15e96c0,16,0x92390455bc42ab03ull},
+    {0x15e9cd1,54,0x1ffd9737bc1253bdull},
+    {0x13a62d5,5,0x6fb7afc442eb9746ull},
+    {0x13a64b3,5,0xda74d85b8d543530ull},
+};
+static const SyncPatchLayout kSyncPatch666Rev3=[](){
+    SyncPatchLayout p{};
+    p.modern=true;
+    p.game=0x45e4f40;
+    p.viewManager=0x133518;
+    p.sphereVtable=0x3437e78;
+    p.groupCode=0x1979686;
+    p.monsterGetter=0x75e520;
+    p.monsterSlot=0x10f8;
+    p.monsterField=0x5780;
+    p.monsterValue=0x200;
+    p.bindSlot=0x658;
+    p.bindField=0x1e68;
+    p.physicsSlot=0xe78;
+    p.aiAxisGetter=0x89c640;
+    p.aiAxisSlot=0x80;
+    p.useHistory=0x46701b0;
+    p.semiRandom=0x46700b0;
+    p.historyCount=0x4670130;
+    p.maxDistance=0x4692f20;
+    p.ignoreChainsawLunge=0x466fbb0;
+    p.emptyEquipment=0x2a3d7a0;
+    p.members=kSyncMembers666Rev22;p.count=std::size(kSyncMembers666Rev22);
+    p.code=kSyncCode666Rev3;p.codeCount=std::size(kSyncCode666Rev3);
+    return p;
+}();
+
+// DOOM Eternal 6.66 Rev 3.2.
+static constexpr SyncPatchCode kSyncCode666Rev32[]{
+    {0x1984992,64,0xb154c3855995a5d2ull},
+    {0x15f5718,63,0x2eff03f91c534924ull},
+    {0xd60378,31,0x6c10975834199753ull},
+    {0xd603b8,31,0xb016d5e98d1251d3ull},
+    {0x22138a0,11,0xa66ce55f5a9dee1aull},
+    {0x15fec2b,11,0x82bb460f02cdb625ull},
+    {0x15fe55d,13,0xf110f5d9af0d2826ull},
+    {0x15f51c0,16,0x92390455bc42ab03ull},
+    {0x15f57d1,54,0x1ffd9737bc1253bdull},
+    {0x13afd95,5,0x80d0ef06aa69550full},
+    {0x13aff73,5,0xf01fb6469c2c1c10ull},
+};
+static const SyncPatchLayout kSyncPatch666Rev32=[](){
+    SyncPatchLayout p{};
+    p.modern=true;
+    p.game=0x45f7370;
+    p.viewManager=0x133518;
+    p.sphereVtable=0x3448e38;
+    p.groupCode=0x1984996;
+    p.monsterGetter=0x763100;
+    p.monsterSlot=0x10f8;
+    p.monsterField=0x5780;
+    p.monsterValue=0x200;
+    p.bindSlot=0x658;
+    p.bindField=0x1e68;
+    p.physicsSlot=0xe78;
+    p.aiAxisGetter=0x8a1220;
+    p.aiAxisSlot=0x80;
+    p.useHistory=0x46826a0;
+    p.semiRandom=0x46825a0;
+    p.historyCount=0x4682620;
+    p.maxDistance=0x46a5490;
+    p.ignoreChainsawLunge=0x46820a0;
+    p.emptyEquipment=0x2a4c420;
+    p.members=kSyncMembers666Rev22;p.count=std::size(kSyncMembers666Rev22);
+    p.code=kSyncCode666Rev32;p.codeCount=std::size(kSyncCode666Rev32);
+    return p;
+}();
+
+struct SyncPatchRegistration { uint32_t timestamp,imageSize; const SyncPatchLayout* layout; };
+static constexpr SyncPatchRegistration kSyncPorts[]{
+    {0x5e794131, 0x1e706000, &kSyncPatch10},
+    {0x5eeb0267, 0x1d396000, &kSyncPatch20},
+    {0x5f203d59, 0x1e1ef000, &kSyncPatch21},
+    {0x5f8065da, 0x1c587000, &kSyncPatch30},
+    {0x5f90c129, 0x1e0c1000, &kSyncPatch31},
+    {0x5fb68f01, 0x1c7e9000, &kSyncPatch40},
+    {0x5fc9da94, 0x1c2eb000, &kSyncPatch41},
+    {0x603896f3, 0x1c5bf000, &kSyncPatch50},
+    {0x60c98dd6, 0x1cb22000, &kSyncPatch60},
+    {0x60dff532, 0x1bc55000, &kSyncPatch61},
+    {0x60f26b2f, 0x1bb06000, &kSyncPatch62},
+    {0x6116d6b5, 0x1cd60000, &kSyncPatch63},
+    {0x61202c76, 0x1d77e000, &kSyncPatch64},
+    {0x61692c83, 0x1e4cd000, &kSyncPatch666},
+    {0x618dfc01, 0x1c835000, &kSyncPatch666Rev1},
+    {0x61d7704e, 0x1c58a000, &kSyncPatch666Rev11},
+    {0x6256614c, 0x1e69d000, &kSyncPatch666Rev2},
+    {0x64cc8a9b, 0x7421000, &kSyncPatch666Rev22},
+    {0x669f0dcf, 0x744d000, &kSyncPatch666Rev3},
+    {0x6a7b9b8c, 0x7431000, &kSyncPatch666Rev32},
+};

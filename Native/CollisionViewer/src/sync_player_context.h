@@ -3,7 +3,7 @@
 static SyncPlayerFootprint readSyncPlayerFootprint(const WallMemory& memory,uintptr_t player,uintptr_t map) {
     SyncPlayerFootprint result;uintptr_t physics=0,owner=0,afterPhysics=0;uint32_t type=0;int index=-1,afterIndex=-1;
     Vec3 origin{},afterOrigin{};float axis[9]{},local[6]{},world[6]{},afterWorld[6]{};
-    if(!memory.get(player+0x1d0,physics)||physics!=player+0x7d28||!memory.get(physics+0x70,owner)||owner!=map||
+    if(!memory.get(player+syncPlayerOffset(0x1d0),physics)||physics!=player+syncPlayerOffset(0x7d28)||!memory.get(physics+0x70,owner)||owner!=map||
        !memory.get(physics+0x14,type)||type!=5||!memory.get(physics+0x3cc0,index)||index<0||index>8||
        !memory.get(physics+0xb0,origin)||!syncRangeFinite(origin)||!memory.read(physics+0x8c,axis,36)||!syncFacingOrthonormal(axis)||
        !memory.read(physics+0xc8,local,24)||!memory.read(physics+0xe0,world,24)||!syncAimBoundsValid(local)||!syncAimBoundsValid(world))return result;
@@ -12,7 +12,7 @@ static SyncPlayerFootprint readSyncPlayerFootprint(const WallMemory& memory,uint
         for(unsigned k=0;k<3;++k){check[k]=std::min(check[k],xyz[k]);check[k+3]=std::max(check[k+3],xyz[k]);}}
     for(unsigned i=0;i<6;++i)if(fabsf(check[i]-world[i])>.025f)return result;
     if(world[3]-world[0]>8||world[4]-world[1]>8||world[5]-world[2]>10||
-       !memory.get(player+0x1d0,afterPhysics)||afterPhysics!=physics||!memory.get(physics+0x3cc0,afterIndex)||afterIndex!=index||
+       !memory.get(player+syncPlayerOffset(0x1d0),afterPhysics)||afterPhysics!=physics||!memory.get(physics+0x3cc0,afterIndex)||afterIndex!=index||
        !memory.get(physics+0xb0,afterOrigin)||memcmp(&origin,&afterOrigin,12)||!memory.read(physics+0xe0,afterWorld,24)||memcmp(world,afterWorld,24))return result;
     result.known=true;result.minimum={world[0]-origin.x,world[1]-origin.y,0};result.maximum={world[3]-origin.x,world[4]-origin.y,0};return result;
 }
@@ -25,8 +25,8 @@ static bool readSyncSphereFocusGroups(const WallMemory& memory,uintptr_t base,co
     for(auto& sphere:spheres){sphere.focusKnown=false;sphere.focusGroup.clear();}
     const unsigned char expected[]{0x48,0x63,0x44,0xd1,0x08};unsigned char code[5]{};
     uintptr_t animator=0,decl=0,afterAnimator=0,afterDecl=0;SyncPreviewList groups,afterGroups;
-    if(!memory.read(base+0x5d721d,code,5)||memcmp(code,expected,5)||!memory.get(target.address+0x1a20,animator)||!animator||
-       !memory.get(animator,decl)||!decl||!syncPreviewList(memory,decl+0xe0,128,groups))return false;
+    if(!memory.read(base+syncPatch().groupCode,code,5)||memcmp(code,expected,5)||!memory.get(target.address+syncEntityOffset(0x1a20),animator)||!animator||
+       !memory.get(animator+syncPatchOffset("idJointAnimator",0),decl)||!decl||!syncPreviewList(memory,decl+0xe0,128,groups))return false;
     struct Group {uintptr_t address=0;SyncPreviewList joints;std::vector<short> ids;std::string name;};
     std::vector<uintptr_t> pointers(groups.count),afterPointers(groups.count);std::vector<Group> data;
     if(groups.count&&!memory.read(groups.data,pointers.data(),pointers.size()*8))return false;
@@ -38,7 +38,7 @@ static bool readSyncSphereFocusGroups(const WallMemory& memory,uintptr_t base,co
         if(!memory.get(group.address+0x10,after)||memcmp(&after,&group.joints,24)||
            (!ids.empty()&&!memory.read(group.joints.data,ids.data(),ids.size()*2))||ids!=group.ids||
            !syncPreviewString(memory,group.address+8,name)||name!=group.name)return false;}
-    if(!memory.get(target.address+0x1a20,afterAnimator)||animator!=afterAnimator||!memory.get(animator,afterDecl)||decl!=afterDecl||
+    if(!memory.get(target.address+syncEntityOffset(0x1a20),afterAnimator)||animator!=afterAnimator||!memory.get(animator+syncPatchOffset("idJointAnimator",0),afterDecl)||decl!=afterDecl||
        !memory.get(decl+0xe0,afterGroups)||memcmp(&groups,&afterGroups,24)||
        (!pointers.empty()&&!memory.read(groups.data,afterPointers.data(),afterPointers.size()*8))||pointers!=afterPointers)return false;
     for(auto& sphere:spheres){sphere.focusKnown=true;
@@ -51,32 +51,32 @@ static bool readSyncSphereFocusGroups(const WallMemory& memory,uintptr_t base,co
 static SyncJointFocus readSyncJointFocus(const WallMemory& memory,uintptr_t base,uintptr_t player,const EntityReference& target) {
     SyncJointFocus result;int historyMode=-1,semiRandom=-1,joint=-1;unsigned char contact[76]{},afterContact[76]{};
     const unsigned char expected[]{0x48,0x63,0x44,0xd1,0x08};unsigned char code[5]{};
-    if(!memory.read(base+0x5d721d,code,5)||memcmp(code,expected,5)||
-       !syncContextInt(memory,base+0x61a9db0,"sync_UseFocusHistory",historyMode))return result;
+    if(!memory.read(base+syncPatch().groupCode,code,5)||memcmp(code,expected,5)||
+       !syncContextInt(memory,base+syncPatch().useHistory,"sync_UseFocusHistory",historyMode))return result;
     SyncPreviewList history,afterHistory;std::vector<int> historyRows;
-    if(historyMode==1){int count=0;if(!syncContextInt(memory,base+0x61a9d30,"player_focusMaxHistory",count)||count<1||count>128||
-            !syncPreviewList(memory,player+0x7768,512,history)||history.count<count)return result;
+    if(historyMode==1){int count=0;if(!syncContextInt(memory,base+syncPatch().historyCount,"player_focusMaxHistory",count)||count<1||count>128||
+            !syncPreviewList(memory,player+syncPlayerOffset(0x7768),512,history)||history.count<count)return result;
         historyRows.resize(count);if(!memory.read(history.data,historyRows.data(),count*4))return result;
         joint=historyRows[0];int best=1;
         for(int i=0;i<count-1;++i){int matches=0;for(int j=1;j<count;++j)matches+=historyRows[j]==historyRows[i];if(matches>best){best=matches;joint=historyRows[i];}}
-    } else if(historyMode==0){if(!syncContextInt(memory,base+0x61a9cb0,"sync_semiRandom",semiRandom)||semiRandom!=0||!memory.read(player+0x15c2c,contact,76))return result;
+    } else if(historyMode==0){if(!syncContextInt(memory,base+syncPatch().semiRandom,"sync_semiRandom",semiRandom)||semiRandom!=0||!memory.read(player+syncPlayerOffset(0x15c2c),contact,76))return result;
         int type=0,model=-1;uint32_t token=0;memcpy(&type,contact,4);memcpy(&model,contact+48,4);memcpy(&joint,contact+52,4);memcpy(&token,contact+56,4);
         if(type!=4||token!=target.id||model<0||(uint16_t(model)==0xffff))return result;
     } else return result;
     if(joint<0||joint>32767)return result;
     uintptr_t animator=0,decl=0,afterAnimator=0,afterDecl=0;SyncPreviewList groups,afterGroups;
-    if(!memory.get(target.address+0x1a20,animator)||!animator||!memory.get(animator,decl)||!decl||!syncPreviewList(memory,decl+0xe0,128,groups))return result;
+    if(!memory.get(target.address+syncEntityOffset(0x1a20),animator)||!animator||!memory.get(animator+syncPatchOffset("idJointAnimator",0),decl)||!decl||!syncPreviewList(memory,decl+0xe0,128,groups))return result;
     for(int i=0;i<groups.count;++i){uintptr_t group=0;SyncPreviewList joints,afterJoints;
         if(!memory.get(groups.data+i*8,group)||!group||!syncPreviewList(memory,group+0x10,512,joints))return {};
         std::vector<short> rows(joints.count);if(joints.count&&!memory.read(joints.data,rows.data(),rows.size()*2))return {};
         if(std::find(rows.begin(),rows.end(),short(joint))!=rows.end()){
             if(!syncPreviewString(memory,group+8,result.group)||!memory.get(group+0x10,afterJoints)||memcmp(&joints,&afterJoints,24))return {};break;}}
-    if(!memory.get(target.address+0x1a20,afterAnimator)||afterAnimator!=animator||!memory.get(animator,afterDecl)||afterDecl!=decl||
+    if(!memory.get(target.address+syncEntityOffset(0x1a20),afterAnimator)||afterAnimator!=animator||!memory.get(animator+syncPatchOffset("idJointAnimator",0),afterDecl)||afterDecl!=decl||
        !memory.get(decl+0xe0,afterGroups)||memcmp(&groups,&afterGroups,24))return {};
-    if(historyMode){std::vector<int> after(historyRows.size());if(!memory.get(player+0x7768,afterHistory)||memcmp(&history,&afterHistory,24)||
+    if(historyMode){std::vector<int> after(historyRows.size());if(!memory.get(player+syncPlayerOffset(0x7768),afterHistory)||memcmp(&history,&afterHistory,24)||
             !memory.read(history.data,after.data(),after.size()*4)||after!=historyRows)return {};}
-    else if(!memory.read(player+0x15c2c,afterContact,76)||memcmp(contact,afterContact,76))return {};
-    int afterMode=-1;if(!syncContextInt(memory,base+0x61a9db0,"sync_UseFocusHistory",afterMode)||afterMode!=historyMode)return {};
-    if(!historyMode){int afterRandom=-1;if(!syncContextInt(memory,base+0x61a9cb0,"sync_semiRandom",afterRandom)||afterRandom!=semiRandom)return {};}
+    else if(!memory.read(player+syncPlayerOffset(0x15c2c),afterContact,76)||memcmp(contact,afterContact,76))return {};
+    int afterMode=-1;if(!syncContextInt(memory,base+syncPatch().useHistory,"sync_UseFocusHistory",afterMode)||afterMode!=historyMode)return {};
+    if(!historyMode){int afterRandom=-1;if(!syncContextInt(memory,base+syncPatch().semiRandom,"sync_semiRandom",afterRandom)||afterRandom!=semiRandom)return {};}
     result.known=true;return result;
 }

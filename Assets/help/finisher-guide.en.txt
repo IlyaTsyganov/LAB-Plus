@@ -1,0 +1,13 @@
+How Glory Kill and Chainsaw animations are chosen
+
+Use Glory Kill preview with Seek and Destroy unequipped. The rune increases Glory Kill range, and its extended range is not supported by this preview.
+
+First, the game checks which finishers are available for this enemy, your position, approach angle, height and aim. Each available animation has a priority. Higher priority wins first; among equal priorities, the game prefers the closest animation start. This is not necessarily the body part closest to you. An exact tie follows the game's candidate order.
+
+Moving closer, farther or around an enemy can therefore change the animation, even while you aim at the same part. There is no single distance threshold shared by every enemy and angle.
+
+For Glory Kill, body colours follow the animation that wins from your current position: blue means torso or a general upper/body animation; orange means a separately selectable head or limb; purple means legs, feet or a lower-area animation. If only upper and lower animations remain, the body uses those two colours. A head or arm can turn blue or purple when its separate animation no longer wins. Unavailable areas are left unpainted.
+
+Chainsaw shows position zones without body-part colouring. Zombie Tier 1 and its variations have two front-cut clips sharing one set of conditions. During an ordinary cut, the game chooses between them randomly at activation; they do not have separate distance zones or guaranteed alternation.
+
+Special boss finishers and scripted actions may follow different rules. The preview is a guide, not a command: enemy state, obstacles and final game checks still matter. Selecting an animation in LAB Plus does not force the game to play it.

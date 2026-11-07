@@ -24,7 +24,11 @@ struct SyncHitSphere {
     Vec3 center{};float radius=0;std::string group;
     short jointIndex=-1;bool focusKnown=false;std::string focusGroup;
 };
-struct SyncNativeChoice {std::string name;int action=0;float priority=0;Vec3 position{};bool known=false;};
+struct SyncNativeChoice {
+    std::string name;int action=0;float priority=0;Vec3 position{};bool known=false;
+    // Animation names can be shared by distinct native declarations.
+    std::string declaration;size_t order=SIZE_MAX;
+};
 struct SyncFacingRegion {
     std::string name;
     Vec3 incoming{}; // Enemy-local direction opposite the authored player forward.

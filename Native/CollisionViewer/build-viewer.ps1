@@ -21,6 +21,7 @@ $suites = [ordered]@{
  'debug_hud_stack_tests.cpp'='DebugHudStackTests';
  'debug_hud_render_tests.cpp'='DebugHudRenderTests';
  'sync_interaction_tests.cpp'='SyncInteractionTests';
+ 'sync_target_tests.cpp'='SyncTargetTests';
  'performance_tests.cpp'='PerformanceTests';
  'appearance_tests.cpp'='AppearanceTests'; 'practice_live_tests.cpp'='PracticeLiveTests'; 'viewer_behavior_tests.cpp'='ViewerBehaviorTests';
  'depth_tracker_tests.cpp'='DepthTrackerTests'; 'inspector_tests.cpp'='InspectorTests';
@@ -39,8 +40,11 @@ foreach ($entry in $suites.GetEnumerator()) {
     & $Compiler @flags @entryFlags $source -o $target -luser32 -lbcrypt
     if ($LASTEXITCODE -ne 0) { throw "Compilation failed: $($entry.Value)" }
     if ($RunTests -and $entry.Value.EndsWith('Tests')) {
-        & $target
-        if ($LASTEXITCODE -ne 0) { throw "Test failed: $($entry.Value)" }
+        Push-Location (Join-Path $nativeDirectory '..\..')
+        try {
+            & $target
+            if ($LASTEXITCODE -ne 0) { throw "Test failed: $($entry.Value)" }
+        } finally { Pop-Location }
     }
 }
 Write-Output 'LAB Plus native build completed.'

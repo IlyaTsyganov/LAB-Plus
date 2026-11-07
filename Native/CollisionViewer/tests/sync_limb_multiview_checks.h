@@ -2,19 +2,25 @@
 
 struct CapturedLimbEnemy {
     std::string definition,model;bool shape=false,mapped=false,source=false,pose=false,identity=false;
+    bool geometry=false,geometryComplete=false;size_t expectedRegions=0;
     SyncTargetFrame frame;std::vector<std::pair<std::string,std::vector<short>>> groups;
 };
-static std::vector<CapturedLimbEnemy> loadCapturedLimbEnemies() {
-    std::ifstream input("Native/CollisionViewer/tests/fixtures/sync-limbs-all-models-11.tsv");requireTarget(bool(input),"all-spawned native limb snapshot exists");
+static std::vector<CapturedLimbEnemy> loadCapturedLimbEnemies(const char* path="Native/CollisionViewer/tests/fixtures/sync-limbs-all-models-11.tsv",bool recenter=true) {
+    std::ifstream input(path);requireTarget(bool(input),"native limb snapshot exists");
     std::vector<CapturedLimbEnemy> result;std::string line;bool complete=false;
     while(std::getline(input,line)){if(line.empty()||line[0]=='#')continue;std::istringstream fields(line);char kind;size_t id;fields>>kind>>id;
-        if(kind=='C'){size_t shapes,maps;fields>>shapes>>maps>>complete;requireTarget(id==result.size()&&shapes==28&&maps==28&&complete,"native one-shot inventory completed coherently");continue;}
+        if(kind=='C'){size_t shapes,maps;fields>>shapes>>maps>>complete;requireTarget(id==result.size()&&shapes==size_t(std::count_if(result.begin(),result.end(),[](const auto& e){return e.shape;}))&&maps==size_t(std::count_if(result.begin(),result.end(),[](const auto& e){return e.mapped;}))&&complete,"native one-shot inventory completed coherently");continue;}
         if(kind=='E'){requireTarget(id==result.size(),"contiguous captured enemy identities");result.emplace_back();auto& enemy=result.back();unsigned token,generation;
             fields>>token>>generation>>enemy.definition>>enemy.model>>enemy.shape>>enemy.mapped>>enemy.source>>enemy.pose;enemy.frame.entity.id=token;enemy.frame.entity.generation=generation;continue;}
         requireTarget(id<result.size(),"captured limb row has a current enemy");auto& enemy=result[id];auto& frame=enemy.frame;
         if(kind=='B')for(auto& f:frame.shotBounds)fields>>f;
         else if(kind=='Q'){fields>>frame.aim.known;for(auto& f:frame.aim.bounds)fields>>f;}
         else if(kind=='P'){fields>>frame.facing.origin.x>>frame.facing.origin.y>>frame.facing.origin.z;for(auto& f:frame.facing.axis)fields>>f;}
+        else if(kind=='H')fields>>enemy.geometry>>enemy.geometryComplete>>enemy.expectedRegions;
+        else if(kind=='R'){SyncFacingRegion r;std::string declaration;size_t groups;
+            fields>>r.name>>r.incoming.x>>r.incoming.y>>r.incoming.z>>r.start.x>>r.start.y>>r.start.z>>r.halfYaw>>r.minXY>>r.maxXY>>r.minZ>>r.maxZ>>r.checkLunge>>r.flatLunge>>r.aim.quadrants>>r.aim.known>>r.priorityKnown>>r.priority>>declaration>>groups;
+            requireTarget(groups<=32,"bounded native geometry groups");while(groups--){std::string group;fields>>group;r.aim.damageGroups.push_back(group);}
+            r.audit=syncAuditEnemyRule(declaration,r.name,0,r.aim);requireTarget(r.audit.matched,"live geometry retains actual assigned declaration identity");frame.regions.push_back(std::move(r));}
         else if(kind=='G'){std::string name;size_t count;fields>>name>>count;requireTarget(count<=512,"bounded captured native joint group");std::vector<short> joints(count);for(auto& j:joints)fields>>j;enemy.groups.emplace_back(name,std::move(joints));}
         else if(kind=='S'){SyncHitSphere sphere;fields>>sphere.center.x>>sphere.center.y>>sphere.center.z>>sphere.radius>>sphere.jointIndex>>sphere.focusKnown>>sphere.focusGroup>>sphere.group;
             if(sphere.focusGroup=="-")sphere.focusGroup.clear();frame.spheres.push_back(std::move(sphere));}
@@ -24,11 +30,13 @@ static std::vector<CapturedLimbEnemy> loadCapturedLimbEnemies() {
         else if(kind=='V')fields>>enemy.identity;
         else requireTarget(false,"known all-models snapshot row");requireTarget(!fields.fail(),"captured all-models row parses");
     }
-    requireTarget(complete&&result.size()==29,"all 29 live actors remain in the frozen inventory");
+    requireTarget(complete&&!result.empty(),"native inventory has a complete final coherence marker");
+    if(std::string(path).find("sync-limbs-all-models-11.tsv")!=std::string::npos)requireTarget(result.size()==29,"all 29 original live actors remain in the frozen inventory");
     for(auto& enemy:result){requireTarget(enemy.identity&&enemy.source,"frozen source/target identity was coherent");
+        requireTarget(enemy.frame.regions.size()==enemy.expectedRegions,"all captured native regions were parsed");
         for(const auto& sphere:enemy.frame.spheres){std::string group;for(const auto& row:enemy.groups)if(std::find(row.second.begin(),row.second.end(),sphere.jointIndex)!=row.second.end()){group=row.first;break;}
             requireTarget(sphere.focusKnown&&sphere.focusGroup==group,"every actual hurt sphere agrees with independent first-match native joint-group membership");}
-        if(enemy.shape){auto& frame=enemy.frame;const Vec3 offset{(frame.shotBounds[0]+frame.shotBounds[3])*.5f,(frame.shotBounds[1]+frame.shotBounds[4])*.5f,(frame.shotBounds[2]+frame.shotBounds[5])*.5f};
+        if(enemy.shape&&recenter){auto& frame=enemy.frame;const Vec3 offset{(frame.shotBounds[0]+frame.shotBounds[3])*.5f,(frame.shotBounds[1]+frame.shotBounds[4])*.5f,(frame.shotBounds[2]+frame.shotBounds[5])*.5f};
             for(auto& sphere:frame.spheres)sphere.center=subtract(sphere.center,offset);frame.facing.origin=subtract(frame.facing.origin,offset);
             for(unsigned i=0;i<6;++i){const float xyz[]{offset.x,offset.y,offset.z};frame.shotBounds[i]-=xyz[i%3];frame.aim.bounds[i]-=xyz[i%3];}}
     }return result;

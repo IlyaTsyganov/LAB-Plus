@@ -9,6 +9,7 @@
 #include "sync_exclusive_geometry.h"
 #include "sync_sector_geometry.h"
 #include "sync_clearance_band.h"
+#include "sync_nearest_choice.h"
 
 struct SyncTargetFrame {
     LevelIdentity level; EntityReference entity,blueprint;
@@ -20,13 +21,17 @@ struct SyncTargetFrame {
     std::vector<SyncFacingRegion> regions;
     std::vector<SyncChainsawRule> chainsawRules;
     std::vector<SyncNativeChoice> nativeChoices;
+    std::vector<SyncNativeChoice> aimSelectorSites;
+    std::vector<std::string> gloryKillOrder;
+    std::vector<SyncNativeChoice> selectorOrder;
+    bool nearestChoiceKnown=false,nearestSelectionCurrent=false;
     std::vector<SyncAnimationRule> animationRules;
     std::string enemyDefinition;
     SyncAimFrame aim;
     SyncJointFocus jointFocus;
     bool retainedTarget=false;
     SyncAimFrame retainedAim;SyncJointFocus retainedFocus;
-    bool retainedSelectionKnown=false;float retainedSelectionTolerance=0;
+    bool retainedSelectionKnown=false,retainedNearestKnown=false;float retainedSelectionTolerance=0;
     SyncFacingPose retainedSelectionPose;std::vector<SyncChainsawRule> retainedChainsawRules;
     SyncPlayerFootprint playerFootprint;
     float shotBounds[6]{};
@@ -52,8 +57,9 @@ struct SyncTargetFrame {
     uint64_t aimPartSignature=0;
     SyncSectorTone sectorTone=SyncSectorTone::Reference;bool sectorToneKnown=false;
 };
-static bool syncPreviewProfile(const GameProfile& p) { return p.timestamp==0x5ec7deca&&p.imageSize==0x1d551000; }
+static bool syncPreviewProfile(const GameProfile& p) { return syncPatchFor(p)!=nullptr; }
 static bool syncPreviewCode(const WallMemory& memory,uintptr_t base) {
+    if(syncPatch().modern)return syncPatchCodeMatches(memory,base);
     const unsigned char manager[]{0x48,0x8b,0x0d,0x10,0x0f,0x80,0x04},los[]{0x0f,0xb6,0x81,0xf8,0,0,0,0x83,0xe0,1,0xc3},
         chainsawBypass[]{0x74,0x52,0x83,0xb8,0x9c,0,0,0,0x10,0x74,0x49};
     unsigned char actual[sizeof(los)]{};
@@ -198,7 +204,7 @@ static bool syncPreviewLayouts(const GraphLookup& lookup) {
     bool valid=true;
     for(const auto& expected:fields) {
         const auto& schema=lookup(expected.owner);const auto* field=enemyTelemetryField(schema,expected.name);
-        if(!schema.complete||!field||field->type!=expected.type||field->ops!=expected.ops||field->size!=expected.size||field->offset!=expected.offset) valid=false;
+        if(!schema.complete||!field||field->type!=expected.type||field->ops!=expected.ops||field->size!=syncPatchSize(expected.owner,expected.offset,expected.size)||field->offset!=syncPatchOffset(expected.owner,expected.offset)) valid=false;
     }
     return valid&&lookup("gameView_t").size==0x178&&lookup("gameViewEntInfo_t").size==0x100&&
         lookup("havokShapeData_t").size==0x58&&lookup("idSyncAttackInteraction").size==0x160&&
@@ -218,9 +224,9 @@ static bool syncPreviewString(const WallMemory& memory,uintptr_t atomic,std::str
 }
 static SyncAimRequirement readSyncAimRequirement(const WallMemory& memory,uintptr_t decl) {
     SyncAimRequirement result;result.known=false;SyncPreviewList groups,after;uint32_t finalMask=0;
-    if(!memory.get(decl+0x310,result.quadrants)||!syncAimMaskKnown(result.quadrants)||!syncPreviewList(memory,decl+0x2a0,32,groups))return result;
+    if(!memory.get(decl+syncPatchOffset("idDeclSyncInteraction",0x310),result.quadrants)||!syncAimMaskKnown(result.quadrants)||!syncPreviewList(memory,decl+syncPatchOffset("idDeclSyncInteraction",0x2a0),32,groups))return result;
     for(int i=0;i<groups.count;++i){std::string name;if(!syncPreviewString(memory,groups.data+size_t(i)*8,name)||name.empty())return result;result.damageGroups.push_back(std::move(name));}
-    if(!memory.get(decl+0x310,finalMask)||finalMask!=result.quadrants||!memory.get(decl+0x2a0,after)||memcmp(&groups,&after,sizeof(groups)))return result;
+    if(!memory.get(decl+syncPatchOffset("idDeclSyncInteraction",0x310),finalMask)||finalMask!=result.quadrants||!memory.get(decl+syncPatchOffset("idDeclSyncInteraction",0x2a0),after)||memcmp(&groups,&after,sizeof(groups)))return result;
     result.known=true;return result;
 }
 static SyncRuleAudit readSyncRuleAudit(const WallMemory& memory,uintptr_t decl,const std::string& state,int action,const SyncAimRequirement& aim) {
@@ -233,7 +239,7 @@ static SyncRuleAudit readSyncRuleAudit(const WallMemory& memory,uintptr_t decl,c
 // claim it. Accept a bonus only from the coherent, eligible runtime candidate.
 static bool readSyncGkAiPriority(const WallMemory& memory,uintptr_t base,uintptr_t decl,float& priority,uintptr_t interaction=0,float runtime=0) {
     SyncPreviewList requirements,after;
-    if(!syncPreviewList(memory,decl+0x318,128,requirements))return false;
+    if(!syncPreviewList(memory,decl+syncPatchOffset("idDeclSyncInteraction",0x318),128,requirements))return false;
     if(!requirements.count)return !interaction||runtime==priority;
     if(!interaction)return false;
     const unsigned char countCode[]{0x41,0x8b,0x85,0x20,3,0,0,0x85,0xc0,0x0f,0x8e,0xb0,1,0,0},
@@ -243,10 +249,35 @@ static bool readSyncGkAiPriority(const WallMemory& memory,uintptr_t base,uintptr
        !memory.read(base+0xbbf4a8,code,sizeof(countCode))||memcmp(code,countCode,sizeof(countCode))||
        !memory.read(base+0xbbf652,code,sizeof(bonusCode))||memcmp(code,bonusCode,sizeof(bonusCode))||
        !memory.get(base+0x25e7554,bonus)||bonus!=.25f||!memory.get(interaction+0x48,valid)||valid!=1||runtime!=priority+bonus||
-       !memory.get(decl+0x318,after)||memcmp(&requirements,&after,24))return false;
+       !memory.get(decl+syncPatchOffset("idDeclSyncInteraction",0x318),after)||memcmp(&requirements,&after,24))return false;
     priority+=bonus;return true;
 }
+// Ordinary previews exclude equipment/special-state finishers, including the
+// shifted momentum requirement after 1.1. An assigned declaration is not proof
+// that its special player state is currently available.
+static bool syncOrdinarySpecialFlags(const WallMemory& memory,uintptr_t decl,bool& ordinary) {
+    unsigned char required[2]{}, momentum=0;
+    const auto requirements=decl+syncPatchOffset("idDeclSyncInteraction",0x2a0);
+    const auto momentumOffset=syncPatchOffset("idDeclSyncInteraction::playerRequirements_t",0x76);
+    if(!memory.read(requirements+0x74,required,sizeof(required))||
+       !memory.get(requirements+momentumOffset,momentum)||
+       required[0]>1||required[1]>1||momentum>1)return false;
+    ordinary=!required[0]&&!required[1]&&!momentum;
+    return true;
+}
+static bool syncModernOrdinaryDeclaration(const WallMemory& memory,uintptr_t base,uintptr_t decl) {
+    uintptr_t type=0,name=0,required=0,after=0;char empty=1;bool ordinary=false;
+    return memory.get(decl+0x90,type)&&type&&memory.get(type,name)&&readEntityText(memory,name,96)=="idSyncAttackInteraction_Generic"&&
+        memory.get(decl+syncPatchOffset("idDeclSyncInteraction",0x2b8),required)&&syncPatch().emptyEquipment&&required==base+syncPatch().emptyEquipment&&memory.get(required,empty)&&empty==0&&
+        syncOrdinarySpecialFlags(memory,decl,ordinary)&&ordinary&&memory.get(decl+syncPatchOffset("idDeclSyncInteraction",0x2b8),after)&&after==required;
+}
 static bool readSyncOrdinaryGkPriority(const WallMemory& memory,uintptr_t base,uintptr_t interaction,uintptr_t decl,float runtime,float& priority) {
+    if(syncPatch().modern){if(!syncModernOrdinaryDeclaration(memory,base,decl))return false;unsigned char valid=0;uintptr_t actual=0;
+        if(memory.get(interaction+0x40,actual)&&actual==decl&&memory.get(interaction+0x48,valid)&&valid==1&&std::isfinite(runtime)&&runtime>=0){priority=runtime;return true;}
+        SyncPreviewList requirements;if(!syncPreviewList(memory,decl+syncPatchOffset("idDeclSyncInteraction",0x318),128,requirements)||requirements.count)return false;
+        return memory.get(decl+syncPatchOffset("idDeclSyncInteraction",0x148),priority)&&std::isfinite(priority)&&priority>=0;
+    }
+
     const unsigned char copy[]{0xf3,0x0f,0x10,0x80,0x48,1,0,0,0xf3,0x0f,0x11,0x41,0x4c},
         equipment[]{0x49,0x8b,0x96,0xb8,2,0,0,0x48,0x3b,0x15,0x9c,0xf7,0xf3,0},specific[]{0xb0,1,0xc3};unsigned char code[14]{};
     uintptr_t vt=0,validator=0,empty=0,required=0,after=0;unsigned char flags[3]{};float last=0;
@@ -254,16 +285,16 @@ static bool readSyncOrdinaryGkPriority(const WallMemory& memory,uintptr_t base,u
        !memory.read(base+0x16ba68e,code,sizeof(equipment))||memcmp(code,equipment,sizeof(equipment))||
        !memory.get(interaction,vt)||!vt||!memory.get(vt+0x38,validator)||validator!=base+0xf6af60||
        !memory.read(validator,code,sizeof(specific))||memcmp(code,specific,sizeof(specific))||
-       !memory.get(base+0x25f9e38,empty)||!empty||!memory.get(decl+0x2b8,required)||required!=empty||
-       !memory.read(decl+0x314,flags,sizeof(flags))||flags[0]||flags[1]||flags[2]||
-       !memory.get(decl+0x148,priority)||!std::isfinite(priority)||priority<0||priority>1024||
-       !memory.get(decl+0x148,last)||last!=priority||!memory.get(decl+0x2b8,after)||after!=required)return false;
+       !memory.get(base+0x25f9e38,empty)||!empty||!memory.get(decl+syncPatchOffset("idDeclSyncInteraction",0x2b8),required)||required!=empty||
+       !memory.read(decl+syncPatchOffset("idDeclSyncInteraction",0x314),flags,sizeof(flags))||flags[0]||flags[1]||flags[2]||
+       !memory.get(decl+syncPatchOffset("idDeclSyncInteraction",0x148),priority)||!std::isfinite(priority)||priority<0||priority>1024||
+       !memory.get(decl+syncPatchOffset("idDeclSyncInteraction",0x148),last)||last!=priority||!memory.get(decl+syncPatchOffset("idDeclSyncInteraction",0x2b8),after)||after!=required)return false;
     return readSyncGkAiPriority(memory,base,decl,priority,interaction,runtime);
 }
 static SyncAimFrame readSyncAimFrame(const WallMemory& memory,uintptr_t base,const EntityReference& target,const GameCamera& camera) {
     SyncAimFrame result;uintptr_t vt=0,getter=0,physics=0,pvt=0,boundsGetter=0,map=0,afterPhysics=0;float after[6]{};
     const unsigned char getPhysics[]{0x48,0x8b,0x81,0xd0,1,0,0,0xc3},getBounds[]{0x48,0x8d,0x81,0xe0,0,0,0,0xc3};unsigned char code[8]{};
-    if(!memory.get(target.address,vt)||vt<base||vt-base>=0x1d551000||!memory.get(vt+0xe28,getter)||getter<base||getter-base>=0x2500000||!memory.read(getter,code,8)||memcmp(code,getPhysics,8)||
+    if(!memory.get(target.address,vt)||vt<base||vt-base>=0x1d551000||!memory.get(vt+syncPatch().physicsSlot,getter)||getter<base||getter-base>=0x2500000||!memory.read(getter,code,8)||memcmp(code,getPhysics,8)||
        !memory.get(target.address+0x1d0,physics)||!physics||!memory.get(physics,pvt)||pvt<base||pvt-base>=0x1d551000||!memory.get(pvt+0x38,boundsGetter)||boundsGetter<base||boundsGetter-base>=0x2500000||
        !memory.read(boundsGetter,code,8)||memcmp(code,getBounds,8)||!memory.get(physics+0x70,map)||map!=target.map||
        !memory.read(physics+0xe0,result.bounds,24)||!syncAimBoundsValid(result.bounds)||!memory.read(physics+0xe0,after,24)||memcmp(after,result.bounds,24)||
@@ -277,27 +308,27 @@ static void syncShotBounds(const std::vector<SyncHitSphere>& spheres,float* boun
 static bool readSyncFacingPose(const WallMemory& memory,uintptr_t base,const EntityReference& ref,SyncFacingPose& pose) {
     uintptr_t component=0,vtable=0,getter=0,map=0;SyncFacingPose after{};
     const unsigned char expected[]{0x48,0x8d,0x81,0x2c,0x3d,0,0,0xc3};unsigned char code[8]{};
-    if(!memory.get(ref.address+0x58a0,component)||!component||!memory.get(component+0x18,vtable)||
-       !memory.get(vtable+0x70,getter)||getter!=base+0xd41ed0||!memory.read(getter,code,8)||memcmp(code,expected,8)||
+    if(!memory.get(ref.address+syncEntityOffset(0x58a0),component)||!component||!memory.get(component+0x18,vtable)||
+       !memory.get(vtable+syncPatch().aiAxisSlot,getter)||getter!=base+syncPatch().aiAxisGetter||!memory.read(getter,code,8)||memcmp(code,expected,8)||
        !memory.get(component+0x18+0x70,map)||map!=ref.map||
        !memory.read(component+0x18+0x3d2c,pose.axis,36)||!memory.get(component+0x18+0xb0,pose.origin)||
        !syncFacingOrthonormal(pose.axis)||!syncPreviewFinite(pose.origin)||
        fabsf(pose.axis[2])>.001f||fabsf(pose.axis[5])>.001f||pose.axis[8]<.999f||
        !memory.read(component+0x18+0x3d2c,after.axis,36)||!memory.get(component+0x18+0xb0,after.origin)||memcmp(&pose,&after,sizeof(pose)))return false;
-    uintptr_t finalComponent=0;return memory.get(ref.address+0x58a0,finalComponent)&&component==finalComponent;
+    uintptr_t finalComponent=0;return memory.get(ref.address+syncEntityOffset(0x58a0),finalComponent)&&component==finalComponent;
 }
 static bool readSyncPlayerIncoming(const WallMemory& memory,uintptr_t player,float& yaw) {
-    float axis[9]{};if(!memory.read(player+0x377a4,axis,36)||!syncFacingOrthonormal(axis)||axis[8]<.999f)return false;
+    float axis[9]{};if(!memory.read(player+syncPlayerOffset(0x377a4),axis,36)||!syncFacingOrthonormal(axis)||axis[8]<.999f)return false;
     yaw=atan2f(-axis[1],-axis[0]);return true;
 }
 static bool readSyncFacingRegion(const WallMemory& memory,uintptr_t decl,uintptr_t node,uintptr_t jointCache,
                                  short instigatorJoint,short targetJoint,const std::string& name,SyncFacingRegion& region) {
     unsigned char centric[5]{},position=0;float rotation=0,pitch=0,yaw=0,ranges[4]{};int32_t frame=-1;unsigned char valid=0;
     if(!decl||!node||instigatorJoint<0||targetJoint<0||instigatorJoint>=256||targetJoint>=256||
-       !memory.read(decl+0x108,centric,5)||std::any_of(std::begin(centric),std::end(centric),[](unsigned char v){return v!=0;})||
-       !memory.get(decl+0x144,rotation)||rotation!=0||!memory.get(decl+0x1d8,position)||position!=1||
-       !memory.get(decl+0x264,pitch)||!std::isfinite(pitch)||pitch<45||pitch>180||!memory.get(decl+0x268,yaw)||!std::isfinite(yaw)||fabsf(yaw)<=0||fabsf(yaw)>180||
-       !memory.read(decl+0x254,ranges,16)||!memory.get(jointCache+0x3018,frame)||frame!=0||
+       !memory.read(decl+syncPatchOffset("idDeclSyncInteraction",0x108),centric,5)||std::any_of(std::begin(centric),std::end(centric),[](unsigned char v){return v!=0;})||
+       !memory.get(decl+syncPatchOffset("idDeclSyncInteraction",0x144),rotation)||rotation!=0||!memory.get(decl+syncPatchOffset("idDeclSyncInteraction",0x1d8),position)||position!=1||
+       !memory.get(decl+syncPatchOffset("idDeclSyncInteraction",0x264),pitch)||!std::isfinite(pitch)||pitch<45||pitch>180||!memory.get(decl+syncPatchOffset("idDeclSyncInteraction",0x268),yaw)||!std::isfinite(yaw)||fabsf(yaw)<=0||fabsf(yaw)>180||
+       !memory.read(decl+syncPatchOffset("idDeclSyncInteraction",0x254),ranges,16)||!memory.get(jointCache+0x3018,frame)||frame!=0||
        !memory.get(jointCache+0x301c,valid)||valid!=1)return false;
     for(float v:ranges)if(!std::isfinite(v)||v<0||v>4096)return false;
     if(ranges[0]!=0||ranges[0]>ranges[1]||ranges[2]>ranges[3])return false;
@@ -312,7 +343,7 @@ static bool readSyncFacingRegion(const WallMemory& memory,uintptr_t decl,uintptr
                   target[1]*difference.x+target[5]*difference.y+target[9]*difference.z,
                   target[2]*difference.x+target[6]*difference.y+target[10]*difference.z};
     uint32_t filter=0;unsigned char lunge=2;
-    if(!syncPreviewFinite(region.start)||!memory.get(decl+0xa4,filter)||!memory.get(decl+0x250,lunge)||lunge>1)return false;
+    if(!syncPreviewFinite(region.start)||!memory.get(decl+0xa4,filter)||!memory.get(decl+syncPatchOffset("idDeclSyncInteraction",0x250),lunge)||lunge>1)return false;
     region.checkLunge=lunge!=0;region.flatLunge=(filter&0x190)!=0;
     region.aim=readSyncAimRequirement(memory,decl);
     region.name=name;region.halfYaw=fabsf(yaw)*syncFacingPi/180;region.minXY=ranges[0];region.maxXY=ranges[1];region.minZ=ranges[2];region.maxZ=ranges[3];return true;
@@ -321,8 +352,8 @@ static bool readSyncFacingRegion(const WallMemory& memory,uintptr_t decl,uintptr
 #include "sync_player_context.h"
 static bool readSyncHitSpheres(const WallMemory& memory,uintptr_t base,const EntityReference& ref,std::vector<SyncHitSphere>& result) {
     result.clear();uintptr_t wrapper=0,physics=0,map=0,root=0,duplicate=0;unsigned char dead=1;
-    if(!memory.get(ref.address+0x6488,dead)||dead||!memory.get(ref.address+0x1a28,wrapper)||!wrapper||
-       !memory.get(ref.address+0x1a38,physics)||!physics||!memory.get(physics+0x70,map)||map!=ref.map||
+    if(!memory.get(ref.address+syncEntityOffset(0x6488),dead)||dead||!memory.get(ref.address+syncEntityOffset(0x1a28),wrapper)||!wrapper||
+       !memory.get(ref.address+syncEntityOffset(0x1a38),physics)||!physics||!memory.get(physics+0x70,map)||map!=ref.map||
        !memory.get(physics+0x238,duplicate)||duplicate!=wrapper||!memory.get(wrapper,root)||!root) return false;
     struct Pose { float axis[9];Vec3 origin; } pose{},after{};
     int64_t time=0,finalTime=0;
@@ -348,7 +379,7 @@ static bool readSyncHitSpheres(const WallMemory& memory,uintptr_t base,const Ent
         uintptr_t vtable=0;memcpy(&vtable,leaf,8);
         // RTTI of this audited native kind/vtable is hknpSphereShape. No box,
         // capsule or unsupported primitive is substituted with a sphere.
-        if(leaf[0x22]!=2||vtable!=base+0x2f265e8) return false;
+        if(leaf[0x22]!=2||vtable!=base+syncPatch().sphereVtable) return false;
         memcpy(&leafRadius,leaf+0x28,4);memcpy(&material,leaf+0x30,8);
         if(!std::isfinite(leafRadius)||leafRadius<=0||leafRadius>100||!std::isfinite(scale[0])||!std::isfinite(scale[1])||!std::isfinite(scale[2])||scale[0]<=0||scale[0]>100||
            fabsf(scale[0]-scale[1])>1e-5f||fabsf(scale[0]-scale[2])>1e-5f||
@@ -374,8 +405,8 @@ static bool readSyncHitSpheres(const WallMemory& memory,uintptr_t base,const Ent
     if(result.empty()||!memory.read(children,again.data(),again.size())||rows!=again||!memory.read(physics+0x8c,&after,sizeof(after))||
        !memory.get(wrapper+8,finalMaterials)||memcmp(&materials,&finalMaterials,24)||!memory.read(materials.data,afterMaterials.data(),afterMaterials.size())||materialRows!=afterMaterials||
        memcmp(&pose,&after,sizeof(pose))||!memory.get(physics+0x240,finalTime)||time!=finalTime||
-       !memory.get(wrapper,finalRoot)||finalRoot!=root||!memory.get(ref.address+0x1a38,finalPhysics)||finalPhysics!=physics||
-       !memory.get(ref.address+0x6488,dead)||dead) {result.clear();return false;}
+       !memory.get(wrapper,finalRoot)||finalRoot!=root||!memory.get(ref.address+syncEntityOffset(0x1a38),finalPhysics)||finalPhysics!=physics||
+       !memory.get(ref.address+syncEntityOffset(0x6488),dead)||dead) {result.clear();return false;}
     return true;
 }
 #include "sync_authored_preview.h"
@@ -419,15 +450,16 @@ public:
     explicit SyncTargetReader(unsigned budget=2000):budgetMicroseconds(budget) {}
     void clearRetainedTarget(){retainedFrame={};}
     SyncTargetFrame captureOnce(const WallMemory& memory,uintptr_t base,const GameProfile& profile,const LevelIdentity& level,const GameCamera& camera,float distanceLimit,const GraphLookup* lookup=nullptr,const SyncTargetFrame* retained=nullptr) {
+        const SyncPatchScope patchScope(profile);
         const auto began=std::chrono::steady_clock::now();
         SyncTargetFrame result;result.level=level;result.captured=GetTickCount64();result.phase="no_target";result.action=syncTargetAction.load();
         result.selectedAnimation=(*std::atomic_load(&syncAnimationSelection))[result.action];
         if(!syncPreviewProfile(profile)||!level||!syncPreviewCode(memory,base)||!std::isfinite(distanceLimit)||distanceLimit<=0||distanceLimit>200) {result.phase="unsupported";return result;}
         if(previous!=level) {references.clear();rules={};chainsawLevel={};chainsawTarget={};cachedChainsawAnimations.clear();cachedChainsawRules.clear();previous=level;}
         Vec3 eye{},direction{};if(!inspectorRay(camera,eye,direction)) return result;
-        uintptr_t game=0,player=0,vtable=0;if(!memory.get(base+0x6128718,game)||!game||!memory.get(level.map+profile.mapPlayerOffset,player)||
+        uintptr_t game=0,player=0,vtable=0;if(!memory.get(base+syncPatch().game,game)||!game||!memory.get(level.map+profile.mapPlayerOffset,player)||
             !memory.get(player,vtable)||vtable!=base+profile.playerVtableRva) return result;
-        const uintptr_t manager=game+0x136140;int32_t index=-1;SyncPreviewList views;
+        const uintptr_t manager=game+syncPatch().viewManager;int32_t index=-1;SyncPreviewList views;
         if(!memory.get(manager+0x58,index)||index<0||index>1||!syncPreviewList(memory,manager+0x40,8,views)) return result;
         float nearest=distanceLimit;uintptr_t selectedView=0;SyncPreviewList processed,resolved;
         for(int i=0;i<views.count;++i) {
@@ -444,14 +476,14 @@ public:
                 const auto* row=info.data()+j*0x100;
                 if((row[0xf8]&0x41)!=0x41||!actors[j]||actors[j]==player) continue; // Native isAI + line of sight.
                 uintptr_t physics=0;float bounds[6]{};unsigned char dead=1;
-                if(!memory.get(actors[j]+0x6488,dead)||dead||!memory.get(actors[j]+0x1a38,physics)||!physics||
+                if(!memory.get(actors[j]+syncEntityOffset(0x6488),dead)||dead||!memory.get(actors[j]+syncEntityOffset(0x1a38),physics)||!physics||
                    !memory.read(physics+0xe0,bounds,sizeof(bounds))) continue;
                 bool finite=true;for(float value:bounds) finite&=std::isfinite(value)&&fabsf(value)<1e6f;
                 if(!finite||!rayBounds(eye,direction,bounds,nearest)) continue;
                 auto ref=reference(memory,base,profile,level,actors[j]);if(!ref) continue;
                 uint32_t ownerToken=0;memcpy(&ownerToken,row+0xd0,4);if(ownerToken!=ref.id) continue;
                 uintptr_t targeting=0;uint32_t targetType=0;
-                if(!memory.get(ref.address+0xbd0,targeting)||(targeting&&!memory.get(targeting+0xc4,targetType))) {result.phase="changing";return result;}
+                if(!memory.get(ref.address+syncEntityOffset(0xbd0),targeting)||(targeting&&!memory.get(targeting+syncPatchOffset("idDeclTargeting",0xc4),targetType))) {result.phase="changing";return result;}
                 const bool hostile=(targetType&1)&&!(targetType&2); // Native HOSTILE / FRIENDLY targeting bits.
                 std::vector<SyncHitSphere> spheres;if(!readSyncHitSpheres(memory,base,ref,spheres)) {result.phase="changing";return result;}
                 bool hit=false;std::string group;
@@ -468,13 +500,13 @@ public:
            !memory.get(selectedView+0x60+index*24,finalProcessed)||memcmp(&processed,&finalProcessed,24)||
            !memory.get(selectedView+0x140+index*24,finalResolved)||memcmp(&resolved,&finalResolved,24)||
            !memory.get(selectedView+0xc8,finalOwner)||finalOwner!=player||!memory.get(level.map+profile.mapPlayerOffset,finalPlayer)||finalPlayer!=player||
-           !memory.get(base+0x6128718,finalGame)||finalGame!=game||
+           !memory.get(base+syncPatch().game,finalGame)||finalGame!=game||
            (result.entity&&!enemyTelemetryIdentity(memory,base,profile,result.entity))) {result={};result.phase="changing";return result;}
         if(!result.entity&&retained&&lookup&&retained->level==level&&retained->entity&&retained->ranges.known&&
            enemyTelemetryIdentity(memory,base,profile,retained->entity)) {
             result.entity=retained->entity;
             uintptr_t targeting=0;uint32_t targetType=0;
-            if(!memory.get(result.entity.address+0xbd0,targeting)||!targeting||!memory.get(targeting+0xc4,targetType)||!(targetType&1)||(targetType&2))return SyncTargetFrame{};
+            if(!memory.get(result.entity.address+syncEntityOffset(0xbd0),targeting)||!targeting||!memory.get(targeting+syncPatchOffset("idDeclTargeting",0xc4),targetType)||!(targetType&1)||(targetType&2))return SyncTargetFrame{};
             if(!readSyncHitSpheres(memory,base,result.entity,result.spheres)||!readSyncFacingPose(memory,base,result.entity,result.facing)||
                !memory.get(selectedView,result.viewPosition))return SyncTargetFrame{};
             result.viewTarget=motionAdd(result.facing.origin,syncRangeTransform(result.facing,retained->ranges.viewTargetOffset));
@@ -484,7 +516,8 @@ public:
             result.hasChainsaw=false; // Re-establish support from current assigned authoring below.
             result.retainedTarget=true;result.retainedAim=retained->retainedTarget?retained->retainedAim:retained->aim;
             result.retainedFocus=retained->retainedTarget?retained->retainedFocus:retained->jointFocus;
-            result.retainedSelectionKnown=retained->retainedTarget?retained->retainedSelectionKnown:retained->selectionKnown;
+            result.retainedSelectionKnown=retained->retainedTarget?retained->retainedSelectionKnown:(retained->nearestChoiceKnown||retained->selectionKnown);
+            result.retainedNearestKnown=retained->retainedTarget?retained->retainedNearestKnown:retained->nearestChoiceKnown;
             result.retainedSelectionTolerance=retained->retainedTarget?retained->retainedSelectionTolerance:retained->selectionTolerance;
             result.retainedSelectionPose=retained->retainedTarget?retained->retainedSelectionPose:retained->facing;
             result.retainedChainsawRules=retained->retainedTarget?retained->retainedChainsawRules:retained->chainsawRules;
@@ -505,33 +538,23 @@ public:
         uintptr_t blueprint=0,blueprintWeb=0;uint32_t blueprintToken=0;SyncPreviewList participants,caches;EntityReference blueprintRef;
         short instigatorJoint=-1,targetJoint=-1;std::unordered_map<short,uintptr_t> joints;
         unsigned char facingRequirements[2]{1,1};
-        if(facingReady&&memory.get(player+0x70e8+0x50,blueprint)&&blueprint&&
+        if(facingReady&&memory.get(player+syncPlayerOffset(0x70e8)+syncPatchOffset("idSyncAttack",0x50),blueprint)&&blueprint&&
            (blueprintRef=reference(memory,base,profile,level,blueprint,"idSyncEntity"))&&
-           memory.get(player+0x70e8+0x48,blueprintToken)&&blueprintToken==blueprintRef.id&&
-           memory.get(blueprint+0x1bf8,blueprintWeb)&&blueprintWeb&&memory.read(blueprint+0x2bd0,facingRequirements,2)&&
-           !facingRequirements[0]&&!facingRequirements[1]&&syncPreviewList(memory,blueprint+0x1c18,32,participants)&&syncPreviewList(memory,blueprint+0x2c08,128,caches)) {
+           memory.get(player+syncPlayerOffset(0x70e8)+syncPatchOffset("idSyncAttack",0x48),blueprintToken)&&blueprintToken==blueprintRef.id&&
+           memory.get(blueprint+syncPatchOffset("idSyncEntity",0x1bf8),blueprintWeb)&&blueprintWeb&&memory.read(blueprint+syncPatchOffset("idSyncEntity",0x2bd0),facingRequirements,2)&&
+           !facingRequirements[0]&&!facingRequirements[1]&&syncPreviewList(memory,blueprint+syncPatchOffset("idSyncEntity",0x1c18),32,participants)&&syncPreviewList(memory,blueprint+syncPatchOffset("idSyncEntity",0x2c08),128,caches)) {
             bool unique=true;
-            for(int i=0;i<participants.count;++i){int type=-1;short joint=-1;const auto p=participants.data+size_t(i)*0xb8;if(!memory.get(p+0xa0,type)||!memory.get(p+0xaa,joint)){unique=false;break;}if(type==0){if(instigatorJoint!=-1)unique=false;instigatorJoint=joint;}if(type==1){if(targetJoint!=-1)unique=false;targetJoint=joint;}}
+            for(int i=0;i<participants.count;++i){int type=-1;short joint=-1;const auto p=participants.data+size_t(i)*0xb8;if(!memory.get(p+0xa0,type)||!memory.get(p+syncPatchOffset("idSyncParticipant",0xaa),joint)){unique=false;break;}if(type==0){if(instigatorJoint!=-1)unique=false;instigatorJoint=joint;}if(type==1){if(targetJoint!=-1)unique=false;targetJoint=joint;}}
             if(unique&&instigatorJoint>=0&&targetJoint>=0)for(int i=0;i<caches.count;++i){short nodeIndex=-1;const auto at=caches.data+size_t(i)*0x3030;if(!memory.get(at,nodeIndex)||nodeIndex<0||!joints.emplace(nodeIndex,at+0x10).second){joints.clear();break;}}
         }
         result.regionState=joints.empty()?"direction data unavailable":"ready";
         SyncPreviewList interactions,finalInteractions;
-        const auto list=player+0x70e8+0x178;
+        const auto list=player+syncPlayerOffset(0x70e8)+syncPatchOffset("idSyncAttack",0x178);
         if(!syncPreviewList(memory,list,128,interactions)) return result;
         bool coherent=true,sawGloryKill=false;
-        // 18d2600 compares runtime priorities and distances to +84, then
-        // retains a random band around the nearest equal-priority pose.
-        // This is a CURRENT-POSE model; no cached poses or default priorities.
-        unsigned char adjust=1,code[12]{};
-        const unsigned char distanceCode[]{0xf3,0x0f,0x5c,0x8e,0x84,0,0,0},
-            priorityCode[]{0xf3,0x0f,0x10,0x46,0x4c,0x0f,0x2f,0xc7,0x77,0x2d,0x0f,0x2e},
-            bandCode[]{0xf3,0x0f,0x58,0x65,0x7f,0xf3,0x0f,0x59,0xe4};
-        result.selectionKnown=blueprintRef&&memory.get(blueprint+0x1caa,adjust)&&adjust==0&&
-            memory.read(base+0x18d2785,code,sizeof(distanceCode))&&!memcmp(code,distanceCode,sizeof(distanceCode))&&
-            memory.read(base+0x18d27ae,code,sizeof(priorityCode))&&!memcmp(code,priorityCode,sizeof(priorityCode))&&
-            memory.read(base+0x18d2943,code,sizeof(bandCode))&&!memcmp(code,bandCode,sizeof(bandCode))&&
-            syncRangeCvar(memory,base+0x6189a40,"dp_gloryKillMaxAllowableDistanceForRandom",result.selectionTolerance)&&
-            result.selectionTolerance>0&&result.selectionTolerance<=10;
+        // The ordinary input selector is guarded below. Do not read the
+        // unrelated random-route cvar as a policy for player GK/chainsaw.
+        bool ordinarySelector=true;
         for(int i=0;i<interactions.count;++i) {
             uintptr_t interaction=0;if(!memory.get(interactions.data+i*8,interaction)||!interaction) {coherent=false;break;}
             unsigned char bytes[0x160]{},after[0x160]{};
@@ -540,25 +563,35 @@ public:
             if(target!=result.entity.address||token!=result.entity.id) continue;
             if(bytes[0x48]>1||bytes[0x110]>1) {coherent=false;break;}
             if(!decl)continue;
-            int inputs[2]{},type=-1;unsigned char special[2]{1,1};std::string state;
-            if(!memory.read(decl+0x98,inputs,8)||!memory.get(decl+0xa8,type)||type!=0||!memory.read(decl+0x314,special,2)||
+            int inputs[2]{},type=-1;bool ordinarySpecial=false;std::string state;
+            if(!memory.read(decl+0x98,inputs,8)||!memory.get(decl+0xa8,type)||type!=0||!syncOrdinarySpecialFlags(memory,decl,ordinarySpecial)||
                !syncPreviewString(memory,interaction+0xe8,state)||!memory.read(interaction,after,sizeof(after))) {coherent=false;break;}
             const bool sameAuthoring=!memcmp(bytes+0x40,after+0x40,8)&&!memcmp(bytes+0xe8,after+0xe8,8)&&
                 !memcmp(bytes+0x100,after+0x100,16)&&!memcmp(bytes+0x138,after+0x138,32);
             if(!sameAuthoring){coherent=false;continue;}
             const bool sameCandidate=!memcmp(bytes,after,sizeof(bytes));if(!sameCandidate)coherent=false;
-            if(sameCandidate&&(bytes[0x48]||bytes[0x110])&&(special[0]||special[1]||state.empty())&&syncInputMatches(inputs,result.action==0?2:16))result.selectionKnown=false;
-            if(!special[0]&&!special[1]&&!state.empty()) {
+            if(sameCandidate&&(bytes[0x48]||bytes[0x110])&&(!ordinarySpecial||state.empty())&&syncInputMatches(inputs,result.action==0?2:16)){result.selectionKnown=false;ordinarySelector=false;}
+            if(ordinarySpecial&&!state.empty()) {
                 const auto aimRule=readSyncAimRequirement(memory,decl);
                 for(int action:{0,1})if(syncInputMatches(inputs,action==0?2:16)){
                     SyncAnimationRule rule{state,action,aimRule,{}};if(lookup){rule.audit=readSyncRuleAudit(memory,decl,state,action,rule.aim);if(!rule.audit.matched)rule.aim.known=false;}result.animationRules.push_back(std::move(rule));}
                 sawGloryKill|=syncInputMatches(inputs,2);
+                if(syncInputMatches(inputs,2))result.gloryKillOrder.push_back(state);
+                for(int action:{0,1})if(syncInputMatches(inputs,action?16:2)){
+                    SyncNativeChoice site;site.name=state;site.action=action;site.order=size_t(i);
+                    if(lookup)site.declaration=readSyncRuleAudit(memory,decl,state,action,aimRule).declaration;
+                    result.selectorOrder.push_back(site);
+                    if(sameCandidate&&bytes[0x48]){
+                        memcpy(&site.priority,bytes+0x4c,4);memcpy(&site.position,bytes+0x84,12);
+                        site.known=std::isfinite(site.priority)&&site.priority>=0&&syncPreviewFinite(site.position);result.aimSelectorSites.push_back(std::move(site));}
+                }
                 const bool ready=sameCandidate&&bytes[0x48]&&!bytes[0x110];
                 if(bytes[0x110]){result.pendingGloryKill|=syncInputMatches(inputs,2);result.pendingChainsaw|=syncInputMatches(inputs,16);}
                 if(ready&&syncInputMatches(inputs,2)) result.gloryKills.push_back(state);
                 if(ready&&syncInputMatches(inputs,16)) result.chainsaw.push_back(state);
                 if(ready)for(int action:{0,1})if(syncInputMatches(inputs,action==0?2:16)){
                     SyncNativeChoice choice;choice.name=state;choice.action=action;memcpy(&choice.priority,bytes+0x4c,4);memcpy(&choice.position,bytes+0x84,12);
+                    choice.order=size_t(i);if(lookup)choice.declaration=readSyncRuleAudit(memory,decl,state,action,aimRule).declaration;
                     choice.known=std::isfinite(choice.priority)&&choice.priority>=0&&syncPreviewFinite(choice.position);result.nativeChoices.push_back(std::move(choice));}
                 result.hasChainsaw|=syncInputMatches(inputs,16);
                 if(syncInputMatches(inputs,16))result.chainsawAnimations.push_back(state);
@@ -591,10 +624,10 @@ public:
         if(!coherent) {result.gloryKills.clear();result.chainsaw.clear();result.nativeChoices.clear();result.selectionKnown=false;}
         if(!sameList){result.regions.clear();result.animationRules.clear();result.chainsawAnimations.clear();result.chainsawRules.clear();result.hasChainsaw=false;result.regionState="checking direction data";}
         SyncPreviewList finalCaches,finalParticipants;uintptr_t finalBlueprint=0;uint32_t finalBlueprintToken=0;
-        if(!result.regions.empty()&&(!memory.get(player+0x70e8+0x50,finalBlueprint)||finalBlueprint!=blueprint||
-           !memory.get(player+0x70e8+0x48,finalBlueprintToken)||finalBlueprintToken!=blueprintToken||
-           !enemyTelemetryIdentity(memory,base,profile,blueprintRef)||!memory.get(blueprint+0x2c08,finalCaches)||memcmp(&caches,&finalCaches,24)||
-           !memory.get(blueprint+0x1c18,finalParticipants)||memcmp(&participants,&finalParticipants,24))) {result.regions.clear();result.regionState="checking direction data";}
+        if(!result.regions.empty()&&(!memory.get(player+syncPlayerOffset(0x70e8)+syncPatchOffset("idSyncAttack",0x50),finalBlueprint)||finalBlueprint!=blueprint||
+           !memory.get(player+syncPlayerOffset(0x70e8)+syncPatchOffset("idSyncAttack",0x48),finalBlueprintToken)||finalBlueprintToken!=blueprintToken||
+           !enemyTelemetryIdentity(memory,base,profile,blueprintRef)||!memory.get(blueprint+syncPatchOffset("idSyncEntity",0x2c08),finalCaches)||memcmp(&caches,&finalCaches,24)||
+           !memory.get(blueprint+syncPatchOffset("idSyncEntity",0x1c18),finalParticipants)||memcmp(&participants,&finalParticipants,24))) {result.regions.clear();result.regionState="checking direction data";}
         bool ownedAuthoringKnown=false;
         if(lookup&&sameList&&coherent) {
             const auto source=readSyncAuthoredSource(memory,result.entity,*lookup);
@@ -654,11 +687,11 @@ public:
                 enemyTelemetryIdentity(memory,base,profile,rules.blueprint)) {
             result.regions=rules.regions;result.blueprint=rules.blueprint;result.hasChainsaw|=rules.chainsaw;result.regionState=rules.state;
         }
-        std::sort(result.chainsawRules.begin(),result.chainsawRules.end(),[](const auto& a,const auto& b){return a.name<b.name;});
-        for(size_t i=1;i<result.chainsawRules.size();++i)if(result.chainsawRules[i].name==result.chainsawRules[i-1].name){auto& a=result.chainsawRules[i];auto& b=result.chainsawRules[i-1];
+        std::sort(result.chainsawRules.begin(),result.chainsawRules.end(),[](const auto& a,const auto& b){return std::tie(a.name,a.audit.declaration)<std::tie(b.name,b.audit.declaration);});
+        for(size_t i=1;i<result.chainsawRules.size();++i)if(result.chainsawRules[i].name==result.chainsawRules[i-1].name&&result.chainsawRules[i].audit.declaration==result.chainsawRules[i-1].audit.declaration){auto& a=result.chainsawRules[i];auto& b=result.chainsawRules[i-1];
             if(a.priority!=b.priority||memcmp(&a.selectionPosition,&b.selectionPosition,sizeof(Vec3))||!a.selectionKnown||!b.selectionKnown)a.selectionKnown=b.selectionKnown=false;
             if(a.aim.known!=b.aim.known||a.aim.quadrants!=b.aim.quadrants||a.aim.damageGroups!=b.aim.damageGroups||a.quick!=b.quick)a.aim.known=b.aim.known=false;}
-        result.chainsawRules.erase(std::unique(result.chainsawRules.begin(),result.chainsawRules.end(),[](const auto& a,const auto& b){return a.name==b.name;}),result.chainsawRules.end());
+        result.chainsawRules.erase(std::unique(result.chainsawRules.begin(),result.chainsawRules.end(),[](const auto& a,const auto& b){return a.name==b.name&&a.audit.declaration==b.audit.declaration;}),result.chainsawRules.end());
         syncMergeAnimationRules(result.animationRules);
         if(sameList&&coherent&&!result.animationRules.empty()&&blueprintRef)animations={level,result.entity,blueprintRef,result.animationRules};
         else if(!ownedAuthoringKnown&&sameList&&coherent&&result.animationRules.empty()&&animations.level==level&&animations.target.address==result.entity.address&&
@@ -669,9 +702,16 @@ public:
         else if(!ownedAuthoringKnown&&sameList&&chainsawLevel==level&&chainsawTarget.address==result.entity.address&&chainsawTarget.id==result.entity.id&&chainsawTarget.generation==result.entity.generation&&chainsawTarget.slot==result.entity.slot){result.chainsawAnimations=cachedChainsawAnimations;result.chainsawRules=cachedChainsawRules;for(auto& rule:result.chainsawRules)rule.selectionKnown=false;result.hasChainsaw|=!result.chainsawAnimations.empty();}
         for(auto* values:{&result.gloryKills,&result.chainsaw,&result.chainsawAnimations}) {std::sort(values->begin(),values->end());values->erase(std::unique(values->begin(),values->end()),values->end());}
         uintptr_t selectorOwner=0;uint32_t selectorToken=0;
-        if(result.selectionKnown&&(!memory.get(player+0x70e8+0x50,selectorOwner)||selectorOwner!=blueprint||
-            !memory.get(player+0x70e8+0x48,selectorToken)||selectorToken!=blueprintToken||!enemyTelemetryIdentity(memory,base,profile,blueprintRef)))result.selectionKnown=false;
+        if(result.selectionKnown&&(!memory.get(player+syncPlayerOffset(0x70e8)+syncPatchOffset("idSyncAttack",0x50),selectorOwner)||selectorOwner!=blueprint||
+            !memory.get(player+syncPlayerOffset(0x70e8)+syncPatchOffset("idSyncAttack",0x48),selectorToken)||selectorToken!=blueprintToken||!enemyTelemetryIdentity(memory,base,profile,blueprintRef)))result.selectionKnown=false;
         if(!enemyTelemetryIdentity(memory,base,profile,result.entity)){result={};result.phase="changing";return result;}
+        if(result.blueprint&&coherent&&ordinarySelector){unsigned char adjustment=1;uintptr_t forced=1;
+            result.nearestChoiceKnown=syncNearestChoiceProfile(memory,base)&&memory.get(result.blueprint.address+syncPatchOffset("idSyncEntity",0x1caa),adjustment)&&adjustment==0&&
+                memory.get(player+syncPlayerOffset(0x70e8)+syncPatchOffset("idSyncAttack",0x1a8),forced)&&forced==0;
+            result.nearestSelectionCurrent=result.nearestChoiceKnown&&blueprintRef.address==result.blueprint.address&&
+                memory.get(player+syncPlayerOffset(0x70e8)+syncPatchOffset("idSyncAttack",0x50),selectorOwner)&&selectorOwner==blueprint&&
+                memory.get(player+syncPlayerOffset(0x70e8)+syncPatchOffset("idSyncAttack",0x48),selectorToken)&&selectorToken==blueprintToken&&enemyTelemetryIdentity(memory,base,profile,blueprintRef);
+        }
         result.candidatesReady=coherent;return result;
     }
     SyncTargetFrame capture(const WallMemory& memory,uintptr_t base,const GameProfile& profile,const LevelIdentity& level,const GameCamera& camera,float distanceLimit=50,const GraphLookup* lookup=nullptr) {
@@ -738,17 +778,124 @@ static std::vector<SyncAnimationDisplayHint> syncAnimationDisplayHints(const Syn
     std::vector<SyncAnimationDisplayHint> result;for(const auto& name:syncAnimationChoices(value)){const auto* audit=syncSelectedAudit(value,name);
         result.push_back({name,audit&&audit->matched?audit->enemy:std::string{},syncAnimationAimText(value,name)});}return result;
 }
+// Aim guidance is an availability reference. Requiring an exclusive standing
+// area or a matching current aim here hides the very parts we need to show.
+// Keep full native aim scopes separate: merging their groups and quadrants
+// independently would invent combinations no interaction accepts.
+static std::vector<SyncAimRequirement> syncRangeVisibleAimRequirements(const SyncTargetFrame& value) {
+    std::vector<SyncAimRequirement> result;
+    auto add=[&](const SyncAimRequirement& aim){
+        if(!aim.known||!syncAimMaskKnown(aim.quadrants))return;
+        if(std::none_of(result.begin(),result.end(),[&](const auto& other){return syncSameAimRule(aim,other);}))result.push_back(aim);
+    };
+    if(!value.selectedAnimation.empty()){
+        // Manual aim guidance must also disappear beyond a known distance
+        // limit. Unknown transforms may still expose the authored aim hint.
+        if(value.ranges.known){bool known=false,inside=false;SyncRangeVolume volume;
+            if(value.action==1&&value.hasChainsaw){known=syncRangeBuild(nullptr,value.facing,value.ranges,true,value.incomingYaw,volume,false);if(known)inside=syncRangeContains(volume,value.ranges.playerOrigin);}
+            else if(value.action==0)for(const auto& region:value.regions)if(region.name==value.selectedAnimation&&
+                syncRangeBuild(&region,value.facing,syncTargetReferenceLimits(value.facing,value.ranges),false,value.incomingYaw,volume,false)){
+                    known=true;volume.planes.clear();volume.wideFacing=false;inside|=syncRangeContains(volume,value.ranges.playerOrigin);
+                }
+            if(known&&!inside)return result;
+        }
+        if(const auto* aim=syncSelectedAim(value,value.selectedAnimation))add(*aim);
+        return result;
+    }
+    if(!value.rulesCoherent||!value.ranges.known)return result;
+    const auto limits=syncTargetReferenceLimits(value.facing,value.ranges);
+    if(value.action==0){
+        if(value.regionState!="ready")return result;
+        for(const auto& region:value.regions){SyncRangeVolume volume;
+            if(syncRangeBuild(&region,value.facing,limits,false,value.incomingYaw,volume,false)&&syncRangeContains(volume,value.ranges.playerOrigin))add(region.aim);
+        }
+    }else if(value.hasChainsaw){
+        SyncRangeVolume volume;
+        if(syncRangeBuild(nullptr,value.facing,limits,true,value.incomingYaw,volume,false)&&syncRangeContains(volume,value.ranges.playerOrigin))
+            for(const auto& rule:value.chainsawRules)if(rule.quick)add(rule.aim);
+    }
+    return result;
+}
+#include "sync_body_choice.h"
+static std::vector<SyncAimRequirement> syncVisibleAimRequirements(const SyncTargetFrame& value) {
+    const auto plan=syncBodyChoicePlan(value);return plan.applies?plan.coverage:syncRangeVisibleAimRequirements(value);
+}
+static bool syncHasNamedBodyAim(const SyncTargetFrame& value,const std::vector<SyncAimRequirement>& scopes) {
+    // Only the occupied sector (or explicit manual selection) determines the
+    // partition. Front-only limbs must not override side/back upper+lower.
+    for(const auto& aim:scopes)if(syncBodyAimKind(&aim,value.spheres)==SyncBodyAimKind::Specific)return true;
+    return false;
+}
+static SyncAimDetail syncTargetAimDetail(const SyncTargetFrame& value,const std::vector<SyncAimRequirement>& scopes) {
+    const auto plan=syncBodyChoicePlan(value);if(plan.applies)return plan.detail;
+    if(syncHasNamedBodyAim(value,scopes))return SyncAimDetail::Anatomy;
+    for(const auto& aim:scopes)if(!syncAimUnrestricted(aim.quadrants))return SyncAimDetail::Halves;
+    return SyncAimDetail::WholeBody;
+}
+static SyncAimColourRules syncTargetAimColourRules(const SyncTargetFrame& value,const std::vector<SyncAimRequirement>& scopes) {
+    const auto plan=syncBodyChoicePlan(value);if(plan.applies)return plan.colours;
+    SyncAimColourRules result;
+    auto add=[](auto& groups,const std::string& group){if(std::find(groups.begin(),groups.end(),group)==groups.end())groups.push_back(group);};
+    for(const auto& aim:scopes){const bool named=syncBodyAimKind(&aim,value.spheres)==SyncBodyAimKind::Specific;
+        const bool lower=!syncAimUnrestricted(aim.quadrants)&&!(aim.quadrants&3);
+        for(unsigned q=0;q<4;++q)if(syncAimMatches(aim,1u<<q)){
+            if(named)for(const auto& group:aim.damageGroups)add(result.namedGroups[q],group);
+            if(lower){if(aim.damageGroups.empty())result.lowerAny|=1u<<q;
+                else for(const auto& group:aim.damageGroups)add(result.lowerGroups[q],group);}
+        }
+    }return result;
+}
+// Union accepted groups WITHIN each screen quadrant first. This removes
+// duplicate patches without crossing groups from disjoint native aim scopes.
+static std::vector<SyncAimRequirement> syncDisjointAimRequirements(const std::vector<SyncAimRequirement>& scopes) {
+    std::vector<SyncAimRequirement> result;
+    for(uint32_t quadrant:{1u,2u,4u,8u}){
+        SyncAimRequirement part;part.quadrants=quadrant;bool accepted=false;
+        for(const auto& aim:scopes)if(syncAimMatches(aim,quadrant)){
+            accepted=true;if(aim.damageGroups.empty()){part.damageGroups.clear();break;}
+            for(const auto& group:aim.damageGroups)if(std::find(part.damageGroups.begin(),part.damageGroups.end(),group)==part.damageGroups.end())part.damageGroups.push_back(group);
+        }
+        if(!accepted)continue;
+        const auto key=syncAimGroupKey(part.damageGroups);
+        const auto same=std::find_if(result.begin(),result.end(),[&](const auto& other){return syncAimGroupKey(other.damageGroups)==key;});
+        if(same==result.end())result.push_back(std::move(part));else same->quadrants|=quadrant;
+    }
+    return result;
+}
+static SyncAimPartMesh syncBuildTargetAimMesh(const GameCamera& camera,const SyncTargetFrame& value) {
+    if(value.action==1){SyncAimPartMesh empty;empty.known=true;return empty;}
+    const auto plan=syncBodyChoicePlan(value);const auto scopes=plan.applies?plan.coverage:syncRangeVisibleAimRequirements(value);
+    const auto detail=plan.applies?plan.detail:syncTargetAimDetail(value,scopes);
+    const auto colours=plan.applies?plan.colours:syncTargetAimColourRules(value,scopes);
+    SyncAimPartMesh result;result.known=true;
+    // Availability/required-focus metadata stays tied to native authoring.
+    for(const auto& aim:plan.applies?plan.sources:scopes)result.required|=!aim.damageGroups.empty()&&syncBodyAimKind(&aim,value.spheres)!=SyncBodyAimKind::AllCurrentGroups;
+    for(const auto& aim:syncDisjointAimRequirements(scopes)){
+        const auto part=syncBuildAimPartMesh(camera,value.shotBounds,value.aim,&aim,value.spheres,true,true,detail,&colours);
+        if(!part.known)continue;
+        result.fill.insert(result.fill.end(),part.fill.begin(),part.fill.end());result.outline.insert(result.outline.end(),part.outline.begin(),part.outline.end());
+        result.quadrantFill.insert(result.quadrantFill.end(),part.quadrantFill.begin(),part.quadrantFill.end());
+        result.quadrantOutline.insert(result.quadrantOutline.end(),part.quadrantOutline.begin(),part.quadrantOutline.end());
+        result.lowerFill.insert(result.lowerFill.end(),part.lowerFill.begin(),part.lowerFill.end());
+        result.lowerOutline.insert(result.lowerOutline.end(),part.lowerOutline.begin(),part.lowerOutline.end());
+    }
+    return result;
+}
 static uint64_t syncAimMeshSignature(const GameCamera& camera,const SyncTargetFrame& value,const std::string& selected) {
     uint64_t hash=1469598103934665603ull;auto bytes=[&](const void* at,size_t count){const auto* data=static_cast<const unsigned char*>(at);for(size_t i=0;i<count;++i){hash^=data[i];hash*=1099511628211ull;}};
     auto string=[&](const std::string& s){bytes(s.data(),s.size());const unsigned char end=0;bytes(&end,1);};
     string(selected);bytes(&value.action,sizeof(value.action));for(uintptr_t p:{value.entity.address,value.entity.map,value.entity.slot})bytes(&p,sizeof(p));
     bytes(&value.entity.id,sizeof(value.entity.id));bytes(&value.entity.generation,sizeof(value.entity.generation));bytes(camera.matrix,64);bytes(camera.position,12);
     bytes(value.shotBounds,24);bytes(&value.aim.known,sizeof(bool));bytes(value.aim.bounds,24);
-    if(const auto* aim=syncSelectedAim(value,selected)){bytes(&aim->known,sizeof(bool));bytes(&aim->quadrants,4);string(syncAimGroupKey(aim->damageGroups));}
+    const bool manual=!value.selectedAnimation.empty();bytes(&manual,sizeof(manual));
+    const auto scopes=syncVisibleAimRequirements(value);const auto detail=syncTargetAimDetail(value,scopes);bytes(&detail,sizeof(detail));
+    for(const auto& aim:scopes){bytes(&aim.known,sizeof(bool));bytes(&aim.quadrants,4);string(syncAimGroupKey(aim.damageGroups));}
+    const auto colours=syncTargetAimColourRules(value,scopes);bytes(&colours.lowerAny,sizeof(colours.lowerAny));
+    for(unsigned q=0;q<4;++q){string(syncAimGroupKey(colours.namedGroups[q]));string(syncAimGroupKey(colours.lowerGroups[q]));}
     for(const auto& s:value.spheres){bytes(&s.center,sizeof(Vec3));bytes(&s.radius,4);bytes(&s.focusKnown,sizeof(bool));string(s.focusGroup);}return hash?hash:1;
 }
 static void syncRefreshAimMesh(const GameCamera& camera,SyncTargetFrame& value) {
-    const auto selected=syncSelectedAnimation(value);value.aimPartMesh=std::make_shared<const SyncAimPartMesh>(syncBuildAimPartMesh(camera,value.shotBounds,value.aim,syncSelectedAim(value,selected),value.spheres));
+    const auto selected=syncSelectedAnimation(value);value.aimPartMesh=std::make_shared<const SyncAimPartMesh>(syncBuildTargetAimMesh(camera,value));
     value.aimPartAnimation=selected;value.aimPartAction=value.action;value.aimPartEntity=value.entity;value.aimPartSignature=syncAimMeshSignature(camera,value,selected);
 }
 struct SyncNativeSelection {bool known=false;std::vector<std::string> possible;};
@@ -756,11 +903,21 @@ struct SyncNativeSelection {bool known=false;std::vector<std::string> possible;}
 // future player positions or turn this observation into an activation promise.
 static SyncNativeSelection syncNativeSelection(const SyncTargetFrame& value) {
     SyncNativeSelection result;
-    if(!value.selectionKnown||!value.candidatesReady||(value.action==0?value.pendingGloryKill:value.pendingChainsaw)||
-       !std::isfinite(value.selectionTolerance)||value.selectionTolerance<=0||!syncRangeFinite(value.ranges.playerOrigin))return result;
+    const bool nativeNearest=syncBodyNearest(value);
+    if(!(nativeNearest?value.nearestSelectionCurrent:value.selectionKnown)||!value.candidatesReady||(value.action==0?value.pendingGloryKill:value.pendingChainsaw)||
+       (!nativeNearest&&(!std::isfinite(value.selectionTolerance)||value.selectionTolerance<=0))||!syncRangeFinite(value.ranges.playerOrigin))return result;
     const auto& eligible=value.action==0?value.gloryKills:value.chainsaw;std::vector<const SyncNativeChoice*> candidates;
     for(const auto& name:eligible){bool found=false;for(const auto& row:value.nativeChoices)if(row.action==value.action&&row.name==name){if(!row.known)return result;candidates.push_back(&row);found=true;}if(!found)return result;}
     result.known=true;if(candidates.empty())return result;
+    if(nativeNearest){const SyncNativeChoice* best=nullptr;float nearest=FLT_MAX;size_t bestOrder=SIZE_MAX;bool tieUnknown=false;
+        for(const auto* c:candidates){const auto distance=syncNearestDistanceSquared(value.ranges.playerOrigin,c->position);
+            const size_t order=c->order!=SIZE_MAX?c->order:syncBodyChoiceOrder(value,c->action,c->name,c->declaration);
+            if(!best||c->priority>best->priority||(c->priority==best->priority&&distance<nearest)){best=c;nearest=distance;bestOrder=order;tieUnknown=false;}
+            else if(c->priority==best->priority&&distance==nearest&&c->name!=best->name){if(order==SIZE_MAX||bestOrder==SIZE_MAX)tieUnknown=true;else if(order<bestOrder){best=c;bestOrder=order;}}
+        }
+        if(tieUnknown){result.known=false;return result;}
+        if(best)result.possible.push_back(best->name);return result;
+    }
     float best=-FLT_MAX;for(const auto* c:candidates)best=std::max(best,c->priority);
     double nearest=DBL_MAX;for(const auto* c:candidates)if(c->priority==best)nearest=std::min(nearest,syncSelectionDistance(value.ranges.playerOrigin,c->position));
     for(const auto* c:candidates)if(c->priority==best&&syncSelectionDistance(value.ranges.playerOrigin,c->position)<nearest+value.selectionTolerance+.0001)result.possible.push_back(c->name);
@@ -776,7 +933,55 @@ static bool syncChainsawAlternativeCovered(const SyncTargetFrame& value,const st
         for(const auto& active:value.chainsawRules)if(active.audit.matched&&active.audit.declaration==authored.audit.declaration&&syncSameAimRule(active.aim,authored.aim))return true;
     return false;
 }
+static SyncExclusiveGuide syncBuildNearestGkGuide(const SyncTargetFrame& value,bool bodyClearance,size_t selectedBranch) {
+    SyncExclusiveGuide result;const auto name=syncSelectedAnimation(value);
+    if(value.regionState!="ready"||!value.rulesCoherent||!value.ranges.known){result.detail="Waiting for complete native selection rules";return result;}
+    if(bodyClearance&&!value.playerFootprint.known){result.detail="Player collider bounds unavailable";return result;}
+    std::vector<SyncExclusiveGuide> branches;
+    for(size_t index=0;index<value.regions.size();++index){const auto& chosen=value.regions[index];
+        if(chosen.name!=name||(selectedBranch!=SIZE_MAX&&index!=selectedBranch))continue;
+        SyncRangeVolume selected;
+        if(!chosen.priorityKnown||!syncRangeBuild(&chosen,value.facing,value.ranges,false,value.incomingYaw,selected,false))return result;
+        const auto& aim=value.retainedTarget?value.retainedAim:value.aim;const auto& focus=value.retainedTarget?value.retainedFocus:value.jointFocus;
+        if(!chosen.aim.known||(!syncAimUnrestricted(chosen.aim.quadrants)&&!aim.known)||(!chosen.aim.damageGroups.empty()&&!focus.known))return result;
+        if(!syncAimDefinitelyMatches(chosen.aim,aim.quadrant)||!syncFocusMatches(chosen.aim,focus)){
+            result.known=true;result.selected=selected;result.z=value.ranges.playerOrigin.z;result.detail="Aim at the selected animation's highlighted body area";return result;}
+        const Vec3 site=motionAdd(value.facing.origin,syncRangeTransform(value.facing,chosen.start));
+        const size_t order=syncBodyChoiceOrder(value,0,chosen.name,chosen.audit.declaration);
+        std::vector<SyncRangeVolume> competitors;
+        for(size_t otherIndex=0;otherIndex<value.regions.size();++otherIndex){const auto& other=value.regions[otherIndex];
+            if(otherIndex==index||other.name==name)continue;
+            if(!other.aim.known)return result;
+            if(!syncAimMatches(other.aim,aim.quadrant)||!syncFocusMatches(other.aim,focus))continue;
+            if(!other.priorityKnown)return result;
+            if(other.priority<chosen.priority)continue;
+            SyncRangeVolume volume;if(!syncRangeBuild(&other,value.facing,value.ranges,false,value.incomingYaw,volume,false))return result;
+            if(other.priority==chosen.priority){
+                const Vec3 otherSite=motionAdd(value.facing.origin,syncRangeTransform(value.facing,other.start));
+                const Vec3 n=motionScale(subtract(site,otherSite),2);
+                if(dot(n,n)<1e-16f){const auto otherOrder=syncBodyChoiceOrder(value,0,other.name,other.audit.declaration);
+                    if(order!=SIZE_MAX&&otherOrder!=SIZE_MAX&&order<otherOrder)continue;
+                }else{
+                    const double d=double(otherSite.x)*otherSite.x+double(otherSite.y)*otherSite.y+double(otherSite.z)*otherSite.z-
+                        double(site.x)*site.x-double(site.y)*site.y-double(site.z)*site.z;
+                    // Exclude only where this competitor is eligible AND wins
+                    // the nearest comparison, not its entire facing sector.
+                    volume.planes.push_back({n,d});
+                }
+            }
+            for(auto part:syncRangeConvexParts(volume))competitors.push_back(std::move(part));
+        }
+        if(selected.wideFacing)competitors.push_back(syncRangeOutsideWide(selected));
+        if(bodyClearance){selected=syncFootprintVolume(std::move(selected),value.playerFootprint,false);
+            for(auto& other:competitors)other=syncFootprintVolume(std::move(other),value.playerFootprint,true);}
+        auto branch=syncExclusiveBuild(std::move(selected),std::move(competitors),value.ranges.playerOrigin.z);
+        branch.detail="Priority / nearest-start boundary | aim and foot height checked";branches.push_back(std::move(branch));
+    }
+    if(branches.size()==1)return branches.front();
+    return syncExclusiveUnion(std::move(branches));
+}
 static SyncExclusiveGuide syncBuildExclusiveGuide(const SyncTargetFrame& value,bool bodyClearance=false,bool requiredAimReference=false,size_t selectedBranch=SIZE_MAX) {
+    if(syncBodyNearest(value)&&value.action==0)return syncBuildNearestGkGuide(value,bodyClearance,selectedBranch);
     SyncExclusiveGuide result;SyncRangeVolume selected;std::string name;
     if(!value.rulesCoherent){result.detail="Animation rules are changing | standing area unavailable";return result;}
     if(!syncSelectedVolume(value,selected,name,false)){result.detail=!value.ranges.known?value.ranges.detail:value.automaticResolved&&value.selectedAnimation.empty()&&!value.automaticDetail.empty()?value.automaticDetail:"No supported area for this selection on this enemy";return result;}
@@ -823,7 +1028,7 @@ static SyncExclusiveGuide syncBuildExclusiveGuide(const SyncTargetFrame& value,b
             if(syncRulePossible(found->aim,value))selectionOthers.push_back(&*found);}
         if(!chosenQuick){result.detail="This Chainsaw interaction uses unsupported position checks";return result;}
         if(!selectionOthers.empty()){
-            if(!value.selectionKnown||!chosenRule||!chosenRule->selectionKnown||std::any_of(selectionOthers.begin(),selectionOthers.end(),[](const auto* rule){return !rule->selectionKnown||!rule->quick;})){
+            if(!(syncBodyNearest(value)||value.selectionKnown)||!chosenRule||!chosenRule->selectionKnown||std::any_of(selectionOthers.begin(),selectionOthers.end(),[](const auto* rule){return !rule->selectionKnown||!rule->quick;})){
                 result.detail="Waiting for coherent native Chainsaw priorities and start poses";return result;}
             if(std::any_of(selectionOthers.begin(),selectionOthers.end(),[&](const auto* rule){return rule->priority>chosenRule->priority;})){
                 result.known=true;result.selected=selected;result.z=value.ranges.playerOrigin.z;result.currentPoses=true;
@@ -834,9 +1039,15 @@ static SyncExclusiveGuide syncBuildExclusiveGuide(const SyncTargetFrame& value,b
     result=syncExclusiveBuild(std::move(selected),std::move(competitors),value.ranges.playerOrigin.z);
     result.requiredAimReference=planningAim;
     if(value.action==1&&chosenRule&&!selectionOthers.empty()){
-        std::vector<Vec3> equalPriority;for(const auto* rule:selectionOthers)if(rule->priority==chosenRule->priority)equalPriority.push_back(rule->selectionPosition);
+        std::vector<Vec3> equalPriority;for(const auto* rule:selectionOthers)if(rule->priority==chosenRule->priority){
+            if(syncBodyNearest(value)&&syncNearestDistanceSquared(rule->selectionPosition,chosenRule->selectionPosition)==0){
+                const auto chosenOrder=syncBodyChoiceOrder(value,1,chosenRule->name,chosenRule->audit.declaration),otherOrder=syncBodyChoiceOrder(value,1,rule->name,rule->audit.declaration);
+                if(chosenOrder!=SIZE_MAX&&otherOrder!=SIZE_MAX&&chosenOrder<otherOrder)continue;
+            }
+            equalPriority.push_back(rule->selectionPosition);
+        }
         if(equalPriority.empty()){result.currentPoses=true;result.detail="Selected Chainsaw has sole highest native priority | CURRENT snapshot";}
-        else {Vec3 site=chosenRule->selectionPosition;double tolerance=value.selectionTolerance;
+        else {Vec3 site=chosenRule->selectionPosition;double tolerance=syncBodyNearest(value)?0:value.selectionTolerance;
             if(bodyClearance){const Vec3 center{(value.playerFootprint.minimum.x+value.playerFootprint.maximum.x)*.5f,(value.playerFootprint.minimum.y+value.playerFootprint.maximum.y)*.5f,0};
                 site=subtract(site,center);for(auto& other:equalPriority)other=subtract(other,center);tolerance+=2*syncFootprintRadius(value.playerFootprint);}
             syncExclusiveSelectPoses(result,site,equalPriority,tolerance);}}
@@ -845,11 +1056,11 @@ static SyncExclusiveGuide syncBuildExclusiveGuide(const SyncTargetFrame& value,b
 static SyncExclusiveGuide syncBuildReferenceGuide(const SyncTargetFrame& value,bool bodyClearance=true) {
     auto reference=value;reference.ranges=syncTargetReferenceLimits(value.facing,value.ranges);
     if(value.retainedTarget){reference.aim=value.retainedAim;reference.jointFocus=value.retainedFocus;}
-    bool currentSelector=value.selectionKnown;
+    bool currentSelector=syncBodyNearest(value)||value.selectionKnown;
     for(const auto& name:value.chainsawAnimations)if(std::none_of(value.chainsawRules.begin(),value.chainsawRules.end(),[&](const auto& rule){return rule.name==name&&rule.selectionKnown;})&&!syncChainsawAlternativeCovered(value,name))currentSelector=false;
     const bool retainedSelector=value.retainedTarget&&value.action==1&&!currentSelector&&value.retainedSelectionKnown&&
         syncFacingOrthonormal(value.retainedSelectionPose.axis)&&syncPreviewFinite(value.retainedSelectionPose.origin);
-    if(retainedSelector){reference.selectionKnown=true;reference.selectionTolerance=value.retainedSelectionTolerance;reference.chainsawRules=value.retainedChainsawRules;
+    if(retainedSelector){reference.selectionKnown=true;reference.nearestChoiceKnown=value.retainedNearestKnown;reference.selectionTolerance=value.retainedSelectionTolerance;reference.chainsawRules=value.retainedChainsawRules;
         // Keep the sampled selector arrangement in the enemy's frame. This is
         // a reference diagram, never a refreshed native candidate observation.
         for(auto& rule:reference.chainsawRules){const auto delta=subtract(rule.selectionPosition,value.retainedSelectionPose.origin);Vec3 local{};
@@ -872,6 +1083,13 @@ public:
         value.exclusiveGuide.reset();value.referenceGuide.reset();value.sectorMesh.reset();value.originSectorMesh.reset();value.clearanceBandMesh.reset();value.aimPartMesh.reset();value.aimPartSignature=0;value.sectorToneKnown=false;
         if(!value.automaticResolved)return;
         auto& previous=choices[value.action];const auto available=syncAnimationChoices(value);
+        if(syncBodyNearest(value)){
+            const auto& aim=value.retainedTarget?value.retainedAim:value.aim;const auto& focus=value.retainedTarget?value.retainedFocus:value.jointFocus;
+            if(aim.known&&aim.quadrant&&focus.known){const auto rows=syncBodyChoiceRows(value);const auto* winner=syncBodyChoiceWinner(rows,focus.group,aim.quadrant);
+                if(winner&&std::find(available.begin(),available.end(),winner->name)!=available.end()){
+                    previous=value.automaticAnimation=winner->name;value.automaticDetail="Nearest native start for current aim | reference";return;}}
+            previous.clear();value.automaticDetail="Nearest native choice unavailable for this aim";return;
+        }
         auto aimNow=[&](const std::string& name){const auto* aim=syncSelectedAim(value,name);return aim&&syncAimDefinitelyMatches(*aim,value.retainedTarget?value.retainedAim.quadrant:value.aim.quadrant)&&syncFocusMatches(*aim,value.retainedTarget?value.retainedFocus:value.jointFocus);};
         auto drawable=[&](const SyncExclusiveGuide& guide){if(!guide.known||guide.pieces.empty())return false;const auto mesh=syncBuildSectorMesh(guide,value.shotBounds);return mesh.known&&!mesh.fill.empty();};
         std::string best,unavailable;int bestRank=-1;
@@ -958,54 +1176,34 @@ static SyncSectorTone syncTargetSectorTone(const SyncTargetFrame& value,const Sy
     if(!syncExclusiveContains(guide,value.ranges.playerOrigin))return value.playerFootprint.known&&syncSectorNearBoundary(mesh,value.ranges.playerOrigin,syncFootprintRadius(value.playerFootprint))?SyncSectorTone::Waiting:SyncSectorTone::Reference;
     return syncGuideFeedback(value,guide.selected,selected).tone;
 }
+static bool syncRandomChainsawFront(const SyncTargetFrame& value,const std::string& selected) {
+    if(value.action!=1||(selected!="cut_front_01"&&selected!="cut_front_02"))return false;
+    const auto* audit=syncSelectedAudit(value,selected);return audit&&audit->matched&&audit->family=="zombie_tier1";
+}
 static std::vector<std::string> syncPositionGuideLines(const SyncTargetFrame& value) {
-    std::vector<std::string> lines{value.action==1?"LAB Plus | Enemy-anchored Chainsaw reference":"LAB Plus | Enemy-anchored GK reference"};
-    const std::string selected=syncSelectedAnimation(value);
-    if(const auto* audit=syncSelectedAudit(value,selected);audit&&audit->matched)lines.push_back("Rule set: "+audit->enemy);
-    lines.push_back((value.selectedAnimation.empty()?"Automatic: ":"Selected: ")+(selected.empty()?std::string("no matching unique area"):syncZoneLabel(selected)));
-    if(!selected.empty())lines.push_back(syncAnimationAimText(value,selected));
-    const auto observed=syncNativeSelection(value);
-    if(!selected.empty()){
-        const bool possible=std::find(observed.possible.begin(),observed.possible.end(),selected)!=observed.possible.end();
-        lines.push_back(!observed.known?"Engine now: selection checks unavailable / pending":!possible?"Engine now: selected animation is outside the observed choice set":observed.possible.size()==1?"Engine now: selected is sole distance-band choice | snapshot":"Engine now: selected remains possible with other animations | snapshot");}
-    const auto* aim=syncSelectedAim(value,selected);
-    if(aim&&aim->known){lines.push_back("Aim quadrants: "+syncAimMaskLabel(aim->quadrants));
-        if(!aim->damageGroups.empty()){const auto bodyKind=syncBodyAimKind(aim,value.spheres);
-            if(bodyKind==SyncBodyAimKind::AllCurrentGroups)lines.push_back("Body focus: all current hit groups accepted | no specific part to aim at");
-            else {std::string groups;for(const auto& group:aim->damageGroups){if(!groups.empty())groups+=" / ";groups+=group;}lines.push_back("Required native joint focus: "+groups);
-            if(value.aimPartMesh)lines.push_back(!value.aimPartMesh->known?"Required body aim area unavailable":value.aimPartMesh->fill.empty()?"Required body aim area hidden or too small from this view":"Yellow on target box: aim at the highlighted body area");
-            }lines.push_back("Current native joint focus: "+(value.jointFocus.known?(value.jointFocus.group.empty()?std::string("none"):value.jointFocus.group):std::string("unavailable")));}
-        if(!syncAimUnrestricted(aim->quadrants))lines.push_back(value.aim.known?"Current aim: "+syncAimMaskLabel(value.aim.quadrant):"Current aim reference unavailable");}
-    if(value.action==0)for(const auto& region:value.regions)if(region.name==selected){std::ostringstream text;text.imbue(std::locale::classic());text<<std::fixed<<std::setprecision(2)<<"Authored start XY limit: "<<region.maxXY<<" m | foot-height difference: "<<region.minZ<<" - "<<region.maxZ<<" m";lines.push_back(text.str());break;}
-    lines.push_back("Amber boundary band = origin fits, full player-hitbox clearance does not");
-    if(observed.known&&observed.possible.size()>1)lines.push_back("Shared native choices are deliberately unfilled | either animation may occur there");
+    const auto selected=syncSelectedAnimation(value);const bool randomFront=syncRandomChainsawFront(value,selected);
+    std::vector<std::string> lines{std::string("LAB Plus | ")+(value.action==1?"Chainsaw":"Glory Kill")};
+    if(const auto* audit=syncSelectedAudit(value,selected);audit&&audit->matched)lines.push_back("Target: "+audit->enemy);
+    lines.push_back((value.selectedAnimation.empty()?"Automatic: ":"Selected: ")+(selected.empty()?std::string("aim at an enemy"):randomFront?std::string("Front 01 / 02 (random)"):syncZoneLabel(selected)));
     const auto guide=value.referenceGuide?value.referenceGuide:std::make_shared<const SyncExclusiveGuide>(syncBuildReferenceGuide(value));
-    if(guide->requiredAimReference)lines.push_back("Standing area assumes aim at the highlighted aim area | current aim checked separately");
-    SyncRangeVolume actual;std::string actualName;const bool actualKnown=syncSelectedVolume(value,actual,actualName,false);
-    const auto status=syncGuideStatus(guide->selected,value.ranges.playerOrigin,value.action==1);
-    auto metres=[](double distance){std::ostringstream text;text.imbue(std::locale::classic());text<<std::fixed<<std::setprecision(2)<<distance;return text.str();};
-    if(actualKnown&&!actual.balls.empty()){const auto current=syncGuideStatus(actual,value.ranges.playerOrigin,value.action==1);lines.push_back("Camera to target: "+metres(current.cameraDistance)+" m | limit "+metres(current.cameraLimit)+" m");}
-    lines.push_back("Enemy-anchored reference sector | current aim / body facing checked separately");
-    if(value.retainedTarget)lines.push_back("Target retained within action radius | last aimed area is a reference; aim back to confirm");
-    if(value.playerFootprint.known)lines.push_back("Player-hitbox clearance: "+metres(value.playerFootprint.maximum.x-value.playerFootprint.minimum.x)+" x "+metres(value.playerFootprint.maximum.y-value.playerFootprint.minimum.y)+" m (horizontal)");
-    lines.push_back("Grey = reference | Amber = competition / clearance / pending | Red = rejected | Green = sole observed choice");
-    if(!guide->known){lines.push_back(guide->detail);return lines;}
-    if(guide->currentPoses){lines.push_back(guide->detail);lines.push_back("Conditional on current poses / priorities | activation checks still apply");}
-    if(guide->pieces.empty()){lines.push_back(guide->detail);lines.push_back("No reference area or movement destination for these conditions");return lines;}
-    const auto intervals=syncExclusiveApproach(*guide,value.ranges.playerOrigin);
-    if(intervals.empty())lines.push_back("No reference interval on this approach | move around the enemy");
-    else {std::string text="Reference distance on this approach: ";for(size_t i=0;i<std::min(size_t(3),intervals.size());++i){if(i)text+=" / ";text+=metres(intervals[i].first)+" - "+metres(intervals[i].second)+" m";}
-        if(intervals.size()>3)text+=" (+"+std::to_string(intervals.size()-3)+" intervals)";lines.push_back(text+" (reference camera distance)");}
-    const bool inside=syncExclusiveContains(*guide,value.ranges.playerOrigin);const auto feedback=syncGuideFeedback(value,guide->selected,selected);
-    if(inside)lines.push_back(feedback.detail);
-    else {
-        if(status.inside)lines.push_back("Outside reference area: competing reference regions or boundary clearance");
-        else {std::string reasons;auto add=[&](const char* text){if(!reasons.empty())reasons+=" + ";reasons+=text;};
-            if(status.direction)add("player hitbox reaches side boundary");if(status.height)add("height");if(status.cameraRange)add("player hitbox reaches range limit");if(status.startRange)add("animation start clearance");if(status.lunge)add("lunge clearance");lines.push_back("Outside reference clearance: "+reasons);}
-        Vec3 destination{};if(syncExclusiveDestination(*guide,value.ranges.playerOrigin,destination)){const auto delta=subtract(destination,value.ranges.playerOrigin);
-            lines.push_back("Nearest reference area: "+metres(sqrtf(dot(delta,delta)))+" m away (straight line)");}}
-    lines.push_back("Filled sector: height follows enemy box | standing conditions evaluated at your feet");
-    lines.push_back("Current aim and stance | enemy state, obstacles and late checks still apply");return lines;
+    std::string status;
+    if(value.retainedTarget)status="Reference  -  aim at the enemy to refresh";
+    else if(selected.empty())status="No matching preview for this aim";
+    else if(!guide->known)status="Preview unavailable for current conditions";
+    else {const auto feedback=syncGuideFeedback(value,guide->selected,selected);
+        status=feedback.tone==SyncSectorTone::Confirmed?"Ready  -  selected choice confirmed":feedback.tone==SyncSectorTone::Rejected?"Selected animation does not fit current conditions":
+            syncExclusiveContains(*guide,value.ranges.playerOrigin)?"Reference  -  selection not confirmed":"Move into the highlighted position zone";
+    }
+    lines.push_back("Status: "+status);
+    SyncRangeVolume actual;std::string name;
+    if(syncSelectedVolume(value,actual,name,false)&&!actual.balls.empty()){
+        const auto distance=syncGuideStatus(actual,value.ranges.playerOrigin,value.action==1);std::ostringstream text;text.imbue(std::locale::classic());
+        text<<std::fixed<<std::setprecision(2)<<"Distance: "<<distance.cameraDistance<<" m / "<<distance.cameraLimit<<" m";lines.push_back(text.str());
+    }
+    if(randomFront)lines.push_back("Front variant is chosen randomly at activation");
+    else if(value.action==0&&value.aimPartMesh&&value.aimPartMesh->known&&(!value.aimPartMesh->fill.empty()||!value.aimPartMesh->quadrantFill.empty()||!value.aimPartMesh->lowerFill.empty()))
+        lines.push_back("Aim at a highlighted body area");
+    return lines;
 }
 
 class SyncCandidatePresentation {
@@ -1027,6 +1225,12 @@ public:
 };
 class SyncTargetHud {
     SyncTargetReader reader;SyncCandidatePresentation presentation;SyncAutomaticSelection automatic;LevelIdentity commandLevel;bool layout=false,requested=false;ULONGLONG retryAt=0;
+    void waiting(const MeathookHudApi* api,const char* status) {
+        clear();
+        if(!requested&&api&&api->executeCommand){api->executeCommand("com_debugHUD 1");requested=true;}
+        std::vector<std::string> lines{syncTargetAction.load()==1?"LAB Plus | Chainsaw":"LAB Plus | Glory Kill",status};
+        debugHudStack().publish(DebugHudBlock::SyncTarget,api,lines,6,.72f,0xffffd040u);
+    }
 public:
     void clear(bool deactivate=false) {std::atomic_store(&syncTargetFrame,std::shared_ptr<const SyncTargetFrame>{});debugHudStack().clear(DebugHudBlock::SyncTarget);presentation.clear();reader.clearRetainedTarget();if(deactivate){automatic.clear();requested=false;commandLevel={};}}
     void frame(const MeathookHudApi* api,const GameProfile* profile,const GraphLookup& lookup) {
@@ -1035,31 +1239,24 @@ public:
         const auto level=readLevelIdentity(memory,base,*profile);
         if(level!=commandLevel){requested=false;commandLevel=level;}
         if(!level||!gameplayVisible(memory,base,*profile)||readConsoleFraction(memory,base,*profile)>0) {clear();return;}
-        if(!syncPreviewProfile(*profile)) {clear();return;}
+        if(!syncPreviewProfile(*profile)) {waiting(api,"Finisher preview is not available for this game patch yet.");return;}
+        const SyncPatchScope patchScope(*profile);
         if(!layout&&GetTickCount64()>=retryAt) {retryAt=GetTickCount64()+250;layout=syncPreviewLayouts(lookup);}
-        if(!layout) {clear();return;}
-        GameCamera camera{};if(!readGameCamera(memory,base,*profile,camera)) {clear();return;}
+        if(!layout) {waiting(api,"Finisher preview data unavailable for this game patch.");return;}
+        GameCamera camera{};if(!readGameCamera(memory,base,*profile,camera)) {waiting(api,"Waiting for the game view.");return;}
         auto value=reader.capture(memory,base,*profile,level,camera,syncTargetViewDistance.load(),&lookup);
-        if(value.phase!="ready"||readLevelIdentity(memory,base,*profile)!=level) {clear();return;}
+        if(readLevelIdentity(memory,base,*profile)!=level){clear();return;}
+        if(value.phase!="ready") {
+            waiting(api,value.phase=="unsupported"?"Finisher preview data unavailable for this game patch.":value.phase=="no_target"?"Aim at a living enemy to preview finishers.":"Updating finisher preview.");return;
+        }
         automatic.update(value);
         syncRefreshAimMesh(camera,value);
         presentation.update(value,GetTickCount64());
         if(value.action==1)value.exclusiveGuide=std::make_shared<const SyncExclusiveGuide>(syncBuildExclusiveGuide(value));
         value.referenceGuide=std::make_shared<const SyncExclusiveGuide>(syncBuildReferenceGuide(value));
         auto lines=syncPositionGuideLines(value);
-        auto options=[&](const char* title,const std::vector<std::string>& choices,const char* empty) {
-            std::string text=title;
-            if(!presentation.ready) return text+"checking...";
-            if(choices.empty()) return text+empty;
-            for(size_t i=0;i<std::min(size_t(4),choices.size());++i) {if(i)text+=" / ";text+=syncZoneLabel(choices[i]).substr(0,50);}
-            if(choices.size()>4)text+=" (+"+std::to_string(choices.size()-4)+" more)";
-            return text;
-        };
-        lines.push_back(options("Engine candidates (recent): ",value.action==1?presentation.chainsaw:presentation.gloryKills,"none observed"));
-        if((value.action==1?presentation.chainsaw:presentation.gloryKills).size()>1)lines.push_back("Several engine candidates | selected animation is not guaranteed");
-        if(value.regionState=="partial facing preview"&&value.action==0)lines.push_back("Partial preview | some animation rules unavailable");
         if(!requested&&api&&api->executeCommand) {api->executeCommand("com_debugHUD 1");requested=true;}
-        debugHudStack().publish(DebugHudBlock::SyncTarget,api,lines,16,.72f,0xffffd040u);
+        debugHudStack().publish(DebugHudBlock::SyncTarget,api,lines,6,.72f,0xffffd040u);
         std::atomic_store(&syncTargetFrame,std::make_shared<const SyncTargetFrame>(std::move(value)));
     }
 };
@@ -1069,6 +1266,7 @@ static std::shared_ptr<const SyncTargetFrame> syncTargetForDraw(const GameCamera
     const auto* profile=currentGameProfile();const auto base=reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr));const WallMemory memory;
     if(!profile||!syncPreviewProfile(*profile)||readLevelIdentity(memory,base,*profile)!=value->level||!enemyTelemetryIdentity(memory,base,*profile,value->entity)) return {};
     if(value->action==0&&!value->regions.empty()&&!enemyTelemetryIdentity(memory,base,*profile,value->blueprint))return {};
+    const SyncPatchScope patchScope(*profile);
     auto fresh=std::make_shared<SyncTargetFrame>(*value);
     if((!readSyncHitSpheres(memory,base,value->entity,fresh->spheres)&&!readSyncHitSpheres(memory,base,value->entity,fresh->spheres))||
        !enemyTelemetryIdentity(memory,base,*profile,value->entity)||!readSyncFacingPose(memory,base,value->entity,fresh->facing)) return {};
@@ -1076,17 +1274,17 @@ static std::shared_ptr<const SyncTargetFrame> syncTargetForDraw(const GameCamera
     if(!memory.get(value->level.map+profile->mapPlayerOffset,player)||!readSyncPlayerIncoming(memory,player,fresh->incomingYaw))return {};
     Vec3 eye{},direction{};if(!inspectorRay(camera,eye,direction)) return {};
     float nearest=syncTargetViewDistance.load();bool hit=false;for(const auto& sphere:fresh->spheres)if(syncSphereHit(eye,direction,sphere,nearest))hit=true;
-    if(fresh->ranges.known){if(!memory.get(player+0x7d28+0xb0,fresh->ranges.playerOrigin))return {};fresh->ranges.eyeOffset=subtract(eye,fresh->ranges.playerOrigin);
+    if(fresh->ranges.known){if(!memory.get(player+syncPlayerOffset(0x7d28)+0xb0,fresh->ranges.playerOrigin))return {};fresh->ranges.eyeOffset=subtract(eye,fresh->ranges.playerOrigin);
         fresh->viewPosition=eye;fresh->viewTarget=motionAdd(fresh->facing.origin,syncRangeTransform(fresh->facing,fresh->ranges.viewTargetOffset));
         const auto point=hit?motionAdd(eye,motionScale(direction,nearest)):fresh->viewTarget;fresh->ranges.aimOrigin=subtract(point,fresh->ranges.eyeOffset);fresh->ranges.modelViewOffset=remainderf(fresh->incomingYaw-atan2f(-direction.y,-direction.x),2*syncFacingPi);}
     if(!hit){if(!syncTargetWithinActionRadius(*fresh,syncTargetViewDistance.load()))return {};
-        if(!fresh->retainedTarget){fresh->retainedAim=value->aim;fresh->retainedFocus=value->jointFocus;fresh->retainedSelectionKnown=value->selectionKnown;
+        if(!fresh->retainedTarget){fresh->retainedAim=value->aim;fresh->retainedFocus=value->jointFocus;fresh->retainedSelectionKnown=value->nearestChoiceKnown||value->selectionKnown;fresh->retainedNearestKnown=value->nearestChoiceKnown;
             fresh->retainedSelectionTolerance=value->selectionTolerance;fresh->retainedSelectionPose=value->facing;fresh->retainedChainsawRules=value->chainsawRules;}
         fresh->retainedTarget=true;
     }else fresh->retainedTarget=false;
     // A render refresh must not move old selector poses into a new situation.
     float rotationDelta=0;for(unsigned i=0;i<9;++i)rotationDelta=std::max(rotationDelta,fabsf(fresh->facing.axis[i]-value->facing.axis[i]));
-    if(syncSelectionDistance(fresh->ranges.playerOrigin,value->ranges.playerOrigin)>.05||syncSelectionDistance(fresh->facing.origin,value->facing.origin)>.01||rotationDelta>.001f)fresh->selectionKnown=false;
+    if(syncSelectionDistance(fresh->ranges.playerOrigin,value->ranges.playerOrigin)>.05||syncSelectionDistance(fresh->facing.origin,value->facing.origin)>.01||rotationDelta>.001f){fresh->selectionKnown=false;fresh->nearestSelectionCurrent=false;fresh->aimSelectorSites.clear();for(auto& rule:fresh->chainsawRules)rule.selectionKnown=false;}
     {syncShotBounds(fresh->spheres,fresh->shotBounds);fresh->aim=readSyncAimFrame(memory,base,value->entity,camera);}
     {fresh->playerFootprint=readSyncPlayerFootprint(memory,player,value->level.map);fresh->jointFocus=readSyncJointFocus(memory,base,player,value->entity);
         readSyncSphereFocusGroups(memory,base,value->entity,fresh->spheres);}
@@ -1105,11 +1303,9 @@ static std::shared_ptr<const SyncTargetFrame> syncTargetForDraw(const GameCamera
 static void appendSyncTargetGeometry(const GameCamera& camera,const SyncTargetFrame& value,std::vector<Vertex>& output,bool lines) {
     const auto guide=value.referenceGuide?value.referenceGuide:std::make_shared<const SyncExclusiveGuide>(syncBuildReferenceGuide(value));
     const std::string selected=syncSelectedAnimation(value);
-    const auto* aim=syncSelectedAim(value,selected);SyncAimRequirement visualAim;
-    if(syncBodyAimKind(aim,value.spheres)==SyncBodyAimKind::AllCurrentGroups){visualAim=*aim;visualAim.damageGroups.clear();aim=&visualAim;}
-    appendSyncAimBox(camera,value.shotBounds,value.aim,aim,output,lines);
-    const auto aimParts=value.aimPartMesh&&value.aimPartSignature==syncAimMeshSignature(camera,value,selected)?value.aimPartMesh:std::make_shared<const SyncAimPartMesh>(syncBuildAimPartMesh(camera,value.shotBounds,value.aim,syncSelectedAim(value,selected),value.spheres));
-    appendSyncAimPartMesh(*aimParts,output,lines);
+    appendSyncAimBox(camera,value.shotBounds,value.aim,nullptr,output,lines);
+    if(value.action==0){const auto aimParts=value.aimPartMesh&&value.aimPartSignature==syncAimMeshSignature(camera,value,selected)?value.aimPartMesh:std::make_shared<const SyncAimPartMesh>(syncBuildTargetAimMesh(camera,value));
+        appendSyncAimPartMesh(*aimParts,output,lines);}
     const auto mesh=value.sectorMesh?value.sectorMesh:std::make_shared<const SyncSectorMesh>(syncBuildSectorMesh(*guide,value.shotBounds));
     const auto tone=value.sectorToneKnown?value.sectorTone:syncTargetSectorTone(value,*guide,*mesh,selected);
     auto originMesh=value.originSectorMesh,bandMesh=value.clearanceBandMesh;

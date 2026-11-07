@@ -33,6 +33,7 @@ internal sealed partial class MainForm
             "Entity links…"=>_entityGraph is {IsDisposed:false}?_entityGraph:_entityGraph=new EntityGraphForm(_settingsStore.SettingsDirectory,SelectedGameProcess),
             "Level state: before / after…"=>_levelStates is {IsDisposed:false}?_levelStates:_levelStates=new LevelStateForm(_settingsStore.SettingsDirectory,SelectedGameProcess),
             "Active encounters…"=>_activeEncounters is {IsDisposed:false}?_activeEncounters:_activeEncounters=new ActiveEncountersForm(_settings,_settingsStore.SettingsDirectory,SaveSettings,SelectedGameProcess),
+            "Finisher Visualizer…"=>_finisherVisualizer is {IsDisposed:false}?_finisherVisualizer:_finisherVisualizer=new FinisherVisualizerForm(_settings,_settingsStore.SettingsDirectory,SaveSettings,SelectedGameProcess),
             "Invisible numbers…"=>_invisibleNumbers is {IsDisposed:false}?_invisibleNumbers:_invisibleNumbers=new InvisibleNumbersForm(_settings,_settingsStore.SettingsDirectory,SaveSettings,SelectedGameProcess),
             "Research points…"=>_researchPoints is {IsDisposed:false}?_researchPoints:_researchPoints=new ResearchPointsForm(_settingsStore.SettingsDirectory,SelectedGameProcess),
             _=>new ResearchForm(_settings,_settingsStore.SettingsDirectory,SaveSettings,SelectedGameProcess)

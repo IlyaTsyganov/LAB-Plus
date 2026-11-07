@@ -1,0 +1,50 @@
+SAMPLE	0
+LIVE_TOLERANCE	1	0.381000012159
+FOCUS	ready	16796875	ai/fodder/carcass	1	1	head	ready
+SELECTOR	1	1	1	0.381000012159	1
+PLAYER	5.79918909073	-78.1716156006	20.6000022888
+ENEMY	0.289048194885	-78.3017196655	20.6017627716
+RANGES	1	6	6
+MAP	1	1	Distance now: random choice | Front chest / Front head (reference)
+REGION	kill_above_back	1	0		1	1	-1.91417336464	-0.0986361205578	3.05663347244
+REGION	kill_above_front	1	2147483647		1	2	2.73288869858	-0.0985181853175	-0.000113680362119
+REGION	kill_back_lower	1	12		1	0	-2.23007583618	0	0
+REGION	kill_back_upper	1	3		1	0	-2.34036517143	0	0
+REGION	kill_front_chest	1	3		1	0	2.47960829735	0.179233238101	-0.000114736867545
+REGION	kill_front_head	1	2147483647	head	1	0	2.44710898399	0.000105599683593	-0.000105604238342
+REGION	kill_front_leftarm	1	2147483647	left_arm|left_arm_mech	1	0	2.44710898399	0.000105599683593	-0.000105604238342
+REGION	kill_front_lower	1	12		1	0	2.66620469093	-0.00692850770429	-0.000114755282993
+REGION	kill_front_rightarm	1	2147483647	right_arm|right_arm_mech	1	0	2.44710898399	0.000105599683593	-0.000105604238342
+REGION	kill_left_lower	1	12		1	0	0.0995747894049	1.53255748749	-9.35299030971e-05
+REGION	kill_left_upper	1	3		1	0	0.271365910769	2.44080805779	-0.000148959210492
+REGION	kill_right_lower	1	12		1	0	0.352821975946	-2.35144710541	-2.15322543227e-05
+REGION	kill_right_upper	1	3		1	0	0.0652118250728	-2.10415196419	-3.97979692934e-06
+PHYSICS	5.79918909073	-78.1716156006	20.6000022888
+ORIGIN_ADJUST	0
+RNG_STATE	296173578
+SAVED	idDeclSyncInteraction	824		
+EXECUTION	sync_animation	inactive	No active player melee sync
+EXECUTION	interaction	inactive	No active player interaction sync
+DIRECT_SCOPE	16796875	1	1	1	head
+DIRECT_AIM_BOUNDS	-0.0109518263489	-78.6017227173	20.6017627716	0.589048206806	-78.0017166138	22.4307613373
+DIRECT_ENEMY	0.289048194885	-78.3017196655	20.6017627716
+DIRECT_CAMERA	5.79918909073	-78.1716156006	22.257358551
+RAW	kill_front_head	syncdeath/playervsai/carcass/front_head	16796875	1	1	0	0	0	1	2147483647	head	2.73463487625	-78.2154159546	20.6016578674	3.06486777812
+RAW	kill_right_upper	syncdeath/playervsai/carcass/right_upper	16796875	0	0	0	0	0	1	3		0	0	0	81.0480844449
+RAW	kill_left_lower	syncdeath/playervsai/carcass/left_lower	16796875	0	0	0	0	0	1	12		0	0	0	81.0480844449
+RAW	kill_front_chest	syncdeath/playervsai/carcass/front_chest	16796875	1	1	0	0	0	1	3		2.76080417633	-78.0352554321	20.6016483307	3.04144366418
+RAW	kill_back_upper	syncdeath/playervsai/carcass/back_upper	16796875	0	0	0	0	0	1	3		0	0	0	81.0480844449
+RAW	kill_front_lower	syncdeath/playervsai/carcass/front_lower	16796875	0	0	0	0	0	1	12		0	0	0	81.0480844449
+RAW	kill_left_upper	syncdeath/playervsai/carcass/left_upper	16796875	0	0	0	0	0	1	3		0	0	0	81.0480844449
+RAW	kill_back_lower	syncdeath/playervsai/carcass/back_lower	16796875	0	0	0	0	0	1	12		0	0	0	81.0480844449
+RAW	kill_front_rightarm	syncdeath/playervsai/carcass/front_rightarm	16796875	0	0	0	0	0	1	2147483647	right_arm|right_arm_mech	0	0	0	81.0480844449
+RAW	kill_right_lower	syncdeath/playervsai/carcass/right_lower	16796875	0	0	0	0	0	1	12		0	0	0	81.0480844449
+RAW	kill_above_front	syncdeath/playervsai/carcass/above_front	16796875	0	0	2	2	0	1	2147483647		0	0	0	81.0480844449
+RAW	kill_front_leftarm	syncdeath/playervsai/carcass/front_leftarm	16796875	0	0	0	0	0	1	2147483647	left_arm|left_arm_mech	0	0	0	81.0480844449
+RAW	berserk_above_front	syncdeath/playervsai/carcass/berserk/berserk_above_front	16796875	0	0	3	3	0	1	0		0	0	0	81.0480844449
+RAW	cut_front	syncdeath/playervsai/carcass/chainsaw/cut_front	16796875	1	1	0	1.25	0	1	2147483647		0.289048194885	-78.3017120361	20.6000022888	5.51167653133
+RAW	cut_back	syncdeath/playervsai/carcass/chainsaw/cut_back	16796875	1	1	0	1.25	0	1	2147483647		-1.4977799654	-78.3647003174	20.6017627716	7.29952320998
+RAW	crucible_front	syncdeath/playervsai/carcass/crucbile/crucible_front	16796875	0	0	2	2	0	1	2147483647		0	0	0	81.0480844449
+RAW	berserk_front_upper	syncdeath/playervsai/carcass/berserk/berserk_front_upper	16796875	0	0	2	2	0	1	15		0	0	0	81.0480844449
+RAW	crucible_back	syncdeath/playervsai/carcass/crucbile/crucible_back	16796875	0	0	2	2	0	1	2147483647		0	0	0	81.0480844449
+RAW	kill_above_back	syncdeath/playervsai/carcass/above_back	16796875	0	0	1	1	0	1	0		0	0	0	81.0480844449

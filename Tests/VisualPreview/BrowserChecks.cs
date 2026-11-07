@@ -81,45 +81,64 @@ internal static class BrowserChecks
             Field<UiTable>(numbers,"_enemies").RowCount=1; Field<UiTable>(numbers,"_timers").RowCount=2;Field<UiTable>(numbers,"_techs").RowCount=2;await Sync(numbers);
             Check(JsonSerializer.Deserialize<bool>(await Script(form,"document.body.innerText.includes('125.5')&&document.body.innerText.includes('2.50 s')&&document.body.innerText.includes('No validated duration')")),"Invisible numbers lost actual rows or unavailable state.");
             await Script(form,"document.querySelectorAll('.control-check input').forEach(input=>input.click())");await Sync(numbers);
-            Check(settings.ShowEnemyHealthHud&&settings.ShowEnemyHealthBars&&settings.ShowGameTimersHud&&settings.ShowSpeedrunTechsHud&&settings.ShowSyncTarget,"Invisible numbers switches did not reach native settings.");
-            void Preview(SyncAnimationPreview? value) => numbers.GetType().GetMethod("UpdateSyncAnimations",Private)!.Invoke(numbers,[value]);
-            Preview(new(0,"2:1",new[] { "kill_front_lower","kill_left_upper" },"kill_left_upper"));await Sync(numbers);
+            Check(settings.ShowEnemyHealthHud&&settings.ShowEnemyHealthBars&&settings.ShowGameTimersHud&&settings.ShowSpeedrunTechsHud,"Invisible numbers switches did not reach native settings.");
+            Check(!JsonSerializer.Deserialize<bool>(await Script(form,"document.body.innerText.includes('Sync preview')||document.body.innerText.includes('Enable visualizer')")),"Finisher controls must move out of Invisible numbers.");
+            Console.WriteLine("PASS: live-number table formatting and HUD/bar controls through browser events.");
+        }
+        else if (form is FinisherVisualizerForm finisher)
+        {
+            Field<System.Windows.Forms.Timer>(finisher,"_refresh").Stop();
+            await Script(form,"document.querySelector('.control-check input').click()");await Sync(finisher);
+            Check(settings.ShowSyncTarget,"Finisher enable switch must reach native settings.");
+            Check(JsonSerializer.Deserialize<bool>(await Script(form,"document.body.innerText.includes('Blue — torso')&&document.body.innerText.includes('Orange — a separately')&&document.body.innerText.includes('Purple — legs')&&document.body.innerText.includes('Position zone colours')")),"Finisher screen must expose the actual colour legend.");
+            void Preview(SyncAnimationPreview? value) => finisher.GetType().GetMethod("UpdateSyncAnimations",Private)!.Invoke(finisher,[value]);
+            Preview(new(0,"2:1",new[] { "kill_front_lower","kill_left_upper" },"kill_left_upper"));await Sync(finisher);
             Check(JsonSerializer.Deserialize<bool>(await Script(form,"[...document.querySelectorAll('option')].some(o=>o.text==='Automatic: left upper')")),"Automatic selection must display the resolved native choice.");
             Check(settings.SyncGloryKillAnimation=="","Displaying an automatic choice must not overwrite the user's automatic setting.");
-            await Script(form,"(()=>{const e=[...document.querySelectorAll('select')].find(s=>[...s.options].some(o=>o.text==='left upper'));e.selectedIndex=2;e.dispatchEvent(new Event('change',{bubbles:true}));})()");await Sync(numbers);
+            await Script(form,"(()=>{const e=[...document.querySelectorAll('select')].find(s=>[...s.options].some(o=>o.text==='left upper'));e.selectedIndex=2;e.dispatchEvent(new Event('change',{bubbles:true}));})()");await Sync(finisher);
             Check(settings.SyncGloryKillAnimation=="kill_left_upper","Specific GK choice did not reach settings.");
-            Check(JsonSerializer.Deserialize<bool>(await Script(form,"document.body.innerText.includes('Filled sectors exclude competing choices')&&document.body.innerText.includes('Outside does not mean the animation is impossible')")),"GK preview must distinguish the reference subset from the complete activation region.");
+            Check(JsonSerializer.Deserialize<bool>(await Script(form,"document.body.innerText.includes('Glory Kill colours show the winning aim areas')")),"GK preview must distinguish the reference subset from the complete activation region.");
             var reviewed = new SyncAnimationPreview(0,"2:1",new[] { "kill_front_lower","kill_left_upper" },"kill_left_upper")
             { Hints = new Dictionary<string,SyncAnimationHint> { ["kill_front_lower"] = new("Hell Knight","No specific body part | bottom left / bottom right"), ["kill_left_upper"] = new("Hell Knight","No specific body part | aim anywhere on target") } };
-            Preview(reviewed);await Sync(numbers);
+            Preview(reviewed);await Sync(finisher);
             Check(JsonSerializer.Deserialize<bool>(await Script(form,"document.body.innerText.includes('Hell Knight: No specific body part')")),"Selected per-enemy guidance must reach the actual browser.");
-            await Script(form,"(()=>{const e=[...document.querySelectorAll('select')].find(s=>[...s.options].some(o=>o.text==='left upper'));e.selectedIndex=1;e.dispatchEvent(new Event('change',{bubbles:true}));})()");await Sync(numbers);
+            await Script(form,"(()=>{const e=[...document.querySelectorAll('select')].find(s=>[...s.options].some(o=>o.text==='left upper'));e.selectedIndex=1;e.dispatchEvent(new Event('change',{bubbles:true}));})()");await Sync(finisher);
             Check(JsonSerializer.Deserialize<bool>(await Script(form,"document.body.innerText.includes('bottom left / bottom right')")),"Changing the animation must immediately switch its aim guidance.");
-            await Script(form,"(()=>{const e=[...document.querySelectorAll('select')].find(s=>[...s.options].some(o=>o.text==='left upper'));e.selectedIndex=2;e.dispatchEvent(new Event('change',{bubbles:true}));})()");await Sync(numbers);
-            Preview(new(0,"3:1",new[] { "kill_front_lower" }));await Sync(numbers);
-            Check(Field<UiSelect>(numbers,"_syncAnimation").SelectedItem!.ToString()!.Contains("unavailable on target")&&settings.SyncGloryKillAnimation=="kill_left_upper","Changing enemy silently replaced the selected animation.");
-            Check(!Field<UiText>(numbers,"_syncHelp").Text.Contains("Hell Knight"),"Changing the target must remove the old enemy's guidance.");
-            await Script(form,"(()=>{const e=[...document.querySelectorAll('select')].find(s=>[...s.options].some(o=>o.text==='Chainsaw'));e.selectedIndex=1;e.dispatchEvent(new Event('change',{bubbles:true}));})()");await Sync(numbers);
-            Check(settings.SyncTargetAction==1&&Field<UiSelect>(numbers,"_syncAction").Enabled,"Sync preview action did not reach settings.");
-            Preview(new(1,"2:1",new[] { "cut_back","cut_front" }));await Sync(numbers);
-            await Script(form,"(()=>{const e=[...document.querySelectorAll('select')].find(s=>[...s.options].some(o=>o.text==='front'));e.selectedIndex=2;e.dispatchEvent(new Event('change',{bubbles:true}));})()");await Sync(numbers);
+            await Script(form,"(()=>{const e=[...document.querySelectorAll('select')].find(s=>[...s.options].some(o=>o.text==='left upper'));e.selectedIndex=2;e.dispatchEvent(new Event('change',{bubbles:true}));})()");await Sync(finisher);
+            Preview(new(0,"3:1",new[] { "kill_front_lower" }));await Sync(finisher);
+            Check(Field<UiSelect>(finisher,"_syncAnimation").SelectedItem!.ToString()!.Contains("unavailable on target")&&settings.SyncGloryKillAnimation=="kill_left_upper","Changing enemy silently replaced the selected animation.");
+            Check(!Field<UiText>(finisher,"_syncHelp").Text.Contains("Hell Knight"),"Changing the target must remove the old enemy's guidance.");
+            await Script(form,"(()=>{const e=[...document.querySelectorAll('select')].find(s=>[...s.options].some(o=>o.text==='Chainsaw'));e.selectedIndex=1;e.dispatchEvent(new Event('change',{bubbles:true}));})()");await Sync(finisher);
+            Check(settings.SyncTargetAction==1&&Field<UiSelect>(finisher,"_syncAction").Enabled,"Sync preview action did not reach settings.");
+            Preview(new(1,"2:1",new[] { "cut_back","cut_front" }));await Sync(finisher);
+            await Script(form,"(()=>{const e=[...document.querySelectorAll('select')].find(s=>[...s.options].some(o=>o.text==='front'));e.selectedIndex=2;e.dispatchEvent(new Event('change',{bubbles:true}));})()");await Sync(finisher);
             Check(settings.SyncChainsawAnimation=="cut_front"&&settings.SyncGloryKillAnimation=="kill_left_upper","Chainsaw selection overwrote the GK selection.");
-            Check(JsonSerializer.Deserialize<bool>(await Script(form,"document.body.innerText.includes('filled area excludes competing choices')&&document.body.innerText.includes('animation can still occur outside it')")),"Chainsaw preview must distinguish the conservative filled subset from all positions allowing the animation.");
-            Preview(null);await Sync(numbers);Check(!Field<UiSelect>(numbers,"_syncAnimation").Enabled,"Lost target retained live animation choices.");
-            Preview(new(1,"2:1",new[] { "cut_back","cut_front" }));await Sync(numbers);
-            void Catalog(InvisibleNumbersSnapshot? value,bool fresh,int process) => numbers.GetType().GetMethod("UpdateSyncCatalog",Private)!.Invoke(numbers,[value,fresh,process]);
+            Check(JsonSerializer.Deserialize<bool>(await Script(form,"document.body.innerText.includes('Body-part colours are disabled for Chainsaw')")),"Chainsaw preview must distinguish the conservative filled subset from all positions allowing the animation.");
+            Preview(null);await Sync(finisher);Check(!Field<UiSelect>(finisher,"_syncAnimation").Enabled,"Lost target retained live animation choices.");
+            Preview(new(1,"2:1",new[] { "cut_back","cut_front" }));await Sync(finisher);
+            void Catalog(InvisibleNumbersSnapshot? value,bool fresh,int process) => finisher.GetType().GetMethod("UpdateSyncCatalog",Private)!.Invoke(finisher,[value,fresh,process]);
             var catalog = new InvisibleNumbersSnapshot(123,DateTimeOffset.UtcNow,"live","preview/arena","ready","ready","",0,[],[],[]) { SyncPreview=new(1,"2:1",new[] { "cut_back","cut_front" }) };
-            Catalog(catalog,true,123);Catalog(catalog with { Phase="paused",SyncPreview=null },true,123);await Sync(numbers);
-            Check(Field<UiSelect>(numbers,"_syncAnimation").Enabled&&Field<UiText>(numbers,"_syncHelp").Text.StartsWith("Paused:"),"Pausing the game prevented selecting an animation from the last target.");
-            Catalog(catalog with { Phase="paused",Map="other/map",SyncPreview=null },true,123);await Sync(numbers);
-            Check(!Field<UiSelect>(numbers,"_syncAnimation").Enabled,"Paused choices leaked across a map change.");
-            Catalog(catalog,true,123);Catalog(catalog with { SyncPreview=null },true,123);await Sync(numbers);
-            Check(!Field<UiSelect>(numbers,"_syncAnimation").Enabled,"Losing a target during gameplay retained historical choices.");
-            Catalog(catalog,true,123);Catalog(null,false,0);await Sync(numbers);
-            Check(!Field<UiSelect>(numbers,"_syncAnimation").Enabled,"Game exit retained historical choices.");
+            Catalog(catalog,true,123);Catalog(catalog with { Phase="paused",SyncPreview=null },true,123);await Sync(finisher);
+            Check(Field<UiSelect>(finisher,"_syncAnimation").Enabled&&Field<UiText>(finisher,"_syncHelp").Text.StartsWith("Paused:"),"Pausing the game prevented selecting an animation from the last target.");
+            Catalog(catalog with { Phase="paused",Map="other/map",SyncPreview=null },true,123);await Sync(finisher);
+            Check(!Field<UiSelect>(finisher,"_syncAnimation").Enabled,"Paused choices leaked across a map change.");
+            Catalog(catalog,true,123);Catalog(catalog with { SyncPreview=null },true,123);await Sync(finisher);
+            Check(!Field<UiSelect>(finisher,"_syncAnimation").Enabled,"Losing a target during gameplay retained historical choices.");
+            Catalog(catalog,true,123);Catalog(null,false,0);await Sync(finisher);
+            Check(!Field<UiSelect>(finisher,"_syncAnimation").Enabled,"Game exit retained historical choices.");
             Catalog(catalog with { SyncPreview = new SyncAnimationPreview(1,"2:1",new[] { "cut_back","cut_front" })
-                { Hints = new Dictionary<string,SyncAnimationHint> { ["cut_back"] = new("Hell Knight","No specific body part | aim anywhere on target"), ["cut_front"] = new("Hell Knight","No specific body part | aim anywhere on target") } } },true,123);await Sync(numbers);
-            Console.WriteLine("PASS: live-number table formatting and HUD/bar controls through browser events.");
+                { Hints = new Dictionary<string,SyncAnimationHint> { ["cut_back"] = new("Hell Knight","No specific body part | aim anywhere on target"), ["cut_front"] = new("Hell Knight","No specific body part | aim anywhere on target") } } },true,123);await Sync(finisher);
+            var random = new SyncAnimationPreview(1,"4:1",new[] { "cut_back","cut_front_01","cut_front_02" },"cut_front_01")
+            { Hints = new Dictionary<string,SyncAnimationHint> { ["cut_front_01"] = new("Zombie tier 1","Aim anywhere"), ["cut_front_02"] = new("Zombie tier 1","Aim anywhere") } };
+            settings.SyncChainsawAnimation="";Preview(random);await Sync(finisher);
+            Check(JsonSerializer.Deserialize<bool>(await Script(form,"[...document.querySelectorAll('option')].some(o=>o.text==='Automatic: front 01 / 02 (random)')&&document.body.innerText.includes('without body-part colouring')&&!document.querySelector('[data-presentation=finisher-body]')")),"Chainsaw must hide the GK body legend and identify random front variants.");
+            await Script(form,"[...document.querySelectorAll('button')].find(b=>b.textContent==='Read the full guide').click()");await Sync(finisher);
+            Check(JsonSerializer.Deserialize<bool>(await Script(form,"document.body.innerText.includes('How Glory Kill and Chainsaw animations are chosen')&&!/[А-Яа-яЁё]/.test(document.body.innerText)")),"The in-app guide must be English only.");
+
+            Check(JsonSerializer.Deserialize<bool>(await Script(form,"document.body.innerText.includes('Seek and Destroy unequipped')&&document.body.innerText.includes('extended range is not supported')")),"Rune limitation must remain visible in English.");
+            Check(FinisherGuide.Read("en").Contains("Seek and Destroy")&&FinisherGuide.Read("ru").Contains("Seek and Destroy"),"Both standalone guides must explain the rune limitation.");
+            Check(FinisherGuide.Read("ru").Contains("Как выбираются")&&FinisherGuide.Read("en").Contains("How Glory Kill"),"Both standalone guides must be packaged as resources.");
+            Console.WriteLine("PASS: Finisher Visualizer controls, target lifecycle, mode isolation, English guide, colours and random variants.");
         }
         else if (form is EntityGraphForm graph) await Graph(graph);
     }

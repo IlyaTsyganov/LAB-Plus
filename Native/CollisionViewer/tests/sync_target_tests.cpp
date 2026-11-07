@@ -1,4 +1,5 @@
 #include "../src/vulkan_layer.cpp"
+#include "../src/sync_distance_map.h"
 #include <limits>
 static void requireTarget(bool pass,const char* message) {if(!pass){fprintf(stderr,"FAIL: %s\n",message);exit(1);}}
 template<class T> static void targetPut(std::vector<unsigned char>& bytes,size_t offset,const T& value) {memcpy(bytes.data()+offset,&value,sizeof(value));}
@@ -9,6 +10,13 @@ static uintptr_t targetAddress(std::vector<unsigned char>& bytes) {return reinte
 #include "sync_auto_retention_checks.h"
 #include "sync_limb_multiview_checks.h"
 #include "sync_zombie_soldier_checks.h"
+#include "sync_body_availability_checks.h"
+#include "sync_body_colour_checks.h"
+#include "sync_body_sector_checks.h"
+#include "sync_distance_checks.h"
+#include "sync_body_all_zones_checks.h"
+#include "sync_carcass_nearest_checks.h"
+#include "sync_all_nearest_checks.h"
 struct HitTargetFixture {
     std::vector<unsigned char> actor=std::vector<unsigned char>(0x6500),physics=std::vector<unsigned char>(0x250),wrapper=std::vector<unsigned char>(0x58),
         root=std::vector<unsigned char>(112),child=std::vector<unsigned char>(112),leaf=std::vector<unsigned char>(64),materials=std::vector<unsigned char>(176),group=std::vector<unsigned char>(120),targeting=std::vector<unsigned char>(208);
@@ -142,7 +150,7 @@ static void checkNativeChoiceAudit() {
     knight.nativeChoices={{"cut_front_01",1,1.25f,{-2.95662451f,-82.4016724f,20.6000023f},true},{"cut_back",1,1.25f,{-4.99406385f,-82.40168f,20.6000042f},true}};
     const auto possible=syncNativeSelection(knight);
     requireTarget(possible.known&&possible.possible==std::vector<std::string>({"cut_back","cut_front_01"}),"observed Hell Knight sites retain BOTH valid cuts in the native random band even outside a unique clearance area");
-    auto messages=syncPositionGuideLines(knight);requireTarget(std::find(messages.begin(),messages.end(),"Engine now: selected remains possible with other animations | snapshot")!=messages.end(),"HUD reports native possibility independently of an unavailable or empty filled reference area");
+    auto messages=syncPositionGuideLines(knight);requireTarget(std::find(messages.begin(),messages.end(),"Selected: Front 01")!=messages.end(),"compact HUD keeps the selected animation without verbose candidate diagnostics");
     knight.nativeChoices[1].priority=2;auto ranked=syncNativeSelection(knight);
     requireTarget(ranked.known&&ranked.possible==std::vector<std::string>{"cut_back"},"native priority outranks which start pose is nearer");
     knight.pendingChainsaw=true;requireTarget(!syncNativeSelection(knight).known,"pending engine checks cannot claim a sole selector result");knight.pendingChainsaw=false;
@@ -238,10 +246,36 @@ static void checkRecordedAimParts() {
     requireTarget(!syncBuildAimPartMesh(shifted,movedBounds,shiftedAim,&rules[0].second,moved).fill.empty(),"real pose guidance survives world translation without losing its group mapping");
     auto manual=SyncTargetFrame{};manual.selectedAnimation=rules[0].first;manual.regions.push_back({});manual.regions[0].name=rules[0].first;manual.regions[0].aim=rules[0].second;
     manual.aimPartMesh=std::make_shared<const SyncAimPartMesh>(syncBuildAimPartMesh(camera,bounds,aim,&rules[0].second,spheres));
-    const auto hud=syncPositionGuideLines(manual);requireTarget(std::find(hud.begin(),hud.end(),"Yellow on target box: aim at the highlighted body area")!=hud.end(),"HUD explains the body aim patch even while standing geometry is unavailable");
+    const auto hud=syncPositionGuideLines(manual);requireTarget(std::find(hud.begin(),hud.end(),"Aim at a highlighted body area")!=hud.end(),"HUD explains the body aim patch even while standing geometry is unavailable");
     printf("Actual zombie four aim masks + dense ray checks + QA vertex export %.3f ms (offline CPU, not FPS).\n",allFour);
 }
-int main() {
+#include "sync_patch_checks.h"
+int main(int argc,char** argv) {
+    checkSyncPatchLayouts();
+    setvbuf(stdout,nullptr,_IONBF,0);
+    checkCarcassNativeTrace();
+    checkCarcassBodyThresholds();
+    checkCarcassWinnerColours();
+    if(argc==2&&!strcmp(argv[1],"--carcass-only"))return 0;
+    checkOrdinaryChainsawTrace();
+    checkNearestBranchesAndGuides();
+    checkCompactFinisherPresentation();
+    checkAllEnemyBodyZones(false,true);
+    requireTarget(nearestFamilyViews>8000&&nearestContexts>100000&&nearestTriangles>100000&&nearestRegionViews>500,"all-family nearest replay covers both actions, every supported region and rendered winning colours");
+    printf("PASS: generic nearest selection: 25 families, %zu views, %zu group/quadrant checks, %zu sector views, %zu triangle colours.\n",nearestFamilyViews,nearestContexts,nearestRegionViews,nearestTriangles);
+    if(argc==2&&!strcmp(argv[1],"--nearest-only"))return 0;
+    checkDistanceSelection();
+    checkDistanceBodyFilter();
+    checkRecordedDistanceMaps();
+    if(argc==2&&!strcmp(argv[1],"--distance-only")){checkAllEnemyBodyZones(true);return 0;}
+    checkCapturedCarcassLowerTorso();
+    checkAllEnemyBodyZones();
+    checkBodyPaletteByOccupiedSector();
+    checkBodyColourScopes();
+    checkCapturedBodyColours();
+    checkAutomaticBodyAvailability();
+    checkCapturedBodyQuadrants();
+    checkRecordedAutomaticBodyZones();
     checkLimbUnassignedAndNearPlane();
     checkAllCapturedLimbViews();
     checkCapturedLowerAimViews();
@@ -315,7 +349,6 @@ int main() {
     targetPut(scene.entries,0,uint32_t(99));value=capture();requireTarget(value.entity.address!=targetAddress(scene.enemies[0].actor),"old GameView token cannot select a reused actor slot");
     targetPut(scene.info,0xd0,uint32_t(99));value=capture();requireTarget(value.entity.id==99,"entity slot reuse invalidates old generation and reacquires identity");
     targetPut(scene.view,0xc8,uintptr_t(0));value=capture();requireTarget(!value.entity,"foreign view owner clears target");
-    requireTarget(!syncPreviewProfile(kProfile10)&&!syncPreviewProfile(kProfile66632),"unaudited patches remain off");
     // Authoring data, not names, determines the facing direction.
     float instigatorPose[12]{1,0,0,0,0,1,0,0,0,0,1,0};
     float targetPose[12]{-1,0,0,3.8f,0,-1,0,0,0,0,1,2.4f};Vec3 incoming{};
@@ -459,7 +492,7 @@ int main() {
     const auto cameraReference=syncBuildReferenceGuide(shiftedCamera);
     requireTarget(syncExclusiveContains(cameraReference,shiftedCamera.ranges.playerOrigin)&&!syncGuideFeedback(shiftedCamera,cameraReference.selected,selected).selectedOnlyObserved,"current camera range is enforced separately from the fixed reference sector");
     const auto cameraLines=syncPositionGuideLines(shiftedCamera);
-    requireTarget(std::any_of(cameraLines.begin(),cameraLines.end(),[](const auto& line){return line.find("Camera to target: 10.20 m | limit 9.00 m")!=std::string::npos;}),"HUD range reports the actual camera metric rather than the anchored reference metric");
+    requireTarget(std::any_of(cameraLines.begin(),cameraLines.end(),[](const auto& line){return line.find("Distance: 10.20 m / 9.00 m")!=std::string::npos;}),"HUD range reports the actual camera metric rather than the anchored reference metric");
     // Recorded v4 failure: victim 16796944, Back upper selected, both native
     // candidates valid before actual Right upper. Authoring starts and pose
     // are copied from the 2026-11-06 read-only demonstration, not equal wedges.
@@ -635,7 +668,7 @@ int main() {
     auto benchPose=poseChainsaw;benchPose.chainsawRules[1].selectionKnown=true;const auto poseAt=std::chrono::steady_clock::now();for(unsigned i=0;i<40;++i){const auto g=syncBuildExclusiveGuide(benchPose);const auto mesh=syncBuildSectorMesh(g,geometryBox);requireTarget(mesh.known,"sector geometry remains within its work budget");}
     printf("Current-pose guide plus filled sector mean %.3f ms (offline CPU, not game FPS).\n",std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-poseAt).count()/40);
     requireTarget(syncAimMaskLabel(0x7fffffff)=="no aim-quadrant restriction","unrestricted quadrant label does not imply that every aim condition is absent");
-    auto guideLines=syncPositionGuideLines(geometry);requireTarget(std::any_of(guideLines.begin(),guideLines.end(),[](const auto& s){return s.find("Camera to target:")!=std::string::npos&&s.find("limit")!=std::string::npos;}),"HUD shows actual distance together with the camera limit");
+    auto guideLines=syncPositionGuideLines(geometry);requireTarget(std::any_of(guideLines.begin(),guideLines.end(),[](const auto& s){return s.find("Distance:")!=std::string::npos&&s.find(" / ")!=std::string::npos;}),"HUD shows actual distance together with the camera limit");
     geometry.selectedAnimation.clear();
     geometry.hasChainsaw=false;vertices.clear();appendSyncTargetGeometry(camera,geometry,vertices,true);requireTarget(vertices.size()==24,"no native Chainsaw interaction means only the enemy frame remains");
     requireTarget(syncFacingContains(0,syncFacingPi/3,59*syncFacingPi/180)&&!syncFacingContains(0,syncFacingPi/3,61*syncFacingPi/180),"native sixty-degree boundary is not replaced by equal quadrants");

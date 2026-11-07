@@ -6,7 +6,8 @@ static void requirePort(bool value,const char* why) { if(!value) throw std::runt
 template<class T> static void portPut(uintptr_t at,T value) { memcpy(reinterpret_cast<void*>(at),&value,sizeof(value)); }
 #include "praetor_port_audit.h"
 int wmain(int argc,wchar_t** argv) {
-    if(argc!=3) { puts("Usage: PatchPortTests retail-exe metadata-rvas.tsv");return 2; }
+    const bool finisherOnly=argc==4&&std::wstring(argv[3])==L"--finisher-only";
+    if(argc!=3&&!finisherOnly) { puts("Usage: PatchPortTests retail-exe metadata-rvas.tsv [--finisher-only]");return 2; }
     unsigned char* image=nullptr;
     try {
         std::ifstream input(std::filesystem::path(argv[1]),std::ios::binary);
@@ -39,8 +40,6 @@ int wmain(int argc,wchar_t** argv) {
             pos+=block->SizeOfBlock;
         }
         WallMemory memory{};const auto* profile=detectGameProfile(memory,base);requirePort(profile,"Profile identity failed");
-        const auto* code=observationCodeProfile(*profile);requirePort(code,"Observation profile missing");
-        requirePort(auditSyncReleaseRegistration(memory,base,*profile),"Retail release-event registration/signature differs from fixture");
         std::ifstream metadata{std::filesystem::path(argv[2])};std::string line;
         std::unordered_map<std::string,uintptr_t> addresses;
         while(std::getline(metadata,line)) {auto tab=line.find('\t');if(tab!=std::string::npos)addresses[line.substr(0,tab)]=base+std::stoull(line.substr(tab+1),nullptr,0);}
@@ -50,6 +49,26 @@ int wmain(int argc,wchar_t** argv) {
             auto address=addresses.find(type);if(address==addresses.end()) {printf("Missing type: %s\n",type.c_str());static const GraphType empty;return empty;}
             return schemas.emplace(type,readGraphType(memory,address->second,type)).first->second;
         };
+        if(finisherOnly) {
+            requirePort(syncPreviewProfile(*profile),"Finisher layout unavailable for this EXE");
+            const SyncPatchScope scope(*profile);
+            requirePort(syncPreviewCode(memory,base)&&syncNearestChoiceProfile(memory,base),"Finisher selector or code guard failed");
+            requirePort(syncPreviewLayouts(lookup),"Finisher reflection guard failed");
+            requirePort(syncAuthoredNodeLayouts(lookup),"Finisher animation web layout failed");
+            if(syncPatch().modern) {
+                unsigned char empty=1;
+                requirePort(memory.get(base+syncPatch().emptyEquipment,empty)&&empty==0,"Finisher empty equipment reference failed");
+                auto& codeByte=image[syncPatch().code[0].rva];
+                codeByte^=1;
+                requirePort(!syncPreviewCode(memory,base),"Modified instruction passed the finisher guard");
+                codeByte^=1;
+            }
+            printf("PASS: %s finisher code, selection and reflected layouts.\n",profile->name);
+            VirtualFree(image,0,MEM_RELEASE);
+            return 0;
+        }
+        const auto* code=observationCodeProfile(*profile);requirePort(code,"Observation profile missing");
+        requirePort(auditSyncReleaseRegistration(memory,base,*profile),"Retail release-event registration/signature differs from fixture");
         requirePort(comboChainWeaponClass("idWeapon",lookup),"CSC base weapon metadata failed");
         unsigned cscSubclasses=0;
         for(const char* type:{"idPlasmaRifleCharged","idChaingun","idDoubleBarrelShotgun","idBFG","idChainsaw"}) {

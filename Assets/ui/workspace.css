@@ -265,3 +265,24 @@ body{font-family:'LP UI';font-size:16px}
 #labplus-refined .lr-trim-option input{flex-basis:14px;width:14px;height:14px;cursor:inherit}
 #labplus-refined .lr-trim-option input:checked:after{left:2px;top:3px;width:7px;height:4px}
 #labplus-refined .lr-trim-option:has(input:disabled){opacity:.45;cursor:default}
+
+#labplus-refined [data-presentation="finisher-layout"]{gap:14px}
+#labplus-refined [data-presentation^="finisher-"]{overflow-wrap:anywhere}
+#labplus-refined [data-presentation="finisher-guide"]{white-space:pre-line;line-height:1.65;max-width:76ch}
+#labplus-refined [data-presentation="finisher-legends"] .control-group{min-width:0}
+#labplus-refined [data-presentation="finisher-legends"] .control-column{gap:10px}
+#labplus-refined [data-presentation="finisher-blue"]{--finisher-colour:#2673ff}
+#labplus-refined [data-presentation="finisher-orange"]{--finisher-colour:#ff7a14}
+#labplus-refined [data-presentation="finisher-purple"]{--finisher-colour:#a638ff}
+#labplus-refined [data-presentation="finisher-grey"]{--finisher-colour:#a6b3bf}
+#labplus-refined [data-presentation="finisher-amber"]{--finisher-colour:#ffa626}
+#labplus-refined [data-presentation="finisher-red"]{--finisher-colour:#ff4033}
+#labplus-refined [data-presentation="finisher-green"]{--finisher-colour:#4dff80}
+#labplus-refined [data-presentation="finisher-legends"] .control-label::before,
+#labplus-refined [data-presentation="finisher-legends"] .control-caption::before{content:"";display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:9px;background:var(--finisher-colour);vertical-align:baseline}
+#labplus-refined [data-presentation="finisher-legends"] :not([data-presentation^="finisher-"])::before{display:none}
+@media(max-width:760px){#labplus-refined [data-presentation="finisher-legends"]{grid-template-columns:minmax(0,1fr)!important}#labplus-refined [data-presentation="finisher-legends"]>.control-group{grid-column:1!important;grid-row:auto!important}}
+
+#labplus-refined [data-presentation="finisher-legends"]:has(> .control-group:only-child){grid-template-columns:minmax(0,1fr)!important}
+#labplus-refined [data-presentation="finisher-legends"]>.control-group:only-child{grid-column:1!important}
+#labplus-refined [data-presentation="finisher-rune-note"]{color:var(--lr-gold);border-left:2px solid currentColor;padding-left:10px}

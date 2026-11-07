@@ -107,6 +107,7 @@ def main():
     parser.add_argument('executables', nargs='+', type=Path)
     parser.add_argument('--out', type=Path, required=True)
     parser.add_argument('--probe', type=Path)
+    parser.add_argument('--probe-arg', action='append', default=[], help='Extra argument passed to the audit probe')
     args = parser.parse_args()
     args.out.mkdir(parents=True, exist_ok=True)
     results = []
@@ -122,7 +123,7 @@ def main():
             result = dict(path=str(image.path), sha256=identity, timestamp=hex(image.timestamp),
                 image_size=hex(image.size), metadata_rvas=metadata.name, metadata_candidates=len(fields), state='not_run')
             if args.probe:
-                process = subprocess.run([str(args.probe.resolve()), str(image.path), str(metadata.resolve())],
+                process = subprocess.run([str(args.probe.resolve()), str(image.path), str(metadata.resolve()), *args.probe_arg],
                     capture_output=True, timeout=120)
                 log = process.stdout.decode(errors='replace')+process.stderr.decode(errors='replace')
                 (args.out / (stem+'.log')).write_text(log, encoding='utf-8')

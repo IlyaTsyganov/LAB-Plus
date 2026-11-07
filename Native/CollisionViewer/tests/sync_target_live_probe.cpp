@@ -11,7 +11,7 @@ int wmain(int argc,wchar_t** argv) {
     int status=0;
     try {
         WallMemory memory{process};const auto* profile=detectGameProfile(memory,base);
-        if(!profile||!syncPreviewProfile(*profile))throw std::runtime_error("Expected audited 1.1");
+        if(!profile||profile->timestamp!=kProfile11.timestamp||profile->imageSize!=kProfile11.imageSize)throw std::runtime_error("Expected audited 1.1");
         std::ifstream input{std::filesystem::path(argv[3])};if(!input)throw std::runtime_error("Missing reflection index");
         std::unordered_map<std::string,uintptr_t> addresses;std::string line;
         while(std::getline(input,line)) {if(!line.empty()&&line.back()=='\r')line.pop_back();auto tab=line.find('\t');if(tab!=std::string::npos)addresses[line.substr(0,tab)]=base+std::stoull(line.substr(tab+1),nullptr,0);}

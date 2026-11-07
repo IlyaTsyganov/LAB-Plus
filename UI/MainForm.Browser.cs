@@ -62,7 +62,7 @@ internal sealed partial class MainForm
                 break;
             case "tool":
                 string? tool = message.GetProperty("name").GetString();
-                if (tool is "Movement lab…" or "Research timeline & path…" or "Entity links…" or "Level state: before / after…" or "Active encounters…" or "Invisible numbers…" or "Research points…") OpenResearchTool(tool);
+                if (tool is "Movement lab…" or "Research timeline & path…" or "Entity links…" or "Level state: before / after…" or "Active encounters…" or "Invisible numbers…" or "Finisher Visualizer…" or "Research points…") OpenResearchTool(tool);
                 break;
         }
     }

@@ -205,7 +205,7 @@ static void syncExclusiveSelectPoses(SyncExclusiveGuide& guide,Vec3 chosen,const
     }
     for(const auto& polygon:guide.pieces)for(auto p:polygon)if(!syncExclusiveNativeContains(guide,{float(p.x),float(p.y),guide.z})){
         guide.pieces.clear();guide.known=false;guide.detail="Current-pose selection area unavailable: precision";return;}
-    guide.detail=guide.pieces.empty()?"No unique distance-choice area for the current native poses":"Distance-choice area for CURRENT native poses | random band removed";
+    guide.detail=guide.pieces.empty()?"No unique distance-choice area for the current native poses":tolerance==0?"Nearest-start boundary for CURRENT native poses":"Distance-choice area for CURRENT native poses | random band removed";
 }
 static bool syncExclusiveDestination(const SyncExclusiveGuide& guide,Vec3 player,Vec3& destination) {
     if(!guide.known||guide.pieces.empty())return false;double best=DBL_MAX;

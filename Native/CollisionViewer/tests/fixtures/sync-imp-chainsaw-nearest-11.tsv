@@ -1,0 +1,6 @@
+# Hardware capture: retail 1.1, ordinary chainsaw input 16, special=0.
+# Selection 18d30c0, execution 18d1a30, caller return 169985c; clean detach.
+P 1.72086250782 -82.3292770386 20.6000022888
+C cut_back 1.25 34.2979621887 -4.13042926788 -82.0836181641 20.6000041962
+C cut_front 1.25 21.1748714447 -2.87419104576 -82.0836105347 20.6000022888
+E cut_front

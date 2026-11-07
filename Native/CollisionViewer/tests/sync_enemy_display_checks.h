@@ -36,21 +36,22 @@ static void checkEveryEnemyDisplay() {
         syncRefreshAimMesh(camera,frame);std::vector<Vertex> fill,outline;appendSyncTargetGeometry(camera,frame,fill,false);appendSyncTargetGeometry(camera,frame,outline,true);
         const auto body=syncBodyAimKind(&aim,frame.spheres);const auto hints=syncAnimationDisplayHints(frame);
         requireTarget(hints.size()==1&&hints[0].animation==state&&hints[0].enemy==authored->label&&!hints[0].aim.empty(),"current target and selected action receive their own authored requirement hint");
+        if(requested==1){requireTarget(fill.empty()&&outline.size()==24&&frame.aimPartMesh->fill.empty()&&frame.aimPartMesh->quadrantFill.empty()&&frame.aimPartMesh->lowerFill.empty(),"all reviewed Chainsaw variants retain the target box without body colouring");continue;}
         if(aim.damageGroups.empty()||body==SyncBodyAimKind::AllCurrentGroups){
-            for(const auto& v:fill)requireTarget(v.color[0]<.5f,"quadrant-only or whole-body rules cannot produce yellow limb patches");
+            for(const auto& v:fill)requireTarget(v.color[0]<.9f,"quadrant-only or whole-body rules use blue/purple instead of invented anatomical orange");
             requireTarget(!frame.aimPartMesh->required,"orientation-only or whole-body rules request no anatomical mesh");
-            if(syncAimUnrestricted(aim.quadrants))requireTarget(fill.empty()&&outline.size()==24,"unrestricted variants keep only the square enemy box");
-            else requireTarget(!fill.empty()&&outline.size()==28,"restricted variants preserve the actual physics-centre quadrant tiles");
+            requireTarget(!fill.empty()&&outline.size()>24,"all known variants draw the actual body, including unrestricted blue whole-body rules");
+            if(syncAimUnrestricted(aim.quadrants))requireTarget(!frame.aimPartMesh->quadrantFill.empty(),"unrestricted rules keep blue body and separately coloured native legs where present");
         } else {
             if(requested==0)partFamilies.insert(family);
             requireTarget(frame.aimPartMesh->required&&frame.aimPartMesh->known,"specific native group requirements produce an explicit anatomical presentation");
-            for(const auto& v:fill)requireTarget(v.color[0]>.9f,"body-guided variants show only the group/quadrant intersection, without a coarse blue quadrant underneath");
+            for(const auto& v:fill)requireTarget(v.color[0]==1||v.color[0]==.15f||v.color[0]==.65f,"named-part rules use orange arms/head, blue torso and purple legs/lower areas");
             requireTarget(!fill.empty(),"synthetic current pose offers at least one visible required group for every reviewed body-guided variant");
         }
         if(family=="hellknight"&&state=="kill_front_head")requireTarget(hints[0].aim.find("No specific body part")!=std::string::npos&&hints[0].aim.find("top left")!=std::string::npos,"Hell Knight front_head is shown as upper quadrants instead of an invented head target");
         if(family=="mancubus_fire"&&state=="kill_front_head")requireTarget(hints[0].aim.find("Aim at head")!=std::string::npos,"Mancubus head GK retains real head guidance");
         if(family=="zombie_tier3"&&state=="kill_back_head")requireTarget(!frame.aimPartMesh->required,"Zombie tier3 back_head remains quadrant-only");
-        if(requested==1&&family=="hellknight")requireTarget(body==SyncBodyAimKind::AllCurrentGroups&&fill.empty(),"both Hell Knight cuts show no artificial limb or front/back aiming patch");
+        if(requested==1&&family=="hellknight")requireTarget(body==SyncBodyAimKind::AllCurrentGroups&&!frame.aimPartMesh->quadrantFill.empty()&&frame.aimPartMesh->fill.empty()&&!frame.aimPartMesh->lowerFill.empty(),"both unrestricted Hell Knight cuts keep native legs purple");
         auto mismatch=aim;mismatch.damageGroups.push_back("invented_group");requireTarget(!syncAuditEnemyRule(authored->declaration,state,requested,mismatch).matched,"changed native group authoring cannot inherit the reviewed presentation silently");
     }
     requireTarget(count==224&&families.size()==25&&partFamilies.size()==8,"all 224 states across 25 report families exercise their actual rendering path; eight families use anatomical GK guidance");
@@ -99,11 +100,11 @@ static void checkRecordedHellKnightDisplay() {
         std::istringstream groups(r.groups);std::string group;while(std::getline(groups,group,'|'))if(!group.empty())aim.damageGroups.push_back(group);
         frame.animationRules={{r.animation,r.action,aim,syncAuditEnemyRule(r.declaration,r.animation,r.action,aim)}};frame.chainsawAnimations={r.animation};syncRefreshAimMesh(camera,frame);
         std::vector<Vertex> fill,wire;appendSyncTargetGeometry(camera,frame,fill,false);appendSyncTargetGeometry(camera,frame,wire,true);
-        requireTarget(!frame.aimPartMesh->required,"verified Hell Knight variants never create head/arm/leg patches");
-        if(r.action==1)requireTarget(fill.empty()&&wire.size()==24,"actual Hell Knight Chainsaw keeps only the target box without an invented anatomical or directional tile");
-        else {requireTarget(!fill.empty()&&wire.size()==28,"actual Hell Knight front_head/front_lower use real upper/lower physics-centre tiles");
+        requireTarget(!frame.aimPartMesh->required,"verified Hell Knight variants never invent named head/arm/leg requirements");
+        if(r.action==1)requireTarget(fill.empty()&&wire.size()==24&&frame.aimPartMesh->quadrantFill.empty()&&frame.aimPartMesh->fill.empty()&&frame.aimPartMesh->lowerFill.empty(),"actual Hell Knight Chainsaw cuts have no body colours and retain their target frame");
+        else {requireTarget(!fill.empty()&&wire.size()>24,"actual Hell Knight upper/lower patches follow the shot body and native physics-centre split");
             const auto* b=frame.aim.bounds;double cx,cy,w;requireTarget(syncAimProject(camera,{(b[0]+b[3])*.5f,(b[1]+b[4])*.5f,(b[2]+b[5])*.5f},cx,cy,w),"actual Hell Knight native aim centre projects");
-            for(const auto& v:fill){double x=0,y=0,z=0;requireTarget(v.color[0]<.5f&&syncAimProject(camera,v.position,x,y,z),"real Hell Knight quadrants are drawn as quadrant tiles");
+            for(const auto& v:fill){double x=0,y=0,z=0;requireTarget((v.color[0]==.65f||(r.quadrants==3&&v.color[0]==.15f))&&syncAimProject(camera,v.position,x,y,z),"real Hell Knight lower areas and physical legs use purple, upper body uses blue");
                 requireTarget(r.quadrants==3?y>=cy-.00001:y<=cy+.00001,"actual native physics centre determines upper/lower, independently of the shot-box centre");}}
         for(const auto& v:fill)vertices<<"F\t"<<r.animation<<'\t'<<v.position.x<<'\t'<<v.position.y<<'\t'<<v.position.z<<'\n';
         for(const auto& v:wire)vertices<<"L\t"<<r.animation<<'\t'<<v.position.x<<'\t'<<v.position.y<<'\t'<<v.position.z<<'\n';

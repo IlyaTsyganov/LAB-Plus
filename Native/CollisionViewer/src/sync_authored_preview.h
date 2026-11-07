@@ -10,16 +10,20 @@ struct SyncAuthoredSource {
     bool known=false;
 };
 static bool readSyncAuthoredGkPriority(const WallMemory& memory,uintptr_t base,uintptr_t decl,float& priority) {
+    if(syncPatch().modern){if(!syncModernOrdinaryDeclaration(memory,base,decl))return false;SyncPreviewList requirements;
+        if(!syncPreviewList(memory,decl+syncPatchOffset("idDeclSyncInteraction",0x318),128,requirements)||requirements.count)return false;
+        return memory.get(decl+syncPatchOffset("idDeclSyncInteraction",0x148),priority)&&std::isfinite(priority)&&priority>=0;
+    }
     const unsigned char copy[]{0xf3,0x0f,0x10,0x80,0x48,1,0,0,0xf3,0x0f,0x11,0x41,0x4c},
         equipment[]{0x49,0x8b,0x96,0xb8,2,0,0,0x48,0x3b,0x15,0x9c,0xf7,0xf3,0};unsigned char code[14]{},flags[3]{};
     uintptr_t type=0,name=0,empty=0,required=0,after=0;float last=0;
     if(!memory.get(decl+0x90,type)||type!=base+0x626d410||!memory.get(type,name)||readEntityText(memory,name,96)!="idSyncAttackInteraction_Generic"||
        !memory.read(base+0x18dab4d,code,sizeof(copy))||memcmp(code,copy,sizeof(copy))||
        !memory.read(base+0x16ba68e,code,sizeof(equipment))||memcmp(code,equipment,sizeof(equipment))||
-       !memory.get(base+0x25f9e38,empty)||!empty||!memory.get(decl+0x2b8,required)||required!=empty||
-       !memory.read(decl+0x314,flags,3)||flags[0]||flags[1]||flags[2]||
-       !memory.get(decl+0x148,priority)||!std::isfinite(priority)||priority<0||priority>1024||
-       !memory.get(decl+0x148,last)||last!=priority||!memory.get(decl+0x2b8,after)||after!=required)return false;
+       !memory.get(base+0x25f9e38,empty)||!empty||!memory.get(decl+syncPatchOffset("idDeclSyncInteraction",0x2b8),required)||required!=empty||
+       !memory.read(decl+syncPatchOffset("idDeclSyncInteraction",0x314),flags,3)||flags[0]||flags[1]||flags[2]||
+       !memory.get(decl+syncPatchOffset("idDeclSyncInteraction",0x148),priority)||!std::isfinite(priority)||priority<0||priority>1024||
+       !memory.get(decl+syncPatchOffset("idDeclSyncInteraction",0x148),last)||last!=priority||!memory.get(decl+syncPatchOffset("idDeclSyncInteraction",0x2b8),after)||after!=required)return false;
     return readSyncGkAiPriority(memory,base,decl,priority);
 }
 static SyncAuthoredSource readSyncAuthoredSource(const WallMemory& memory,const EntityReference& target,const GraphLookup& lookup) {
@@ -30,19 +34,19 @@ static SyncAuthoredSource readSyncAuthoredSource(const WallMemory& memory,const 
         Field{"idDeclSyncInteraction","animations",0x1b8,32,"idDeclSyncInteraction::animationData_t"},Field{"idDeclSyncInteraction::animationData_t","anims",0,24,"idList < syncAnimationInfo_t , TAG_IDLIST , false >"},
         Field{"syncAnimationInfo_t","subwebName",0,8,"idAtomicString"},Field{"syncAnimationInfo_t","stateName",8,8,"idAtomicString"}}) {
         const auto& schema=lookup(e.owner);const auto* field=enemyTelemetryField(schema,e.name);
-        if(!schema.complete||!field||field->offset!=e.offset||field->size!=e.size||field->type!=e.type||!field->ops.empty())return result;
+        if(!schema.complete||!field||field->offset!=syncPatchOffset(e.owner,e.offset)||field->size!=syncPatchSize(e.owner,e.offset,e.size)||field->type!=e.type||!field->ops.empty())return result;
     }
-    const uintptr_t source=target.address+0x4db0;
-    if(!syncPreviewList(memory,source+0x608,512,result.declarations)||!syncPreviewList(memory,source+0x1b0,32,result.definitions))return result;
+    const uintptr_t source=target.address+syncPatchOffset("idAI2",0x4bb0)+syncPatchOffset("idAI2::idAIConstant",0x200);
+    if(!syncPreviewList(memory,source+syncPatchOffset("idSyncAttack",0x608),512,result.declarations)||!syncPreviewList(memory,source+syncPatchOffset("idSyncAttack",0x1b0),32,result.definitions))return result;
     std::vector<uintptr_t> decls(result.declarations.count),defs(result.definitions.count),again;
     if((!decls.empty()&&!memory.read(result.declarations.data,decls.data(),decls.size()*8))||
        (!defs.empty()&&!memory.read(result.definitions.data,defs.data(),defs.size()*8)))return result;
     if(std::any_of(defs.begin(),defs.end(),[](uintptr_t p){return !p;}))return {};
     for(auto decl:decls) {
-        int inputs[2]{},type=-1;unsigned char flags[3]{};SyncPreviewList animations;
-        if(!decl||!memory.read(decl+0x98,inputs,8)||!memory.get(decl+0xa8,type)||!memory.read(decl+0x314,flags,3))return {};
-        if(type!=0||flags[0]||flags[1]||flags[2])continue;
-        if(!syncPreviewList(memory,decl+0x1b8,32,animations))return {};
+        int inputs[2]{},type=-1;bool ordinarySpecial=false;SyncPreviewList animations;
+        if(!decl||!memory.read(decl+0x98,inputs,8)||!memory.get(decl+0xa8,type)||!syncOrdinarySpecialFlags(memory,decl,ordinarySpecial))return {};
+        if(type!=0||!ordinarySpecial)continue;
+        if(!syncPreviewList(memory,decl+syncPatchOffset("idDeclSyncInteraction",0x1b8),32,animations))return {};
         const auto aim=readSyncAimRequirement(memory,decl);
         for(int i=0;i<animations.count;++i) {
             std::string state,subweb;const auto at=animations.data+size_t(i)*48;
@@ -52,11 +56,11 @@ static SyncAuthoredSource readSyncAuthoredSource(const WallMemory& memory,const 
                 result.rows.push_back({decl,state,subweb,action,aim,readSyncRuleAudit(memory,decl,state,action,aim)});
         }
         if(result.rows.size()>128)return {};
-        SyncPreviewList final;if(!memory.get(decl+0x1b8,final)||memcmp(&animations,&final,24))return {};
+        SyncPreviewList final;if(!memory.get(decl+syncPatchOffset("idDeclSyncInteraction",0x1b8),final)||memcmp(&animations,&final,24))return {};
     }
     SyncPreviewList finalDecls,finalDefs;
-    if(!memory.get(source+0x608,finalDecls)||memcmp(&result.declarations,&finalDecls,24)||
-       !memory.get(source+0x1b0,finalDefs)||memcmp(&result.definitions,&finalDefs,24))return {};
+    if(!memory.get(source+syncPatchOffset("idSyncAttack",0x608),finalDecls)||memcmp(&result.declarations,&finalDecls,24)||
+       !memory.get(source+syncPatchOffset("idSyncAttack",0x1b0),finalDefs)||memcmp(&result.definitions,&finalDefs,24))return {};
     again.resize(decls.size());if(!again.empty()&&(!memory.read(result.declarations.data,again.data(),again.size()*8)||again!=decls))return {};
     again.resize(defs.size());if(!again.empty()&&(!memory.read(result.definitions.data,again.data(),again.size()*8)||again!=defs))return {};
     result.blueprintDefinitions=std::move(defs);result.known=true;return result;
@@ -67,7 +71,7 @@ static bool syncAuthoredNodeLayouts(const GraphLookup& lookup) {
         Field{"idDeclAnimWeb","subWebs",0x90,24,"idList < idDeclAnimWeb::idSubWebInfo , TAG_DECL_ANIMWEB , false >"},Field{"idDeclAnimWeb::idSubWebInfo","name",24,8,"idAtomicString"},
         Field{"idDeclAnimWebNode","subWebIndex",0x32,2,"idIndex < short , idAnimWeb::invalidSubWebIndex_t , - 1 >"},Field{"idDeclAnimWebNode","stateIndex",0x34,2,"idIndex < short , idAnimWeb::invalidStateIndex_t , - 1 >"}}) {
         const auto& schema=lookup(e.owner);const auto* field=enemyTelemetryField(schema,e.name);
-        if(!schema.complete||!field||field->offset!=e.offset||field->size!=e.size||field->type!=e.type||!field->ops.empty())return false;
+        if(!schema.complete||!field||field->offset!=syncPatchOffset(e.owner,e.offset)||field->size!=syncPatchSize(e.owner,e.offset,e.size)||field->type!=e.type||!field->ops.empty())return false;
     }return lookup("idDeclAnimWeb::idSubWebInfo").size==56;
 }
 struct SyncAuthoredGeometry {EntityReference blueprint;std::vector<SyncFacingRegion> regions;bool known=false,complete=false;};
@@ -77,12 +81,12 @@ static SyncAuthoredGeometry readSyncAuthoredGeometry(const WallMemory& memory,ui
     for(const auto& ref:blueprints) {
         uintptr_t definition=0,web=0;unsigned char facing[2]{1,1};SyncPreviewList parts,caches,nodes,states,subwebs;
         if(!memory.get(ref.address+0xa8,definition)||std::find(source.blueprintDefinitions.begin(),source.blueprintDefinitions.end(),definition)==source.blueprintDefinitions.end()||
-           !memory.get(ref.address+0x1bf8,web)||!web||!memory.read(ref.address+0x2bd0,facing,2)||facing[0]||facing[1]||
-           !syncPreviewList(memory,ref.address+0x1c18,32,parts)||!syncPreviewList(memory,ref.address+0x2c08,128,caches)||
-           !syncPreviewList(memory,web+0x78,512,nodes)||!syncPreviewList(memory,web+0xc0,512,states)||!syncPreviewList(memory,web+0x90,128,subwebs))continue;
+           !memory.get(ref.address+syncPatchOffset("idSyncEntity",0x1bf8),web)||!web||!memory.read(ref.address+syncPatchOffset("idSyncEntity",0x2bd0),facing,2)||facing[0]||facing[1]||
+           !syncPreviewList(memory,ref.address+syncPatchOffset("idSyncEntity",0x1c18),32,parts)||!syncPreviewList(memory,ref.address+syncPatchOffset("idSyncEntity",0x2c08),128,caches)||
+           !syncPreviewList(memory,web+syncPatchOffset("idDeclAnimWeb",0x78),512,nodes)||!syncPreviewList(memory,web+syncPatchOffset("idDeclAnimWeb",0xc0),512,states)||!syncPreviewList(memory,web+syncPatchOffset("idDeclAnimWeb",0x90),128,subwebs))continue;
         short instigator=-1,target=-1;bool valid=true;
         for(int i=0;i<parts.count;++i){int role=-1;short joint=-1;const auto at=parts.data+size_t(i)*184;
-            if(!memory.get(at+0xa0,role)||!memory.get(at+0xaa,joint)){valid=false;break;}
+            if(!memory.get(at+0xa0,role)||!memory.get(at+syncPatchOffset("idSyncParticipant",0xaa),joint)){valid=false;break;}
             if(role==0){if(instigator!=-1)valid=false;instigator=joint;}if(role==1){if(target!=-1)valid=false;target=joint;}}
         if(!valid||instigator<0||target<0)continue;
         std::vector<SyncFacingRegion> regions;bool complete=true,covered=true;size_t ordinary=0;
@@ -105,9 +109,9 @@ static SyncAuthoredGeometry readSyncAuthoredGeometry(const WallMemory& memory,ui
             regions.push_back(std::move(region));
         }
         SyncPreviewList check;uintptr_t finalWeb=0,finalDef=0;
-        if(!valid||!covered||!ordinary||!memory.get(ref.address+0xa8,finalDef)||finalDef!=definition||!memory.get(ref.address+0x1bf8,finalWeb)||finalWeb!=web)continue;
-        bool coherent=true;for(const auto& pair:{std::make_pair(ref.address+0x1c18,parts),std::make_pair(ref.address+0x2c08,caches),
-            std::make_pair(web+0x78,nodes),std::make_pair(web+0xc0,states),std::make_pair(web+0x90,subwebs)})
+        if(!valid||!covered||!ordinary||!memory.get(ref.address+0xa8,finalDef)||finalDef!=definition||!memory.get(ref.address+syncPatchOffset("idSyncEntity",0x1bf8),finalWeb)||finalWeb!=web)continue;
+        bool coherent=true;for(const auto& pair:{std::make_pair(ref.address+syncPatchOffset("idSyncEntity",0x1c18),parts),std::make_pair(ref.address+syncPatchOffset("idSyncEntity",0x2c08),caches),
+            std::make_pair(web+syncPatchOffset("idDeclAnimWeb",0x78),nodes),std::make_pair(web+syncPatchOffset("idDeclAnimWeb",0xc0),states),std::make_pair(web+syncPatchOffset("idDeclAnimWeb",0x90),subwebs)})
             coherent&=memory.get(pair.first,check)&&!memcmp(&check,&pair.second,24);
         if(!coherent)continue;
         // Multiple fully matching templates need an independently established

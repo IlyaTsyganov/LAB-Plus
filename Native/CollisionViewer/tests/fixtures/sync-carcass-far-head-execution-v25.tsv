@@ -1,0 +1,14 @@
+SAMPLE	0
+LIVE_TOLERANCE	1	0.381000012159
+FOCUS	ready	16796875	ai/fodder/carcass	1	1	head	direction data unavailable
+SELECTOR	1	1	0	0	0
+PLAYER	5.79918909073	-78.1716156006	20.6000022888
+ENEMY	0.289048194885	-78.3017196655	20.6017627716
+RANGES	0	0	0
+MAP	0	0	Distance boundaries: waiting for coherent range/pose data
+PHYSICS	5.79918909073	-78.1716156006	20.6000022888
+ORIGIN_ADJUST	255
+RNG_STATE	4190002563
+SAVED	idDeclSyncInteraction	*	824		syncdeath/playervsai/carcass/front_chest
+EXECUTION	sync_animation	active	Current clamped sync clip: md6/player/human/base/motion/mechanics/syncmelee/kill/carcass/kill_front_chest_sync11.md6anim (paused)
+EXECUTION	interaction	inactive	No active player interaction sync

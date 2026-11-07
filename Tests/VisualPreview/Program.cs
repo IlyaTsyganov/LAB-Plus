@@ -36,6 +36,22 @@ internal static class Program
                     await CheckScale(numbers,output); numbers.Close();
                     Console.WriteLine("PASS: Invisible numbers controls, rows and DPI scaling.");exit=0;return;
                 }
+                if(args.Contains("--finisher-only"))
+                {
+                    await Script(main,"document.querySelector('[data-screen=Research]').click()");await Settle(main);
+                    if(JsonSerializer.Deserialize<bool>(await Script(main,"[...document.querySelectorAll('[data-tool]')].some(b=>b.dataset.tool.startsWith('Finisher Visualizer'))"))!=true)throw new Exception("Research is missing Finisher Visualizer.");
+                    await Capture(main,output,"research-finisher-entry");
+                    await Script(main,"[...document.querySelectorAll('[data-tool]')].find(b=>b.dataset.tool.startsWith('Finisher Visualizer')).click()");await Settle(main);
+                    var flags=System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic;
+                    var finisherSettings=(LabPlusSettings)typeof(MainForm).GetField("_settings",flags)!.GetValue(main)!;
+                    using var finisher=(FinisherVisualizerForm)typeof(MainForm).GetField("_finisherVisualizer",flags)!.GetValue(main)!;
+                    await WaitReady(finisher);await Settle(finisher);
+                    await Capture(finisher,output,"finisher-glory-kill");
+                    await BrowserChecks.Run(finisher,finisherSettings,output);await Capture(finisher,output,"finisher-chainsaw-guide");
+                    await CheckScale(finisher,output);
+                    await Script(finisher,"document.querySelector('[data-presentation=finisher-guide]').scrollIntoView({block:'start'})");await Settle(finisher);await Capture(finisher,output,"finisher-full-guide");
+                    finisher.Close();exit=0;return;
+                }
                 if (args.Contains("--saves-only"))
                 {
                     await SaveWorkflow(main, data, output); exit = 0; return;
@@ -72,6 +88,7 @@ internal static class Program
                     () => new LevelStateForm(data, noGame),
                     () => new ActiveEncountersForm(settings, data, save, noGame),
                     () => new InvisibleNumbersForm(settings, data, save, noGame),
+                    () => new FinisherVisualizerForm(settings, data, save, noGame),
                     () => new ResearchPointsForm(data, noGame),
                     () => new SupportPlaneForm(settings, save),
                     () => new TriggerTypesForm(settings, Path.Combine(data,"trigger-classes.txt"), save),

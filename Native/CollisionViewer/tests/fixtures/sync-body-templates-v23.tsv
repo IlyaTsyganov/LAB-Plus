@@ -1,0 +1,534 @@
+# Native declaration metadata from sync-all-demons-v11-decls.json; matrices captured read-only from live 1.1.
+D	arachnotron	syncdeath/playervsai/arachnotron/front_lower	kill_front_lower	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	3.0	90.0	60.0	2147483647	0
+D	arachnotron	syncdeath/playervsai/arachnotron/above_front	kill_above_front	0	1	0	0	0	0	0	0.0	0.0	5.0	0.03099999949336052	4.0	90.0	90.0	2147483647	0
+D	arachnotron	syncdeath/playervsai/arachnotron/back_upper	kill_back_upper	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	3.0	90.0	60.0	2147483647	0
+D	arachnotron	syncdeath/playervsai/arachnotron/right_upper	kill_right_upper	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	3.0	90.0	60.0	2147483647	0
+D	arachnotron	syncdeath/playervsai/arachnotron/left_upper	kill_left_upper	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	3.0	90.0	60.0	2147483647	0
+D	arachnotron	syncdeath/playervsai/arachnotron/above_back	kill_above_back	0	1	0	0	0	0	0	0.0	0.0	5.0	0.03099999949336052	3.0	90.0	90.0	2147483647	0
+D	arachnotron	syncdeath/playervsai/arachnotron/chainsaw/cut_front	cut_front	1	1	1	1	0	0	1	0.0	0.0	4.762500286102295	0.0	3.0	90.0	90.0	2147483647	0
+D	arachnotron	syncdeath/playervsai/arachnotron/chainsaw/cut_back	cut_back	1	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	3.0	90.0	90.0	2147483647	0
+D	archvile	syncdeath/playervsai/archvile/front_upper	kill_front_upper	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	45.0	2147483647	0
+D	archvile	syncdeath/playervsai/archvile/above_back	kill_above_back	0	1	0	0	0	0	0	0.0	0.0	5.0	0.03099999949336052	4.0	90.0	60.0	0	0
+D	archvile	syncdeath/playervsai/archvile/above_front	kill_above_front	0	1	0	0	0	0	0	0.0	0.0	5.0	0.03099999949336052	4.0	45.0	60.0	0	0
+D	archvile	syncdeath/playervsai/archvile/left_upper	kill_left_upper	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	60.0	2147483647	0
+D	archvile	syncdeath/playervsai/archvile/back_upper	kill_back_upper	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	60.0	2147483647	0
+D	archvile	syncdeath/playervsai/archvile/right_upper	kill_right_upper	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	60.0	2147483647	0
+D	baron	syncdeath/playervsai/baron/back_upper	kill_back_upper	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	6.0	45.0	60.0	2147483647	0
+D	baron	syncdeath/playervsai/baron/above_front	kill_above_front	0	1	0	0	0	0	0	0.0	0.0	5.0	0.03099999949336052	3.5	90.0	90.0	2147483647	0
+D	baron	syncdeath/playervsai/baron/above_back	kill_above_back	0	1	0	0	0	0	0	0.0	0.0	5.0	0.03099999949336052	3.5	90.0	90.0	2147483647	0
+D	baron	syncdeath/playervsai/baron/front_upper	kill_front_upper	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	6.0	45.0	60.0	2147483647	0
+D	baron	syncdeath/playervsai/baron/left_upper	kill_left_upper	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	60.0	2147483647	0
+D	baron	syncdeath/playervsai/baron/right_upper	kill_right_upper	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	60.0	2147483647	0
+D	buffpod	syncdeath/playervsai/buffpod/front	kill_front	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	1.8287999629974365	45.0	45.0	15	0
+D	buffpod	syncdeath/playervsai/buffpod/left	kill_left	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	1.8287999629974365	45.0	90.0	15	0
+D	buffpod	syncdeath/playervsai/buffpod/back	kill_back	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	1.8287999629974365	45.0	45.0	15	0
+D	buffpod	syncdeath/playervsai/buffpod/right	kill_right	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	1.8287999629974365	45.0	-90.0	15	0
+D	buffpod	syncdeath/playervsai/buffpod/above_front	kill_above_front	0	1	0	0	0	0	0	0.0	0.0	5.0	0.03099999949336052	4.0	45.0	60.0	0	0
+D	buffpod	syncdeath/playervsai/buffpod/above_back	kill_above_back	0	1	0	0	0	0	0	0.0	0.0	5.0	0.03099999949336052	4.0	90.0	60.0	0	0
+D	cacodemon	syncdeath/playervsai/cacodemon/front_lower	kill_front_lower	0	1	0	0	0	0	0	0.0	0.0	6.0	0.0	9.0	90.0	60.0	2147483647	0
+D	cacodemon	syncdeath/playervsai/cacodemon/chainsaw/cut_back	cut_back	1	1	1	1	0	1	1	0.0	0.0	5.0	0.0	3.0	90.0	90.0	2147483647	0
+D	cacodemon	syncdeath/playervsai/cacodemon/chainsaw/cut_front	cut_front	1	1	0	0	0	0	0	0.0	0.0	5.0	0.0	3.0	90.0	90.0	2147483647	0
+D	cacodemon	syncdeath/playervsai/cacodemon/back_upper	kill_back_upper	0	1	0	0	0	0	0	0.0	0.0	6.0	0.0	9.0	90.0	60.0	2147483647	0
+D	cacodemon	syncdeath/playervsai/cacodemon/right_upper	kill_right_upper	0	1	0	0	0	0	0	0.0	0.0	6.0	0.0	9.0	90.0	60.0	2147483647	0
+D	cacodemon	syncdeath/playervsai/cacodemon/left_upper	kill_left_upper	0	1	0	0	0	0	0	0.0	0.0	6.0	0.0	9.0	90.0	60.0	2147483647	0
+D	carcass	syncdeath/playervsai/carcass/front_head	kill_front_head	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	60.0	2147483647	1	head
+D	carcass	syncdeath/playervsai/carcass/right_upper	kill_right_upper	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	60.0	3	0
+D	carcass	syncdeath/playervsai/carcass/left_lower	kill_left_lower	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	60.0	12	0
+D	carcass	syncdeath/playervsai/carcass/front_chest	kill_front_chest	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	60.0	3	0
+D	carcass	syncdeath/playervsai/carcass/back_upper	kill_back_upper	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	60.0	3	0
+D	carcass	syncdeath/playervsai/carcass/front_lower	kill_front_lower	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	60.0	12	0
+D	carcass	syncdeath/playervsai/carcass/left_upper	kill_left_upper	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	60.0	3	0
+D	carcass	syncdeath/playervsai/carcass/back_lower	kill_back_lower	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	60.0	12	0
+D	carcass	syncdeath/playervsai/carcass/front_rightarm	kill_front_rightarm	0	1	0	0	0	0	0	0.0	0.0	5.0	0.0	3.0	45.0	60.0	2147483647	2	right_arm	right_arm_mech
+D	carcass	syncdeath/playervsai/carcass/right_lower	kill_right_lower	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	60.0	12	0
+D	carcass	syncdeath/playervsai/carcass/above_front	kill_above_front	0	1	0	0	0	0	0	0.0	0.0	5.0	0.03099999949336052	4.0	90.0	90.0	2147483647	0
+D	carcass	syncdeath/playervsai/carcass/front_leftarm	kill_front_leftarm	0	1	0	0	0	0	0	0.0	0.0	5.0	0.0	3.0	45.0	60.0	2147483647	2	left_arm	left_arm_mech
+D	carcass	syncdeath/playervsai/carcass/chainsaw/cut_front	cut_front	1	1	1	1	0	0	1	0.0	0.0	4.762500286102295	0.0	1.8287999629974365	90.0	90.0	2147483647	0
+D	carcass	syncdeath/playervsai/carcass/chainsaw/cut_back	cut_back	1	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	1.8287999629974365	90.0	90.0	2147483647	0
+D	carcass	syncdeath/playervsai/carcass/above_back	kill_above_back	0	1	0	0	0	0	0	0.0	0.0	5.0	0.03099999949336052	4.0	90.0	60.0	0	0
+D	doomhunter	syncdeath/playervsai/doomhunter/front_upper	kill_front_upper	0	1	0	0	0	0	0	0.0	0.0	10.0	0.0	5.0	45.0	45.0	2147483647	0
+D	doomhunter	syncdeath/playervsai/doomhunter/above_front	kill_above_front	0	1	0	0	0	0	0	0.0	0.0	5.0	0.03099999949336052	4.0	45.0	90.0	2147483647	0
+D	doomhunter	syncdeath/playervsai/doomhunter/above_back	kill_above_back	0	1	0	0	0	0	0	0.0	0.0	5.0	0.03099999949336052	4.0	90.0	90.0	2147483647	0
+D	doomhunter	syncdeath/playervsai/doomhunter/left_upper	kill_left_upper	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	5.0	45.0	60.0	2147483647	0
+D	doomhunter	syncdeath/playervsai/doomhunter/back_upper	kill_back_upper	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	5.0	45.0	60.0	2147483647	0
+D	doomhunter	syncdeath/playervsai/doomhunter/right_upper	kill_right_upper	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	5.0	45.0	60.0	2147483647	0
+D	doomhunter	syncdeath/playervsai/doomhunter/front_upper_boss	kill_front_upper	0	1	1	0	0	0	0	0.0	0.0	10.0	0.0	5.0	90.0	180.0	2147483647	0
+D	dreadknight	syncdeath/playervsai/dreadknight/right_upper	kill_right_upper	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	60.0	2147483647	0
+D	dreadknight	syncdeath/playervsai/dreadknight/front_upper	kill_front_upper	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	60.0	2147483647	0
+D	dreadknight	syncdeath/playervsai/dreadknight/above_back	kill_above_back	0	1	0	0	0	0	0	0.0	0.0	5.0	0.03099999949336052	4.0	90.0	90.0	2147483647	0
+D	dreadknight	syncdeath/playervsai/dreadknight/above_front	kill_above_front	0	1	0	0	0	0	0	0.0	0.0	5.0	0.03099999949336052	4.0	90.0	90.0	2147483647	0
+D	dreadknight	syncdeath/playervsai/dreadknight/left_upper	kill_left_upper	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	60.0	2147483647	0
+D	dreadknight	syncdeath/playervsai/dreadknight/chainsaw/cut_front	cut_front	1	1	1	1	0	0	1	0.0	0.0	4.762500286102295	0.0	1.8287999629974365	90.0	180.0	2147483647	0
+D	dreadknight	syncdeath/playervsai/dreadknight/back_upper	kill_back_upper	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	60.0	2147483647	0
+D	dreadknight	syncdeath/playervsai/dreadknight/chainsaw/cut_back	cut_back	1	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	1.8287999629974365	45.0	60.0	15	0
+D	gargoyle	syncdeath/playervsai/gargoyle/front_chest	kill_front_chest	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	45.0	3	0
+D	gargoyle	syncdeath/playervsai/gargoyle/front_head_01	kill_front_head_01	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	60.0	3	1	head
+D	gargoyle	syncdeath/playervsai/gargoyle/chainsaw/cut_front_01	cut_front_01	1	1	1	1	0	0	1	0.0	0.0	4.762500286102295	0.0	1.8287999629974365	90.0	90.0	2147483647	0
+D	gargoyle	syncdeath/playervsai/gargoyle/left_lower	kill_left_lower	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	60.0	12	0
+D	gargoyle	syncdeath/playervsai/gargoyle/chainsaw/cut_back	cut_back	1	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	1.8287999629974365	90.0	90.0	2147483647	0
+D	gargoyle	syncdeath/playervsai/gargoyle/back_upper	kill_back_upper	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	60.0	3	0
+D	gargoyle	syncdeath/playervsai/gargoyle/above_front	kill_above_front	0	1	0	0	0	0	0	0.0	0.0	5.0	0.03099999949336052	4.0	90.0	90.0	2147483647	0
+D	gargoyle	syncdeath/playervsai/gargoyle/front_lower	kill_front_lower	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	60.0	12	0
+D	gargoyle	syncdeath/playervsai/gargoyle/right_lower	kill_right_lower	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	60.0	12	0
+D	gargoyle	syncdeath/playervsai/gargoyle/back_lower	kill_back_lower	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	60.0	12	0
+D	gargoyle	syncdeath/playervsai/gargoyle/above_back	kill_above_back	0	1	0	0	0	0	0	0.0	0.0	5.0	0.03099999949336052	4.0	90.0	90.0	2147483647	0
+D	gargoyle	syncdeath/playervsai/gargoyle/right_upper	kill_right_upper	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	60.0	3	0
+D	gargoyle	syncdeath/playervsai/gargoyle/front_leftarm	kill_front_leftarm	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	30.0	15	4	left_upper_arm	left_lower_arm	left_arm	left_forearm
+D	gargoyle	syncdeath/playervsai/gargoyle/left_upper	kill_left_upper	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	60.0	3	0
+D	gargoyle	syncdeath/playervsai/gargoyle/front_rightarm	kill_front_rightarm	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	30.0	15	4	right_upper_arm	right_lower_arm	right_arm	right_forearm
+D	gladiator	syncdeath/playervsai/gladiator/front_shield	kill_front_shield	0	1	0	0	0	0	0	0.0	0.0	10.0	0.0	2.0	45.0	180.0	2147483647	0
+D	gladiator	syncdeath/playervsai/gladiator/front_head	kill_front_head	0	1	0	0	0	0	0	0.0	0.0	10.0	0.0	2.0	45.0	180.0	2147483647	0
+D	hellknight	syncdeath/playervsai/hellknight/above_front	kill_above_front	0	1	0	0	0	0	0	0.0	0.0	8.0	0.03099999949336052	12.0	90.0	90.0	2147483647	0
+D	hellknight	syncdeath/playervsai/hellknight/above_back	kill_above_back	0	1	0	0	0	0	0	0.0	0.0	8.0	0.03099999949336052	12.0	90.0	90.0	2147483647	0
+D	hellknight	syncdeath/playervsai/hellknight/back_upper	kill_back_upper	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	60.0	2147483647	0
+D	hellknight	syncdeath/playervsai/hellknight/left_upper	kill_left_upper	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	60.0	2147483647	0
+D	hellknight	syncdeath/playervsai/hellknight/right_upper	kill_right_upper	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	60.0	2147483647	0
+D	hellknight	syncdeath/playervsai/hellknight/front_head	kill_front_head	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	60.0	3	0
+D	hellknight	syncdeath/playervsai/hellknight/chainsaw/cut_front_01	cut_front_01	1	1	1	1	0	0	1	0.0	0.0	4.762500286102295	0.0	1.8287999629974365	90.0	90.0	2147483647	11	chest	gut	head	left_lower_arm	left_lower_leg	left_upper_arm	left_upper_leg	right_lower_arm	right_lower_leg	right_upper_arm	right_upper_leg
+D	hellknight	syncdeath/playervsai/hellknight/front_lower	kill_front_lower	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	60.0	12	0
+D	hellknight	syncdeath/playervsai/hellknight/chainsaw/cut_back	cut_back	1	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	1.8287999629974365	90.0	90.0	2147483647	11	chest	gut	head	left_lower_arm	left_lower_leg	left_upper_arm	left_upper_leg	right_lower_arm	right_lower_leg	right_upper_arm	right_upper_leg
+D	imp	syncdeath/playervsai/imp/left_upper	kill_left_upper	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	60.0	3	0
+D	imp	syncdeath/playervsai/imp/right_upper	kill_right_upper	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	60.0	3	0
+D	imp	syncdeath/playervsai/imp/front_head	kill_front_head	0	1	0	0	0	0	0	0.0	0.0	5.0	0.0	3.0	45.0	45.0	3	1	head
+D	imp	syncdeath/playervsai/imp/front_chest	kill_front_chest	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	45.0	3	2	chest	gut
+D	imp	syncdeath/playervsai/imp/back_upper	kill_back_upper	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	60.0	3	0
+D	imp	syncdeath/playervsai/imp/left_lower	kill_left_lower	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	60.0	12	0
+D	imp	syncdeath/playervsai/imp/right_lower	kill_right_lower	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	60.0	12	0
+D	imp	syncdeath/playervsai/imp/above_front	kill_above_front	0	1	0	0	0	0	0	0.0	0.0	5.0	0.0	9.52500057220459	90.0	90.0	2147483647	0
+D	imp	syncdeath/playervsai/imp/back_lower	kill_back_lower	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	60.0	12	0
+D	imp	syncdeath/playervsai/imp/above_back	kill_above_back	0	1	0	0	0	0	0	0.0	0.0	5.0	0.0	9.52500057220459	90.0	90.0	2147483647	0
+D	imp	syncdeath/playervsai/imp/front_lower	kill_front_lower	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	45.0	12	0
+D	imp	syncdeath/playervsai/imp/front_leftarm	kill_front_leftarm	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	60.0	2147483647	2	left_lower_arm	left_upper_arm
+D	imp	syncdeath/playervsai/imp/front_rightarm	kill_front_rightarm	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	60.0	2147483647	2	right_lower_arm	right_upper_arm
+D	imp	syncdeath/playervsai/imp/chainsaw/cut_back	cut_back	1	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	1.8287999629974365	90.0	90.0	2147483647	0
+D	imp	syncdeath/playervsai/imp/chainsaw/cut_front	cut_front	1	1	1	1	0	0	1	0.0	0.0	4.762500286102295	0.0	1.8287999629974365	90.0	90.0	2147483647	0
+D	mancubus_fire	syncdeath/playervsai/mancubus_fire/front_head	kill_front_head	0	1	0	0	0	0	0	0.0	0.0	5.0	0.0	3.0	45.0	60.0	3	1	head
+D	mancubus_fire	syncdeath/playervsai/mancubus_fire/front_upper	kill_front_upper	0	1	0	0	0	0	0	0.0	0.0	5.0	0.0	3.0	45.0	60.0	2147483647	0
+D	mancubus_fire	syncdeath/playervsai/mancubus_fire/chainsaw/cut_front	cut_front	1	1	1	1	0	0	1	0.0	0.0	4.762500286102295	0.0	1.8287999629974365	90.0	90.0	2147483647	0
+D	mancubus_fire	syncdeath/playervsai/mancubus_fire/chainsaw/cut_back	cut_back	1	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	1.8287999629974365	90.0	90.0	2147483647	0
+D	mancubus_fire	syncdeath/playervsai/mancubus_fire/back_upper	kill_back_upper	0	1	0	0	0	0	0	0.0	0.0	5.0	0.0	3.0	45.0	60.0	2147483647	0
+D	mancubus_fire	syncdeath/playervsai/mancubus_fire/left_upper	kill_left_upper	0	1	0	0	0	0	0	0.0	0.0	5.0	0.0	4.0	45.0	60.0	2147483647	0
+D	mancubus_fire	syncdeath/playervsai/mancubus_fire/right_upper	kill_right_upper	0	1	0	0	0	0	0	0.0	0.0	5.0	0.0	4.0	45.0	60.0	2147483647	0
+D	mancubus_fire	syncdeath/playervsai/mancubus_fire/above_back	kill_above_back	0	1	0	0	0	0	0	0.0	0.0	5.0	0.03099999949336052	6.0	90.0	95.0	2147483647	0
+D	mancubus_fire	syncdeath/playervsai/mancubus_fire/above_front	kill_above_front	0	1	0	0	0	0	0	0.0	0.0	5.0	0.03099999949336052	6.0	90.0	95.0	2147483647	0
+D	marauder	syncdeath/playervsai/marauder/front_upper	kill_front_upper	0	1	0	0	0	0	0	0.0	0.0	6.0	0.0	4.0	45.0	60.0	15	0
+D	marauder	syncdeath/playervsai/marauder/above_front	kill_above_front	0	1	0	0	0	0	0	0.0	0.0	5.0	0.03099999949336052	4.0	45.0	60.0	0	0
+D	marauder	syncdeath/playervsai/marauder/left_upper	kill_left_upper	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	60.0	2147483647	0
+D	marauder	syncdeath/playervsai/marauder/above_back	kill_above_back	0	1	0	0	0	0	0	0.0	0.0	5.0	0.03099999949336052	4.0	90.0	60.0	0	0
+D	marauder	syncdeath/playervsai/marauder/right_upper	kill_right_upper	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	60.0	2147483647	0
+D	marauder	syncdeath/playervsai/marauder/back_upper	kill_back_upper	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	60.0	3	0
+D	painelemental	syncdeath/playervsai/painelemental/front_lower	kill_front_lower	0	1	0	0	0	0	0	0.0	0.0	5.0	0.0	8.0	45.0	60.0	2147483647	0
+D	painelemental	syncdeath/playervsai/painelemental/left_lower	kill_left_lower	0	1	0	0	0	0	0	0.0	0.0	5.0	0.0	8.0	45.0	60.0	2147483647	0
+D	painelemental	syncdeath/playervsai/painelemental/right_lower	kill_right_lower	0	1	0	0	0	0	0	0.0	0.0	5.0	0.0	8.0	45.0	60.0	2147483647	0
+D	painelemental	syncdeath/playervsai/painelemental/back_lower	kill_back_lower	0	1	0	0	0	0	0	0.0	0.0	5.0	0.0	8.0	45.0	60.0	2147483647	0
+D	painelemental	syncdeath/playervsai/painelemental/above_back	kill_back_lower	0	1	0	0	0	0	0	0.0	0.0	5.0	0.0	8.0	45.0	180.0	2147483647	0
+D	painelemental	syncdeath/playervsai/painelemental/above_front	kill_above_front	0	1	0	0	0	0	0	0.0	0.0	5.0	0.03099999949336052	8.0	45.0	90.0	2147483647	0
+D	painelemental	syncdeath/playervsai/painelemental/chainsaw/cut_back	cut_back	1	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	1.8287999629974365	90.0	90.0	2147483647	0
+D	painelemental	syncdeath/playervsai/painelemental/chainsaw/cut_front	cut_front	1	1	1	1	0	0	1	0.0	0.0	4.762500286102295	0.0	1.8287999629974365	90.0	90.0	2147483647	0
+D	pinky	syncdeath/playervsai/pinky/above_back	kill_above_back	0	1	0	0	0	0	0	0.0	0.0	5.0	0.03099999949336052	4.0	90.0	90.0	2147483647	0
+D	pinky	syncdeath/playervsai/pinky/above_front	kill_above_front	0	1	0	0	0	0	0	0.0	0.0	5.0	0.03099999949336052	4.0	90.0	90.0	2147483647	0
+D	pinky	syncdeath/playervsai/pinky/back_upper	kill_back_upper	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	60.0	2147483647	0
+D	pinky	syncdeath/playervsai/pinky/front_upper	kill_front_upper	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	60.0	2147483647	0
+D	pinky	syncdeath/playervsai/pinky/left_upper	kill_left_upper	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	60.0	2147483647	0
+D	pinky	syncdeath/playervsai/pinky/right_upper	kill_right_upper	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	60.0	2147483647	0
+D	pinky	syncdeath/playervsai/pinky/chainsaw/cut_front	cut_front	1	1	1	1	0	0	1	0.0	0.0	4.762500286102295	0.0	1.8287999629974365	90.0	90.0	2147483647	0
+D	pinky	syncdeath/playervsai/pinky/chainsaw/cut_back	cut_back	1	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	1.8287999629974365	90.0	90.0	2147483647	0
+D	prowler	syncdeath/playervsai/prowler/front_rightarm	kill_front_rightarm	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	45.0	2147483647	2	right_lower_arm	right_upper_arm
+D	prowler	syncdeath/playervsai/prowler/front_head	kill_front_head	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	60.0	3	1	head
+D	prowler	syncdeath/playervsai/prowler/right_upper	kill_right_upper	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	60.0	3	11	chest	gut	head	left_lower_arm	left_lower_leg	left_upper_arm	left_upper_leg	right_lower_arm	right_lower_leg	right_upper_arm	right_upper_leg
+D	prowler	syncdeath/playervsai/prowler/front_lower	kill_front_lower	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	45.0	12	0
+D	prowler	syncdeath/playervsai/prowler/front_leftarm	kill_front_leftarm	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	45.0	2147483647	2	left_lower_arm	left_upper_arm
+D	prowler	syncdeath/playervsai/prowler/left_lower	kill_left_lower	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	60.0	12	4	gut	left_lower_arm	left_lower_leg	left_upper_leg
+D	prowler	syncdeath/playervsai/prowler/left_upper	kill_left_upper	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	60.0	3	4	chest	head	left_lower_arm	left_upper_arm
+D	prowler	syncdeath/playervsai/prowler/above_front	kill_above_front	0	1	0	0	0	0	0	0.0	0.0	5.0	0.03099999949336052	4.0	90.0	90.0	2147483647	11	chest	gut	head	left_lower_arm	left_lower_leg	left_upper_arm	left_upper_leg	right_lower_arm	right_lower_leg	right_upper_arm	right_upper_leg
+D	prowler	syncdeath/playervsai/prowler/above_back	kill_above_back	0	1	0	0	0	0	0	0.0	0.0	5.0	0.03099999949336052	4.0	90.0	90.0	2147483647	11	chest	gut	head	left_lower_arm	left_lower_leg	left_upper_arm	left_upper_leg	right_lower_arm	right_lower_leg	right_upper_arm	right_upper_leg
+D	prowler	syncdeath/playervsai/prowler/right_lower	kill_right_lower	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	60.0	12	11	chest	gut	head	left_lower_arm	left_lower_leg	left_upper_arm	left_upper_leg	right_lower_arm	right_lower_leg	right_upper_arm	right_upper_leg
+D	prowler	syncdeath/playervsai/prowler/back_lower	kill_back_lower	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	60.0	12	0
+D	prowler	syncdeath/playervsai/prowler/back_upper	kill_back_upper	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	60.0	3	0
+D	prowler	syncdeath/playervsai/prowler/chainsaw/cut_front	cut_front	1	1	1	1	0	0	1	0.0	0.0	4.762500286102295	0.0	3.0	90.0	90.0	2147483647	0
+D	prowler	syncdeath/playervsai/prowler/chainsaw/cut_back	cut_back	1	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	3.0	90.0	90.0	2147483647	0
+D	prowler	syncdeath/playervsai/prowler/front_chest	kill_front_chest	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	45.0	3	8	chest	crotch	neck	spine3	stomach	right_upper_leg	left_upper_leg	gut
+D	revenant	syncdeath/playervsai/revenant/front_upper	kill_front_upper	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	45.0	2147483647	0
+D	revenant	syncdeath/playervsai/revenant/left_upper	kill_left_upper	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	60.0	2147483647	0
+D	revenant	syncdeath/playervsai/revenant/right_upper	kill_right_upper	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	60.0	2147483647	0
+D	revenant	syncdeath/playervsai/revenant/back_upper	kill_back_upper	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	60.0	2147483647	0
+D	revenant	syncdeath/playervsai/revenant/above_front	kill_above_front	0	1	0	0	0	0	0	0.0	0.0	5.0	0.03099999949336052	3.0	90.0	90.0	2147483647	0
+D	revenant	syncdeath/playervsai/revenant/above_back	kill_above_back	0	1	0	0	0	0	0	0.0	0.0	5.0	0.03099999949336052	3.0	90.0	90.0	2147483647	0
+D	revenant	syncdeath/playervsai/revenant/chainsaw/cut_front	cut_front	1	1	1	1	0	0	1	0.0	0.0	4.762500286102295	0.0	1.8287999629974365	45.0	60.0	15	0
+D	revenant	syncdeath/playervsai/revenant/chainsaw/cut_back	cut_back	1	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	1.8287999629974365	45.0	60.0	15	0
+D	soldier_blaster	syncdeath/playervsai/soldier_blaster/right_upper	kill_right_upper	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	60.0	3	0
+D	soldier_blaster	syncdeath/playervsai/soldier_blaster/left_upper	kill_left_upper	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	60.0	3	0
+D	soldier_blaster	syncdeath/playervsai/soldier_blaster/front_upper	kill_front_upper	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	45.0	3	0
+D	soldier_blaster	syncdeath/playervsai/soldier_blaster/front_head	kill_front_head	0	1	0	0	0	0	0	0.0	0.0	5.0	0.0	2.0	45.0	60.0	3	1	head
+D	soldier_blaster	syncdeath/playervsai/soldier_blaster/left_lower	kill_left_lower	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	60.0	12	0
+D	soldier_blaster	syncdeath/playervsai/soldier_blaster/above_back	kill_above_back	0	1	0	0	0	0	0	0.0	0.0	5.0	0.03099999949336052	4.0	90.0	90.0	2147483647	0
+D	soldier_blaster	syncdeath/playervsai/soldier_blaster/above_front	kill_above_front	0	1	0	0	0	0	0	0.0	0.0	5.0	0.03099999949336052	4.0	90.0	90.0	2147483647	0
+D	soldier_blaster	syncdeath/playervsai/soldier_blaster/front_rightarm	kill_front_rightarm	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	60.0	2147483647	1	right_arm
+D	soldier_blaster	syncdeath/playervsai/soldier_blaster/front_leftarm	kill_front_leftarm	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	60.0	2147483647	1	left_arm
+D	soldier_blaster	syncdeath/playervsai/soldier_blaster/chainsaw/cut_back	cut_back	1	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	3.0	90.0	90.0	2147483647	9	chest	gut	head	left_arm	left_foot	left_leg	right_arm	right_foot	right_leg
+D	soldier_blaster	syncdeath/playervsai/soldier_blaster/back_lower	kill_back_lower	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	60.0	12	0
+D	soldier_blaster	syncdeath/playervsai/soldier_blaster/chainsaw/cut_front	cut_front	1	1	1	1	0	0	1	0.0	0.0	4.762500286102295	0.0	3.0	90.0	90.0	2147483647	9	chest	gut	head	left_arm	left_foot	left_leg	right_arm	right_foot	right_leg
+D	soldier_blaster	syncdeath/playervsai/soldier_blaster/right_lower	kill_right_lower	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	60.0	12	0
+D	soldier_blaster	syncdeath/playervsai/soldier_blaster/back_upper	kill_back_upper	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	60.0	3	0
+D	soldier_blaster	syncdeath/playervsai/soldier_blaster/front_lower	kill_front_lower	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	45.0	12	0
+D	tentacle	syncdeath/playervsai/tentacle/chainsaw/cut_front	cut_front	1	1	1	1	0	0	1	0.0	0.0	4.762500286102295	0.0	1.8287999629974365	45.0	60.0	15	0
+D	tyrant	syncdeath/playervsai/tyrant/front_upper	kill_front_upper	0	1	0	0	0	0	0	0.0	0.0	6.0	0.0	4.0	90.0	100.0	2147483647	0
+D	tyrant	syncdeath/playervsai/tyrant/above_front	kill_above_front	0	1	0	0	0	0	0	0.0	0.0	6.0	0.03099999949336052	10.0	90.0	180.0	2147483647	0
+D	tyrant	syncdeath/playervsai/tyrant/back_upper	kill_back_upper	0	1	0	0	0	0	0	0.0	0.0	6.0	0.0	4.0	90.0	100.0	2147483647	0
+D	whiplash	syncdeath/playervsai/whiplash/right_upper	kill_right_upper	0	1	0	0	0	0	0	0.0	0.0	6.0	0.0	3.0	45.0	60.0	2147483647	0
+D	whiplash	syncdeath/playervsai/whiplash/back_upper	kill_back_upper	0	1	0	0	0	0	0	0.0	0.0	6.0	0.0	3.0	45.0	60.0	2147483647	0
+D	whiplash	syncdeath/playervsai/whiplash/above_front	kill_above_front	0	1	0	0	0	0	0	0.0	0.0	5.0	0.03099999949336052	4.0	90.0	90.0	2147483647	0
+D	whiplash	syncdeath/playervsai/whiplash/above_back	kill_above_back	0	1	0	0	0	0	0	0.0	0.0	5.0	0.03099999949336052	4.0	90.0	90.0	2147483647	0
+D	whiplash	syncdeath/playervsai/whiplash/front_upper	kill_front_upper	0	1	0	0	0	0	0	0.0	0.0	6.0	0.0	3.0	45.0	60.0	2147483647	0
+D	whiplash	syncdeath/playervsai/whiplash/chainsaw/cut_front	cut_front	1	1	1	1	0	0	1	0.0	0.0	4.762500286102295	0.0	1.8287999629974365	45.0	60.0	15	0
+D	whiplash	syncdeath/playervsai/whiplash/chainsaw/cut_back	cut_back	1	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	1.8287999629974365	45.0	60.0	15	0
+D	whiplash	syncdeath/playervsai/whiplash/left_upper	kill_left_upper	0	1	0	0	0	0	0	0.0	0.0	6.0	0.0	3.0	45.0	60.0	2147483647	0
+D	zombie_maykr	syncdeath/playervsai/zombie_maykr/above_back	kill_above_back	0	1	0	0	0	0	0	0.0	0.0	5.0	0.03099999949336052	4.0	90.0	90.0	2147483647	0
+D	zombie_maykr	syncdeath/playervsai/zombie_maykr/above_front	kill_above_front	0	1	0	0	0	0	0	0.0	0.0	5.0	0.03099999949336052	4.0	90.0	90.0	2147483647	0
+D	zombie_maykr	syncdeath/playervsai/zombie_maykr/right_upper	kill_right_upper	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	60.0	2147483647	0
+D	zombie_maykr	syncdeath/playervsai/zombie_maykr/left_upper	kill_left_upper	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	60.0	2147483647	0
+D	zombie_maykr	syncdeath/playervsai/zombie_maykr/front_upper	kill_front_upper	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	60.0	2147483647	0
+D	zombie_maykr	syncdeath/playervsai/zombie_maykr/back_upper	kill_back_upper	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	60.0	2147483647	0
+D	zombie_maykr	syncdeath/playervsai/zombie_maykr/chainsaw/cut_front	cut_front	1	1	1	1	0	0	1	0.0	0.0	5.0	0.0	2.0	90.0	90.0	2147483647	0
+D	zombie_maykr	syncdeath/playervsai/zombie_maykr/chainsaw/cut_back	cut_back	1	1	0	0	0	0	0	0.0	0.0	5.0	0.0	2.0	90.0	90.0	2147483647	0
+D	zombie_tier1	syncdeath/playervsai/zombie_tier1/front_head	kill_front_head	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	60.0	3	1	head
+D	zombie_tier1	syncdeath/playervsai/zombie_tier1/back_lower	kill_back_lower	0	1	0	0	0	0	0	0.0	0.0	5.0	0.0	3.0	45.0	60.0	12	0
+D	zombie_tier1	syncdeath/playervsai/zombie_tier1/above_back	kill_above_back	0	1	0	0	0	0	0	0.0	0.0	5.0	0.03099999949336052	6.0	90.0	90.0	2147483647	0
+D	zombie_tier1	syncdeath/playervsai/zombie_tier1/above_front	kill_above_front	0	1	0	0	0	0	0	0.0	0.0	6.0	0.03099999949336052	4.0	90.0	90.0	2147483647	0
+D	zombie_tier1	syncdeath/playervsai/zombie_tier1/back_head	kill_back_head	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	60.0	3	1	head
+D	zombie_tier1	syncdeath/playervsai/zombie_tier1/front_chest	kill_front_chest	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	45.0	3	0
+D	zombie_tier1	syncdeath/playervsai/zombie_tier1/front_leftarm	kill_front_leftarm	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	60.0	2147483647	1	left_arm
+D	zombie_tier1	syncdeath/playervsai/zombie_tier1/front_lower	kill_front_lower	0	1	0	0	0	0	0	0.0	0.0	5.0	0.0	3.0	45.0	60.0	12	0
+D	zombie_tier1	syncdeath/playervsai/zombie_tier1/front_rightarm	kill_front_rightarm	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	60.0	2147483647	1	right_arm
+D	zombie_tier1	syncdeath/playervsai/zombie_tier1/left_lower	kill_left_lower	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	60.0	12	0
+D	zombie_tier1	syncdeath/playervsai/zombie_tier1/left_upper	kill_left_upper	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	60.0	3	0
+D	zombie_tier1	syncdeath/playervsai/zombie_tier1/right_lower	kill_right_lower	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	60.0	12	0
+D	zombie_tier1	syncdeath/playervsai/zombie_tier1/right_upper	kill_right_upper	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	60.0	3	0
+D	zombie_tier1	syncdeath/playervsai/zombie_tier1/back_upper	kill_back_upper	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	60.0	3	0
+D	zombie_tier1	syncdeath/playervsai/zombie_tier1/chainsaw/cut_front	cut_front_01	1	1	1	1	0	0	1	0.0	0.0	4.762500286102295	0.0	1.8287999629974365	90.0	90.0	2147483647	0
+D	zombie_tier1	syncdeath/playervsai/zombie_tier1/chainsaw/cut_front	cut_front_02	1	1	1	1	0	0	1	0.0	0.0	4.762500286102295	0.0	1.8287999629974365	90.0	90.0	2147483647	0
+D	zombie_tier1	syncdeath/playervsai/zombie_tier1/chainsaw/cut_back	cut_back	1	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	1.8287999629974365	90.0	90.0	2147483647	0
+D	zombie_tier3	syncdeath/playervsai/zombie_tier3/front_head	kill_front_head	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	60.0	3	1	head
+D	zombie_tier3	syncdeath/playervsai/zombie_tier3/left_upper	kill_left_upper	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	60.0	3	0
+D	zombie_tier3	syncdeath/playervsai/zombie_tier3/back_head	kill_back_head	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	60.0	3	0
+D	zombie_tier3	syncdeath/playervsai/zombie_tier3/front_chest	kill_front_chest	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	60.0	3	0
+D	zombie_tier3	syncdeath/playervsai/zombie_tier3/right_upper	kill_right_upper	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	60.0	3	0
+D	zombie_tier3	syncdeath/playervsai/zombie_tier3/above_front	kill_above_front	0	1	0	0	0	0	0	0.0	0.0	5.0	0.03099999949336052	4.0	90.0	90.0	2147483647	0
+D	zombie_tier3	syncdeath/playervsai/zombie_tier3/front_rightarm	kill_front_rightarm	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	45.0	2147483647	1	right_arm
+D	zombie_tier3	syncdeath/playervsai/zombie_tier3/above_back	kill_above_back	0	1	0	0	0	0	0	0.0	0.0	5.0	0.03099999949336052	4.0	90.0	90.0	2147483647	0
+D	zombie_tier3	syncdeath/playervsai/zombie_tier3/front_leftarm	kill_front_leftarm	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	45.0	2147483647	1	left_arm
+D	zombie_tier3	syncdeath/playervsai/zombie_tier3/right_lower	kill_right_lower	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	60.0	12	0
+D	zombie_tier3	syncdeath/playervsai/zombie_tier3/back_lower	kill_back_lower	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	60.0	12	0
+D	zombie_tier3	syncdeath/playervsai/zombie_tier3/left_lower	kill_left_lower	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	60.0	12	0
+D	zombie_tier3	syncdeath/playervsai/zombie_tier3/chainsaw/cut_back	cut_back	1	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	1.8287999629974365	90.0	90.0	2147483647	0
+D	zombie_tier3	syncdeath/playervsai/zombie_tier3/chainsaw/cut_front	cut_front	1	1	1	1	0	0	1	0.0	0.0	4.762500286102295	0.0	1.8287999629974365	90.0	90.0	2147483647	0
+D	zombie_tier3	syncdeath/playervsai/zombie_tier3/front_lower	kill_front_lower	0	1	0	0	0	0	0	0.0	0.0	4.762500286102295	0.0	2.0	45.0	60.0	12	0
+M	syncmelee/revenant	kill_front_upper	1	0	0	0	0	1	0	0	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	2.60792041	4.31546941e-05	-1	4.31528315e-05	0	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/revenant	kill_left_upper	1	0	0	-1.7763568e-17	0	1	0	5.81784183e-17	0	0	1	0	5.96046448e-08	-0.99999994	6.1028637e-05	1.4809041	0.99999994	5.96046448e-08	0	-0.651514947	0	6.1028637e-05	1	0
+M	syncmelee/revenant	kill_right_upper	1	0	0	0	0	1	0	0	0	0	1	0	5.96046448e-08	0.99999994	0	3.00663304	-0.99999994	5.96046448e-08	6.1028637e-05	0.775076807	6.1028637e-05	0	1	0
+M	syncmelee/revenant	kill_back_upper	1	0	0	0	0	1	0	0	0	0	1	0	1	0	0	1.83875251	0	1	0	0.962890446	0	0	1	0
+M	syncmelee/revenant	kill_above_front	1	0	0	0	0	1	0	0	0	0	1	0	-0.968289256	-0.249832317	4.82441392e-05	1.48051143	0.249832317	-0.968289256	3.73764342e-05	-0.250130832	3.73764342e-05	4.82441392e-05	1	0
+M	syncmelee/revenant	kill_above_back	1	0	0	0	0	1	0	0	0	0	1	0	1	0	0	2.06001115	0	1	0	-0.00676313695	0	0	1	0
+M	syncmelee/revenant	null	1	0	0	0	0	1	0	0	0	0	1	0	1	0	0	0	0	1	0	0	0	0	1	0
+M	syncmelee/revenant	berserk_above_front	1	0	0	-7.1054272e-17	0	1	0	0	0	0	1	3.33804321	-1	-4.31528315e-05	4.31546941e-05	1.29848588	4.31546941e-05	-1	4.31528315e-05	0	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/revenant	berserk_front_upper	-1	-4.31528315e-05	4.31546941e-05	2.82247877	4.31546941e-05	-1	4.31528315e-05	3.45653976e-16	4.31528315e-05	4.31546941e-05	1	0	1	0	0	0	0	1	0	0	0	0	1	0
+M	syncmelee/revenant	cut_front	1	0	0	0	0	1	0	0	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	2.49616456	4.31546941e-05	-1	4.31528315e-05	0	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/revenant	cut_back	1	0	0	0	0	1	0	0	0	0	1	0	1	0	0	2.49616456	0	1	0	0	0	0	1	0
+M	syncmelee/revenant	crucible_front	1	0	0	0	0	1	0	0	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	3.23571372	4.31546941e-05	-1	4.31528315e-05	0	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/revenant	crucible_back	1	0	0	-2.99465966	0	1	0	-3.6674004e-16	0	0	1	0	1	0	0	0	0	1	0	0	0	0	1	0
+M	syncmelee/zombie_tier1	kill_above_back	1	0	0	-1.1041255	0	1	0	0.130055919	0	0	1	2.16017413	1	0	0	-0.280219078	0	1	0	0.129855081	0	0	1	0
+M	syncmelee/zombie_tier1	kill_above_front	1	0	0	7.45867155e-08	0	1	0	-9.13423778e-24	0	0	1	1.90499997	-1	-4.31528315e-05	4.31546941e-05	0.554705918	4.31546941e-05	-1	4.31528315e-05	1.26636323e-16	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/zombie_tier1	kill_back_head	1	0	0	0	0	1	0	0	0	0	1	0	1	0	0	1.68887758	0	1	0	0	0	0	1	0
+M	syncmelee/zombie_tier1	kill_back_lower	1	0	0	0	0	1	0	0	0	0	1	0	1	0	0	1.64290082	0	1	0	-0.0395404734	0	0	1	0
+M	syncmelee/zombie_tier1	kill_back_upper	1	0	0	0	0	1	0	0	0	0	1	0	1	0	0	1.85232937	0	1	0	0.159001291	0	0	1	0
+M	syncmelee/zombie_tier1	kill_front_chest	1	0	0	0	0	1	0	0	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	1.61813486	4.31546941e-05	-1	4.31528315e-05	0.120914496	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/zombie_tier1	kill_front_head	1	0	0	0	0	1	0	0	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	2.10080767	4.31546941e-05	-1	4.31528315e-05	-0.207453355	4.31528315e-05	4.31546941e-05	1	7.04418301e-09
+M	syncmelee/zombie_tier1	kill_front_leftarm	1	0	0	0	0	1	0	0	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	1.83489931	4.31546941e-05	-1	4.31528315e-05	0	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/zombie_tier1	kill_front_lower	1	0	0	0	0	1	0	0	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	0.552164555	4.31546941e-05	-1	4.31528315e-05	-0.136358321	4.31528315e-05	4.31546941e-05	1	0.0169331599
+M	syncmelee/zombie_tier1	kill_front_rightarm	1	0	0	-7.10542693e-16	0	1	0	2.84063129e-09	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	0.617969394	4.31546941e-05	-1	4.31528315e-05	-0.0601323433	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/zombie_tier1	kill_left_lower	1	0	0	0	0	1	0	0	0	0	1	0	5.96046448e-08	-0.99999994	6.1028637e-05	1.8594265	0.99999994	5.96046448e-08	0	-0.306099236	0	6.1028637e-05	1	0
+M	syncmelee/zombie_tier1	kill_left_upper	1	0	0	0	0	1	0	0	0	0	1	0	5.96046448e-08	-0.99999994	6.1028637e-05	2.38155293	0.99999994	5.96046448e-08	0	-0.00609924179	0	6.1028637e-05	1	0
+M	syncmelee/zombie_tier1	kill_right_lower	5.96046448e-08	-0.99999994	6.1028637e-05	0.116099238	0.99999994	5.96046448e-08	0	-1.83822906	0	6.1028637e-05	1	0	1	0	0	0	0	1	0	0	0	0	1	0
+M	syncmelee/zombie_tier1	kill_right_upper	1	0	0	0	0	1	0	0	0	0	1	0	-0.232992291	0.972478509	7.15903116e-06	1.6367234	-0.972478509	-0.232992291	6.0607279e-05	0.0118177151	6.0607279e-05	7.15903116e-06	1	0
+M	syncmelee/zombie_tier1	cut_back	1	0	0	0	0	1	0	0	0	0	1	0	1	0	0	2.7052319	0	1	0	0.000564503716	0	0	1	0.0156788528
+M	syncmelee/zombie_tier1	cut_front_01	1	0	0	0	0	1	0	0	0	0	1	0	-1.10000002	-4.74681146e-05	4.74701628e-05	2.97987175	4.74701628e-05	-1.10000002	4.74681146e-05	-0.00659999996	4.74681146e-05	4.74701628e-05	1.10000002	0
+M	syncmelee/zombie_tier1	cut_front_02	1	0	0	0	0	1	0	0	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	3.57944918	4.31546941e-05	-1	4.31528315e-05	0	4.31528315e-05	4.31546941e-05	1	0.0169331543
+M	syncmelee/zombie_tier1	cut_front_03	1	0	0	0	0	1	0	0	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	3.04982662	4.31546941e-05	-1	4.31528315e-05	0	4.31528315e-05	4.31546941e-05	1	0.0169331543
+M	syncmelee/zombie_tier1	null	1	0	0	0	0	1	0	0	0	0	1	0	1	0	0	0	0	1	0	0	0	0	1	0
+M	syncmelee/zombie_tier1	berserk_front_upper	-1	-4.31528315e-05	4.31546941e-05	1.6560992	4.31546941e-05	-1	4.31528315e-05	-1.35412435e-07	4.31528315e-05	4.31546941e-05	1	-7.74860176e-09	1	0	0	0	0	1	0	0	0	0	1	0
+M	syncmelee/zombie_tier1	berserk_above_front	1	0	0	-7.1054272e-17	0	1	0	7.88860888e-33	0	0	1	3.33804321	-1	-4.31528315e-05	4.31546941e-05	0.954716146	4.31546941e-05	-1	4.31528315e-05	-0.10195706	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/zombie_tier1	berserk_front_upper_02	-1	-4.31528315e-05	4.31546941e-05	1.51019526	4.31546941e-05	-1	4.31528315e-05	0.0712738335	4.31528315e-05	4.31546941e-05	1	0	1	0	0	0	0	1	0	0	0	0	1	0
+M	syncmelee/zombie_tier1	crucible_front	1	0	0	0	0	1	0	0	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	2.41792297	4.31546941e-05	-1	4.31528315e-05	-0.0351567492	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/zombie_tier1	crucible_back	1	0	0	0	0	1	0	0	0	0	1	0	1	0	0	2.54985476	0	1	0	0.0351567492	0	0	1	0
+M	syncmelee/zombie_tier1_scientist	kill_above_back	1	0	0	-1.1041255	0	1	0	0.130055919	0	0	1	2.16017413	1	0	0	-0.280219078	0	1	0	0.129855081	0	0	1	0
+M	syncmelee/zombie_tier1_scientist	kill_above_front	1	0	0	7.45867155e-08	0	1	0	-9.13423778e-24	0	0	1	1.90499997	-1	-4.31528315e-05	4.31546941e-05	0.554705918	4.31546941e-05	-1	4.31528315e-05	1.26636323e-16	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/zombie_tier1_scientist	kill_back_head	1	0	0	0	0	1	0	0	0	0	1	0	1	0	0	1.68887758	0	1	0	0	0	0	1	0
+M	syncmelee/zombie_tier1_scientist	kill_back_lower	1	0	0	0	0	1	0	0	0	0	1	0	1	0	0	1.64290082	0	1	0	-0.0395404734	0	0	1	0
+M	syncmelee/zombie_tier1_scientist	kill_back_upper	1	0	0	0	0	1	0	0	0	0	1	0	1	0	0	1.85232937	0	1	0	0.159001291	0	0	1	0
+M	syncmelee/zombie_tier1_scientist	kill_front_chest	1	0	0	0	0	1	0	0	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	1.61813486	4.31546941e-05	-1	4.31528315e-05	0.120914496	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/zombie_tier1_scientist	kill_front_head	1	0	0	0	0	1	0	0	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	2.10080767	4.31546941e-05	-1	4.31528315e-05	-0.207453355	4.31528315e-05	4.31546941e-05	1	7.04418301e-09
+M	syncmelee/zombie_tier1_scientist	kill_front_leftarm	1	0	0	0	0	1	0	0	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	1.83489931	4.31546941e-05	-1	4.31528315e-05	0	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/zombie_tier1_scientist	kill_front_lower	1	0	0	0	0	1	0	0	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	0.552164555	4.31546941e-05	-1	4.31528315e-05	-0.136358321	4.31528315e-05	4.31546941e-05	1	0.0169331599
+M	syncmelee/zombie_tier1_scientist	kill_front_rightarm	1	0	0	-7.10542693e-16	0	1	0	2.84063129e-09	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	0.617969394	4.31546941e-05	-1	4.31528315e-05	-0.0601323433	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/zombie_tier1_scientist	kill_left_lower	1	0	0	0	0	1	0	0	0	0	1	0	5.96046448e-08	-0.99999994	6.1028637e-05	1.8594265	0.99999994	5.96046448e-08	0	-0.306099236	0	6.1028637e-05	1	0
+M	syncmelee/zombie_tier1_scientist	kill_left_upper	1	0	0	0	0	1	0	0	0	0	1	0	5.96046448e-08	-0.99999994	6.1028637e-05	2.38155293	0.99999994	5.96046448e-08	0	-0.00609924179	0	6.1028637e-05	1	0
+M	syncmelee/zombie_tier1_scientist	kill_right_lower	5.96046448e-08	-0.99999994	6.1028637e-05	0.116099238	0.99999994	5.96046448e-08	0	-1.83822906	0	6.1028637e-05	1	0	1	0	0	0	0	1	0	0	0	0	1	0
+M	syncmelee/zombie_tier1_scientist	kill_right_upper	1	0	0	0	0	1	0	0	0	0	1	0	-0.232992291	0.972478509	7.15903116e-06	1.6367234	-0.972478509	-0.232992291	6.0607279e-05	0.0118177151	6.0607279e-05	7.15903116e-06	1	0
+M	syncmelee/zombie_tier1_scientist	cut_back	1	0	0	0	0	1	0	0	0	0	1	0	1	0	0	2.7052319	0	1	0	0.000564503716	0	0	1	0.0156788528
+M	syncmelee/zombie_tier1_scientist	cut_front_01	1	0	0	0	0	1	0	0	0	0	1	0	-1.10000002	-4.74681146e-05	4.74701628e-05	2.97987175	4.74701628e-05	-1.10000002	4.74681146e-05	-0.00659999996	4.74681146e-05	4.74701628e-05	1.10000002	0
+M	syncmelee/zombie_tier1_scientist	cut_front_02	1	0	0	0	0	1	0	0	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	3.57944918	4.31546941e-05	-1	4.31528315e-05	0	4.31528315e-05	4.31546941e-05	1	0.0169331543
+M	syncmelee/zombie_tier1_scientist	cut_front_03	1	0	0	0	0	1	0	0	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	3.04982662	4.31546941e-05	-1	4.31528315e-05	0	4.31528315e-05	4.31546941e-05	1	0.0169331543
+M	syncmelee/zombie_tier1_scientist	null	1	0	0	0	0	1	0	0	0	0	1	0	1	0	0	0	0	1	0	0	0	0	1	0
+M	syncmelee/zombie_tier1_scientist	berserk_front_upper	-1	-4.31528315e-05	4.31546941e-05	1.6560992	4.31546941e-05	-1	4.31528315e-05	-1.35412435e-07	4.31528315e-05	4.31546941e-05	1	-7.74860176e-09	1	0	0	0	0	1	0	0	0	0	1	0
+M	syncmelee/zombie_tier1_scientist	berserk_above_front	1	0	0	-7.1054272e-17	0	1	0	7.88860888e-33	0	0	1	3.33804321	-1	-4.31528315e-05	4.31546941e-05	0.954716146	4.31546941e-05	-1	4.31528315e-05	-0.10195706	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/zombie_tier1_scientist	berserk_front_upper_02	-1	-4.31528315e-05	4.31546941e-05	1.51019526	4.31546941e-05	-1	4.31528315e-05	0.0712738335	4.31528315e-05	4.31546941e-05	1	0	1	0	0	0	0	1	0	0	0	0	1	0
+M	syncmelee/zombie_tier1_scientist	crucible_front	1	0	0	0	0	1	0	0	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	2.41792297	4.31546941e-05	-1	4.31528315e-05	-0.0351567492	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/zombie_tier1_scientist	crucible_back	1	0	0	0	0	1	0	0	0	0	1	0	1	0	0	2.54985476	0	1	0	0.0351567492	0	0	1	0
+M	syncmelee/imp	kill_above_back	1	0	0	-0.953367949	0	1	0	0	0	0	1	3.65759993	1	0	0	0.566273212	0	1	0	0	0	0	1	0
+M	syncmelee/imp	kill_above_front	1	0	0	0	0	1	0	0	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	1.2191999	4.31546941e-05	-1	4.31528315e-05	0	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/imp	kill_back_lower	1	0	0	7.1054272e-17	0	1	0	-3.46944687e-20	0	0	1	0	1	0	0	1.71488273	0	1	0	-0.000293356861	0	0	1	0
+M	syncmelee/imp	kill_back_upper	1	0	0	0	0	1	0	0	0	0	1	0	1	0	0	2.44970369	0	1	0	0	0	0	1	0
+M	syncmelee/imp	kill_front_chest	1	0	0	0	0	1	0	0	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	1.66294992	4.31546941e-05	-1	4.31528315e-05	0	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/imp	kill_front_head	1	0	0	0	0	1	0	0	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	1.30545533	4.31546941e-05	-1	4.31528315e-05	0	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/imp	kill_front_leftarm	1	0	0	-3.5527136e-17	0	1	0	-7.51389948e-33	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	1.35403275	4.31546941e-05	-1	4.31528315e-05	0	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/imp	kill_front_lower	1	0	0	0	0	1	0	0	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	1.66973472	4.31546941e-05	-1	4.31528315e-05	0	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/imp	kill_front_rightarm	1	0	0	0	0	1	0	0	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	1.70805442	4.31546941e-05	-1	4.31528315e-05	0.142387763	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/imp	kill_left_lower	5.96046448e-08	0.99999994	0	0.266672462	-0.99999994	5.96046448e-08	6.1028637e-05	1.30653667	6.1028637e-05	0	1	0	1	0	0	0	0	1	0	0	0	0	1	0
+M	syncmelee/imp	kill_left_upper	1	0	0	0	0	1	0	0	0	0	1	0	5.96046448e-08	-0.99999994	6.1028637e-05	1.2191999	0.99999994	5.96046448e-08	0	0	0	6.1028637e-05	1	0
+M	syncmelee/imp	kill_right_lower	1	0	0	7.1054272e-17	0	1	0	1.7763568e-17	0	0	1	0	5.96046448e-08	0.99999994	0	1.41035581	-0.99999994	5.96046448e-08	6.1028637e-05	0.180811286	6.1028637e-05	0	1	0
+M	syncmelee/imp	kill_right_upper	1	0	0	0	0	1	0	0	0	0	1	0	5.96046448e-08	0.99999994	0	1.2191999	-0.99999994	5.96046448e-08	6.1028637e-05	0	6.1028637e-05	0	1	0
+M	syncmelee/imp	kill_wall_back_headsmash	1	-4.31528315e-05	4.31546941e-05	0	4.31546941e-05	1	-4.31528315e-05	-2.7797485e-32	-4.31528315e-05	4.31546941e-05	1	0	1	0	0	2.4385066	0	1	0	-0.285750002	0	0	1	0
+M	syncmelee/imp	kill_wall_back_headsmash_long	1	0	0	0	0	1	0	0	0	0	1	0	1	0	0	3.30406404	0	1	0	0	0	0	1	0
+M	syncmelee/imp	kill_wall_front_headsmash	1	0	0	0	0	1	0	0	0	0	1	0	1	0	0	3.30406404	0	1	0	0	0	0	1	0
+M	syncmelee/imp	kill_wall_front_headsmash_long	1	0	0	-3.44691157	0	1	0	0.379763365	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	2.18386292	4.31546941e-05	-1	4.31528315e-05	0.189263374	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/imp	kill_wall_left_headsmash	0.908253908	-0.418419451	5.13950181e-05	-1.55659461	0.418419451	0.908253908	-3.29096765e-05	-1.5950582	-3.29096765e-05	5.13950181e-05	1	0	-0.418400049	-0.908262908	5.9612561e-05	0.817604601	0.908262908	-0.418400049	1.30704702e-05	-0.920777738	1.30704702e-05	5.9612561e-05	1	0
+M	syncmelee/imp	kill_wall_left_headsmash_long	1	0	0	-2.79477262	0	1	0	0.286714554	0	0	1	0	5.96046448e-08	-0.99999994	6.1028637e-05	2.54441381	0.99999994	5.96046448e-08	0	-0.0942854509	0	6.1028637e-05	1	0
+M	syncmelee/imp	kill_wall_right_headsmash	0.908253908	-0.418419451	5.13950181e-05	-2.12359047	0.418419451	0.908253908	-3.29096765e-05	-0.363747895	-3.29096765e-05	5.13950181e-05	1	0	0.418400049	0.908262849	1.30704739e-05	-0.0684393495	-0.908262849	0.418400049	-5.9612561e-05	1.00252426	-5.9612561e-05	1.30704739e-05	1	0
+M	syncmelee/imp	kill_wall_right_headsmash_long	1	0	0	-3.02317357	0	1	0	0.146438494	0	0	1	0	5.96046448e-08	0.99999994	0	2.4207263	-0.99999994	5.96046448e-08	6.1028637e-05	0.146438494	6.1028637e-05	0	1	0
+M	syncmelee/imp	null	1	0	0	0	0	1	0	0	0	0	1	0	1	0	0	0	0	1	0	0	0	0	1	0
+M	syncmelee/imp	cut_back	1	0	0	0	0	1	0	0	0	0	1	0	1	0	0	1.25623786	0	1	0	0	0	0	1	0
+M	syncmelee/imp	cut_front	1	0	0	0	0	1	0	0	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	2.09145689	4.31546941e-05	-1	4.31528315e-05	-0.0850623995	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/imp	berserk_above_front	-1	-4.31528315e-05	4.31546941e-05	1.27986586	4.31546941e-05	-1	4.31528315e-05	1.56738365e-16	4.31528315e-05	4.31546941e-05	1	3.30340505	1	0	0	0	0	1	0	0	0	0	1	0
+M	syncmelee/imp	berserk_front_upper	-1	-4.31528315e-05	4.31546941e-05	2.30716276	4.31546941e-05	-1	4.31528315e-05	2.82545945e-16	4.31528315e-05	4.31546941e-05	1	0	1	0	0	0	0	1	0	0	0	0	1	0
+M	syncmelee/imp	crucible_front	1	0	0	0	0	1	0	0	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	2.47180605	4.31546941e-05	-1	4.31528315e-05	0	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/imp	crucible_back	1	0	0	0	0	1	0	0	0	0	1	0	1	0	0	2.47180605	0	1	0	0	0	0	1	0
+M	syncmelee/soldier_blaster	kill_above_back	1	0	0	-1.42108544e-16	0	1	0	9.39237435e-34	0	0	1	3.69296432	1	0	0	1.4515053	0	1	0	0	0	0	1	0
+M	syncmelee/soldier_blaster	kill_above_front	1	0	0	-7.1054272e-17	0	1	0	9.39237435e-34	0	0	1	3.65759993	-1	-4.31528315e-05	4.31546941e-05	1.61651635	4.31546941e-05	-1	4.31528315e-05	-0.0209011473	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/soldier_blaster	kill_back_lower	1	0	0	0	0	1	0	0	0	0	1	0	1	0	0	2.29999995	0	1	0	0	0	0	1	0
+M	syncmelee/soldier_blaster	kill_back_upper	1	0	0	0	0	1	0	0	0	0	1	0	1	0	0	2.29999995	0	1	0	9.39237435e-34	0	0	1	0
+M	syncmelee/soldier_blaster	kill_front_head	1	0	0	0	0	1	0	0	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	2.20650196	4.31546941e-05	-1	4.31528315e-05	-0.00687965378	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/soldier_blaster	kill_front_leftarm	1	0	0	0	0	1	0	0	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	1.95072007	4.31546941e-05	-1	4.31528315e-05	0	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/soldier_blaster	kill_front_lower	1	0	0	0	0	1	0	0	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	2.19074988	4.31546941e-05	-1	4.31528315e-05	0	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/soldier_blaster	kill_front_rightarm	1	0	0	0	0	1	0	0	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	2.20650196	4.31546941e-05	-1	4.31528315e-05	0.00687965378	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/soldier_blaster	kill_front_upper	1	0	0	0	0	1	0	0	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	2.20650196	4.31546941e-05	-1	4.31528315e-05	-0.00687965378	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/soldier_blaster	kill_left_lower	1	0	0	0	0	1	0	0	0	0	1	0	5.96046448e-08	-0.99999994	6.1028637e-05	1.21232033	0.99999994	5.96046448e-08	0	-0.0157520194	0	6.1028637e-05	1	0
+M	syncmelee/soldier_blaster	kill_left_upper	1	0	0	0	0	1	0	0	0	0	1	0	5.96046448e-08	-0.99999994	6.1028637e-05	2.19139695	0.99999994	5.96046448e-08	0	0.0813234374	0	6.1028637e-05	1	0
+M	syncmelee/soldier_blaster	kill_right_lower	1	0	0	0	0	1	0	0	0	0	1	0	5.96046448e-08	0.99999994	0	2.18499994	-0.99999994	5.96046448e-08	6.1028637e-05	9.39237435e-34	6.1028637e-05	0	1	0
+M	syncmelee/soldier_blaster	kill_right_upper	1	0	0	0	0	1	0	0	0	0	1	0	5.96046448e-08	0.99999994	0	2.21983504	-0.99999994	5.96046448e-08	6.1028637e-05	-0.0295874942	6.1028637e-05	0	1	0
+M	syncmelee/soldier_blaster	berserk_above_front	1	0	0	-7.1054272e-17	0	1	0	9.39237435e-34	0	0	1	3.33804321	-1	-4.31528315e-05	4.31546941e-05	0.948616922	4.31546941e-05	-1	4.31528315e-05	-0.10195706	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/soldier_blaster	berserk_front_upper	1	0	0	0	0	1	0	0	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	2.29999995	4.31546941e-05	-1	4.31528315e-05	0	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/soldier_blaster	cut_back	1	0	0	0	0	1	0	0	0	0	1	0	1	0	0	1.99272561	0	1	0	0	0	0	1	0
+M	syncmelee/soldier_blaster	cut_front	1	0	0	0	0	1	0	0	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	2.75106525	4.31546941e-05	-1	4.31528315e-05	-0.00687965378	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/soldier_blaster	crucible_back	1	0	0	0	0	1	0	0	0	0	1	0	1	0	0	2.53731084	0	1	0	0	0	0	1	0
+M	syncmelee/soldier_blaster	crucible_front	-1	-4.31528315e-05	4.31546941e-05	2.53731084	4.31546941e-05	-1	4.31528315e-05	3.10730993e-16	4.31528315e-05	4.31546941e-05	1	0	1	0	0	0	0	1	0	0	0	0	1	0
+M	syncmelee/soldier_blaster	null	1	0	0	0	0	1	0	0	0	0	1	0	1	0	0	0	0	1	0	0	0	0	1	0
+M	syncmelee/cacodemon	kill_above_back	1	0	0	0.964941084	0	1	0	-0.040737424	0	0	1	5.9435997	1	0	0	3.10997105	0	1	0	-0.040737424	0	0	1	1.82879996
+M	syncmelee/cacodemon	kill_above_front	1	0	0	0.0503199883	0	1	0	0.326388299	0	0	1	5.9435997	-1	-4.31528315e-05	4.31546941e-05	3.54408979	4.31546941e-05	-1	4.31528315e-05	0.326388299	4.31528315e-05	4.31546941e-05	1	1.82879996
+M	syncmelee/cacodemon	kill_back_upper	1	0	0	5.68434176e-16	0	1	0	-2.84217088e-16	0	0	1	0.0223802421	1	0	0	2.99508667	0	1	0	-1.04836845	0	0	1	2.45897126
+M	syncmelee/cacodemon	kill_front_lower	1	0	0	0	0	1	0	0	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	3.84825349	4.31546941e-05	-1	4.31528315e-05	0	4.31528315e-05	4.31546941e-05	1	2.41922188
+M	syncmelee/cacodemon	kill_front_upper	1	0	0	0	0	1	0	0	0	0	1	0.914399981	-1	-4.31528315e-05	4.31546941e-05	3.49377012	4.31546941e-05	-1	4.31528315e-05	2.93951965e-17	4.31528315e-05	4.31546941e-05	1	2.59079981
+M	syncmelee/cacodemon	kill_left_upper	1	0	0	0	0	1	0	0	0	0	1	0	5.96046448e-08	-0.99999994	6.1028637e-05	3.8018918	0.99999994	5.96046448e-08	0	-0.416825354	0	6.1028637e-05	1	2.45785451
+M	syncmelee/cacodemon	kill_right_upper	1	0	0	0	0	1	0	0	0	0	1	0	-0.0930675268	0.995659828	2.84297857e-06	3.13077855	-0.995659828	-0.0930675268	6.09623821e-05	0.243672177	6.09623821e-05	2.84297857e-06	1	2.39827681
+M	syncmelee/cacodemon	kill_back_lower	1	0	0	5.68434176e-16	0	1	0	-2.84217088e-16	0	0	1	0.0223802421	1	0	0	2.99508667	0	1	0	-1.04836845	0	0	1	2.45897126
+M	syncmelee/cacodemon	null	1	0	0	0	0	1	0	0	0	0	1	0	1	0	0	0	0	1	0	0	0	0	1	0
+M	syncmelee/cacodemon	cut_back	1	0	0	0	0	1	0	0	0	0	1	0	1	0	0	3.90741968	0	1	0	0.238879293	0	0	1	2.59079981
+M	syncmelee/cacodemon	cut_front	1	0	0	0	0	1	0	0	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	4.75686979	4.31546941e-05	-1	4.31528315e-05	-0.238879293	4.31528315e-05	4.31546941e-05	1	2.41124129
+M	syncmelee/cacodemon	crucible_front	1	0	0	0	0	1	0	0	0	0	1	0	-0.999986172	0.00522230333	4.30409309e-05	4.28829288	-0.00522230146	-0.999986172	4.32662964e-05	9.39237435e-34	4.32662964e-05	4.30409309e-05	1	2.40565991
+M	syncmelee/cacodemon	crucible_back	1	0	0	0	0	1	0	0	0	0	1	0	0.999986351	-0.00522230146	4.32662964e-05	3.79713607	0.00522230333	0.999986351	-4.30409309e-05	-0.124640711	-4.30409309e-05	4.32662964e-05	1	2.40565991
+M	syncmelee/cacodemon	berserk_front_upper	1	0	0	0	0	1	0	0	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	2.81883669	4.31546941e-05	-1	4.31528315e-05	3.45207907e-16	4.31528315e-05	4.31546941e-05	1	2.3984766
+M	syncmelee/arachnotron	kill_above_back	1	0	0	-2.07645011	0	1	0	0	0	0	1	4.22909975	1	0	0	0	0	1	0	0	0	0	1	0
+M	syncmelee/arachnotron	kill_above_front	-1	-4.31528315e-05	4.31546941e-05	3.26841402	4.31546941e-05	-1	4.31528315e-05	0.0412423685	4.31528315e-05	4.31546941e-05	1	3.58140016	1	0	0	0	0	1	0	0	0	0	1	0
+M	syncmelee/arachnotron	kill_back_upper	1	0	0	0	0	1	0	0	0	0	1	0	1	0	0	5.02529335	0	1	0	0.2900033	0	0	1	0
+M	syncmelee/arachnotron	kill_front_lower	1	0	0	0	0	1	0	3.19388728e-17	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	2.56161189	4.31546941e-05	-1	4.31528315e-05	0.117442377	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/arachnotron	kill_left_upper	5.96046448e-08	0.99999994	0	-2.57762502e-16	-0.99999994	5.96046448e-08	6.1028637e-05	2.58849883	6.1028637e-05	0	1	0	1	0	0	0	0	1	0	0	0	0	1	0
+M	syncmelee/arachnotron	kill_right_upper	5.96046448e-08	-0.99999994	6.1028637e-05	-5.98542544e-16	0.99999994	5.96046448e-08	0	-2.38210225	0	6.1028637e-05	1	0	1	0	0	0	0	1	0	0	0	0	1	0
+M	syncmelee/arachnotron	berserk_above_front	-0.91873312	0.394878894	3.35691075e-05	1.85091317	-0.394878894	-0.91873312	5.09667443e-05	0.195598334	5.09667443e-05	3.35691075e-05	1	3.07070422	1	0	0	0	0	1	0	0	0	0	1	0
+M	syncmelee/arachnotron	berserk_front_upper	-1	-4.31528315e-05	4.31546941e-05	4.6349597	4.31546941e-05	-1	4.31528315e-05	5.67618907e-16	4.31528315e-05	4.31546941e-05	1	0	1	0	0	0	0	1	0	0	0	0	1	0
+M	syncmelee/arachnotron	cut_back	1	0	0	0	0	1	0	0	0	0	1	0	1	0	0	4.03974438	0	1	0	0	0	0	1	0
+M	syncmelee/arachnotron	cut_front	1	0	0	0	0	1	0	0	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	3.23930359	4.31546941e-05	-1	4.31528315e-05	0	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/arachnotron	crucible_back	1	0	0	-3.06704974	0	1	0	9.39237435e-34	0	0	1	0	1	0	0	0	0	1	0	0	0	0	1	0
+M	syncmelee/arachnotron	crucible_front	-1	-4.31528315e-05	4.31546941e-05	3.06704974	4.31546941e-05	-1	4.31528315e-05	3.75605299e-16	4.31528315e-05	4.31546941e-05	1	0	1	0	0	0	0	1	0	0	0	0	1	0
+M	syncmelee/arachnotron	null	1	0	0	0	0	1	0	0	0	0	1	0	1	0	0	0	0	1	0	0	0	0	1	0
+M	syncmelee/tentacle	null	1	0	0	0	0	1	0	0	0	0	1	0	1	0	0	0	0	1	0	0	0	0	1	0
+M	syncmelee/tentacle	cut_front	-1	-4.31528315e-05	4.31546941e-05	3.56847715	4.31546941e-05	-1	4.31528315e-05	-0.230213821	4.31528315e-05	4.31546941e-05	1	0	1	0	0	0	0	1	0	0	0	0	1	0
+M	syncmelee/tentacle	crucible_front	-1	-4.31528315e-05	4.31546941e-05	2.7307868	4.31546941e-05	-1	4.31528315e-05	3.34424886e-16	4.31528315e-05	4.31546941e-05	1	0	1	0	0	0	0	1	0	0	0	0	1	0
+M	syncmelee/gargoyle	kill_above_back	1	0	0	-0.830005646	0	1	0	0.000200842725	0	0	1	2.16017413	1	0	0	0	0	1	0	0	0	0	1	0
+M	syncmelee/gargoyle	kill_above_front	1	0	0	0	0	1	0	0	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	1.65399396	4.31546941e-05	-1	4.31528315e-05	0	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/gargoyle	kill_back_lower	1	0	0	0	0	1	0	0	0	0	1	0	1	0	0	3.24006176	0	1	0	0	0	0	1	0
+M	syncmelee/gargoyle	kill_back_upper	1	0	0	0	0	1	0	0	0	0	1	0	1	0	0	2.31311297	0	1	0	9.39237435e-34	0	0	1	0
+M	syncmelee/gargoyle	kill_front_chest	1	0	0	-1.45140457	0	1	0	-0.106063761	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	0.227927774	4.31546941e-05	-1	4.31528315e-05	0.18515262	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/gargoyle	kill_front_head	1	0	0	0	0	1	0	0	0	0	1	0	1	0	0	0	0	1	0	0	0	0	1	0
+M	syncmelee/gargoyle	kill_front_head_01	1	0	0	0	0	1	0	0	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	2	4.31546941e-05	-1	4.31528315e-05	0	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/gargoyle	kill_front_lower	1	0	0	0	0	1	0	0	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	1.80015886	4.31546941e-05	-1	4.31528315e-05	0	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/gargoyle	kill_left_lower	1	0	0	0	0	1	0	0	0	0	1	0	5.96046448e-08	-0.99999994	6.1028637e-05	1.8594265	0.99999994	5.96046448e-08	0	-0.299999982	0	6.1028637e-05	1	0
+M	syncmelee/gargoyle	kill_right_lower	1	0	0	0	0	1	0	0	0	0	1	0	5.96046448e-08	0.99999994	0	2.5	-0.99999994	5.96046448e-08	6.1028637e-05	0	6.1028637e-05	0	1	0
+M	syncmelee/gargoyle	kill_right_upper	1	0	0	0	0	1	0	0	0	0	1	0	5.96046448e-08	0.99999994	0	1.86160076	-0.99999994	5.96046448e-08	6.1028637e-05	0.201996729	6.1028637e-05	0	1	0
+M	syncmelee/gargoyle	kill_front_leftarm	1	0	0	0	0	1	0	0	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	2	4.31546941e-05	-1	4.31528315e-05	0	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/gargoyle	kill_left_upper	1	0	0	0	0	1	0	0	0	0	1	0	5.96046448e-08	-0.99999994	6.1028637e-05	3.53221297	0.99999994	5.96046448e-08	0	9.39237435e-34	0	6.1028637e-05	1	0
+M	syncmelee/gargoyle	kill_front_rightarm	1	0	0	0	0	1	0	0	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	1.98858726	4.31546941e-05	-1	4.31528315e-05	0	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/gargoyle	cut_back	1	0	0	0	0	1	0	0	0	0	1	0	1	0	0	1.50519907	0	1	0	0	0	0	1	0
+M	syncmelee/gargoyle	cut_front_01	1	0	0	0	0	1	0	0	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	2.44916916	4.31546941e-05	-1	4.31528315e-05	0	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/gargoyle	null	1	0	0	0	0	1	0	0	0	0	1	0	1	0	0	0	0	1	0	0	0	0	1	0
+M	syncmelee/gargoyle	crucible_front	1	0	0	0	0	1	0	0	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	3.75	4.31546941e-05	-1	4.31528315e-05	9.39237435e-34	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/gargoyle	crucible_back	1	0	0	0	0	1	0	0	0	0	1	0	1	0	0	3.34939146	0	1	0	4.10182163e-16	0	0	1	0
+M	syncmelee/gargoyle	berserk_above_front	1	0	0	0	0	1	0	0	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	1.10026491	4.31546941e-05	-1	4.31528315e-05	0	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/gargoyle	berserk_front	1	0	0	0	0	1	0	0	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	3	4.31546941e-05	-1	4.31528315e-05	0	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/hellknight	kill_above_back	1	0	0	0	0	1	0	0	0	0	1	0	1	0	0	1.82879996	0	1	0	0	0	0	1	0
+M	syncmelee/hellknight	kill_above_front	1	0	0	0	0	1	0	0	0	0	1	0	-0.999922037	-0.0124728624	4.34220528e-05	1.81133509	0.0124728642	-0.999922037	4.2883792e-05	9.39237435e-34	4.2883792e-05	4.34220528e-05	1	0
+M	syncmelee/hellknight	kill_back_upper	1	0	0	0	0	1	0	0	0	0	1	0	1	0	0	2.85288358	0	1	0	0	0	0	1	0
+M	syncmelee/hellknight	kill_front_head	1	0	0	0	0	1	0	0	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	2.72255874	4.31546941e-05	-1	4.31528315e-05	0	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/hellknight	kill_front_lower	1	0	0	0	0	1	0	1.27121911e-16	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	2.44154572	4.31546941e-05	-1	4.31528315e-05	0	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/hellknight	kill_left_upper	1	0	0	0	0	1	0	0	0	0	1	0	5.96046448e-08	-0.99999994	6.1028637e-05	1.82879996	0.99999994	5.96046448e-08	0	0	0	6.1028637e-05	1	0
+M	syncmelee/hellknight	kill_right_upper	1	0	0	0	0	1	0	0	0	0	1	0	5.96046448e-08	0.99999994	0	1.82879996	-0.99999994	5.96046448e-08	6.1028637e-05	0	6.1028637e-05	0	1	0
+M	syncmelee/hellknight	cut_back	1	0	0	-2.03743911	0	1	0	9.39237435e-34	0	0	1	0	1	0	0	0	0	1	0	0	0	0	1	0
+M	syncmelee/hellknight	cut_front_01	1	0	0	0	0	1	0	0	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	2.76288843	4.31546941e-05	-1	4.31528315e-05	0	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/hellknight	null	1	0	0	0	0	1	0	0	0	0	1	0	1	0	0	0	0	1	0	0	0	0	1	0
+M	syncmelee/hellknight	crucible_front	-1	-4.31528315e-05	4.31546941e-05	2.32495713	4.31546941e-05	-1	4.31528315e-05	2.84875815e-16	4.31528315e-05	4.31546941e-05	1	0	1	0	0	0	0	1	0	0	0	0	1	0
+M	syncmelee/hellknight	crucible_back	1	0	0	0	0	1	0	0	0	0	1	0	1	0	0	3.43289638	0	1	0	0	0	0	1	0
+M	syncmelee/hellknight	berserk_front_upper	1	0	0	0	0	1	0	0	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	2.52686787	4.31546941e-05	-1	4.31528315e-05	0	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/hellknight	berserk_above_front	1	0	0	-7.1054272e-17	0	1	0	0	0	0	1	3.33804321	-1	-4.31528315e-05	4.31546941e-05	1.29848588	4.31546941e-05	-1	4.31528315e-05	0	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/zombie_tier3	kill_back_head	1	0	0	0	0	1	0	0	0	0	1	0	1	0	0	0	0	1	0	0	0	0	1	0
+M	syncmelee/zombie_tier3	kill_front_chest	-1	-4.31528315e-05	4.31546941e-05	2.7456975	4.31546941e-05	-1	4.31528315e-05	3.36250957e-16	4.31528315e-05	4.31546941e-05	1	0	1	0	0	0	0	1	0	0	0	0	1	0
+M	syncmelee/zombie_tier3	kill_front_head	1	0	0	0	0	1	0	-9.23705523e-16	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	1.62061	4.31546941e-05	-1	4.31528315e-05	0.279513747	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/zombie_tier3	kill_left_upper	1	0	0	0	0	1	0	0	0	0	1	0	0.362663269	-0.93192029	5.99809428e-05	2.00853062	0.93192029	0.362663269	-1.12597208e-05	-0.137703463	-1.12597208e-05	5.99809428e-05	1	0
+M	syncmelee/zombie_tier3	kill_right_upper	1	0	0	0	0	1	0	0	0	0	1	0	-0.180153608	0.983638465	5.51988887e-06	1.90656531	-0.983638465	-0.180153608	6.07784896e-05	-0.0457534604	6.07784896e-05	5.51988887e-06	1	1.11339404e-09
+M	syncmelee/zombie_tier3	kill_above_front	1	0	0	0	0	1	0	0	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	1.25401497	4.31546941e-05	-1	4.31528315e-05	0	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/zombie_tier3	kill_front_rightarm	1	0	0	0	0	1	0	0	0	0	1	0	-0.983640909	-0.180140927	4.68797843e-05	1.60453212	0.180140927	-0.983640909	3.90740352e-05	-2.64719097e-06	3.90740352e-05	4.68797843e-05	1	1.11339404e-09
+M	syncmelee/zombie_tier3	kill_above_back	1	0	0	0	0	1	0	0	0	0	1	0	1	0	0	0	0	1	0	0	0	0	1	0
+M	syncmelee/zombie_tier3	kill_front_leftarm	1	0	0	-3.5527136e-17	0	1	0	0	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	1.80248332	4.31546941e-05	-1	4.31528315e-05	0	4.31528315e-05	4.31546941e-05	1	1.11338994e-09
+M	syncmelee/zombie_tier3	kill_right_lower	1	0	0	0	0	1	0	0	0	0	1	0	-0.180153608	0.983638465	5.51988887e-06	2.06654334	-0.983638465	-0.180153608	6.07784896e-05	-0.134105965	6.07784896e-05	5.51988887e-06	1	1.11339404e-09
+M	syncmelee/zombie_tier3	kill_back_lower	1	0	0	0	0	1	0	0	0	0	1	0	0.873047769	-0.487634689	5.26340518e-05	2.43610907	0.487634689	0.873047769	-3.08893359e-05	2.64719097e-06	-3.08893359e-05	5.26340518e-05	1	1.11339404e-09
+M	syncmelee/zombie_tier3	kill_left_lower	1	0	0	0	0	1	0	0	0	0	1	0	5.96046448e-08	-0.99999994	6.1028637e-05	1.25401497	0.99999994	5.96046448e-08	0	0	0	6.1028637e-05	1	0
+M	syncmelee/zombie_tier3	kill_front_lower	1	0	0	0	0	1	0	0	0	0	1	0	-1	-4.31546941e-05	4.31528315e-05	2.38611865	4.31528315e-05	-1	-4.31546941e-05	2.64719097e-06	4.31546941e-05	-4.31528315e-05	1	1.11339404e-09
+M	syncmelee/zombie_tier3	null	1	0	0	0	0	1	0	0	0	0	1	0	1	0	0	0	0	1	0	0	0	0	1	0
+M	syncmelee/zombie_tier3	cut_back	1	0	0	7.1054272e-17	0	1	0	-8.67361719e-21	0	0	1	0	1	0	0	1.75447655	0	1	0	0.0955427736	0	0	1	0
+M	syncmelee/zombie_tier3	cut_front	1	0	0	-2.84217088e-16	0	1	0	9.39237435e-34	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	1.64446044	4.31546941e-05	-1	4.31528315e-05	0	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/zombie_tier3	crucible_front	1	0	0	0	0	1	0	0	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	1.85730934	4.31546941e-05	-1	4.31528315e-05	9.39237435e-34	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/zombie_tier3	crucible_back	1	0	0	0	0	1	0	0	0	0	1	0	1	0	0	2.79915667	0	1	0	3.55612436e-16	0	0	1	0
+M	syncmelee/zombie_tier3	berserk_front_upper	1	0	0	0	0	1	0	0	0	0	1	0	1	0	0	-0.00322512374	0	1	0	0.00613691099	0	0	1	0
+M	syncmelee/zombie_tier3	berserk_above_front	1	0	0	0	0	1	0	0	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	1.25401497	4.31546941e-05	-1	4.31528315e-05	0	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/soldier_shield	kill_above_back	1	0	0	-1.42108544e-16	0	1	0	9.39237435e-34	0	0	1	3.69296432	1	0	0	1.4515053	0	1	0	0	0	0	1	0
+M	syncmelee/soldier_shield	kill_above_front	1	0	0	-7.1054272e-17	0	1	0	9.39237435e-34	0	0	1	3.65759993	-1	-4.31528315e-05	4.31546941e-05	1.61651635	4.31546941e-05	-1	4.31528315e-05	-0.0209011473	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/soldier_shield	kill_back_lower	1	0	0	0	0	1	0	0	0	0	1	0	1	0	0	2.29999995	0	1	0	0	0	0	1	0
+M	syncmelee/soldier_shield	kill_back_upper	1	0	0	0	0	1	0	0	0	0	1	0	1	0	0	2.29999995	0	1	0	9.39237435e-34	0	0	1	0
+M	syncmelee/soldier_shield	kill_front_head	1	0	0	0	0	1	0	0	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	2.20650196	4.31546941e-05	-1	4.31528315e-05	-0.00687965378	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/soldier_shield	kill_front_leftarm	1	0	0	0	0	1	0	0	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	1.95072007	4.31546941e-05	-1	4.31528315e-05	0	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/soldier_shield	kill_front_lower	1	0	0	0	0	1	0	0	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	2.19074988	4.31546941e-05	-1	4.31528315e-05	0	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/soldier_shield	kill_front_rightarm	1	0	0	0	0	1	0	0	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	2.20650196	4.31546941e-05	-1	4.31528315e-05	0.00687965378	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/soldier_shield	kill_front_upper	1	0	0	0	0	1	0	0	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	2.20650196	4.31546941e-05	-1	4.31528315e-05	-0.00687965378	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/soldier_shield	kill_left_lower	1	0	0	0	0	1	0	0	0	0	1	0	5.96046448e-08	-0.99999994	6.1028637e-05	1.21232033	0.99999994	5.96046448e-08	0	-0.0157520194	0	6.1028637e-05	1	0
+M	syncmelee/soldier_shield	kill_left_upper	1	0	0	0	0	1	0	0	0	0	1	0	5.96046448e-08	-0.99999994	6.1028637e-05	2.19139695	0.99999994	5.96046448e-08	0	0.0813234374	0	6.1028637e-05	1	0
+M	syncmelee/soldier_shield	kill_right_lower	1	0	0	0	0	1	0	0	0	0	1	0	5.96046448e-08	0.99999994	0	2.18499994	-0.99999994	5.96046448e-08	6.1028637e-05	9.39237435e-34	6.1028637e-05	0	1	0
+M	syncmelee/soldier_shield	kill_right_upper	1	0	0	0	0	1	0	0	0	0	1	0	5.96046448e-08	0.99999994	0	2.21983504	-0.99999994	5.96046448e-08	6.1028637e-05	-0.0295874942	6.1028637e-05	0	1	0
+M	syncmelee/soldier_shield	berserk_above_front	1	0	0	-7.1054272e-17	0	1	0	9.39237435e-34	0	0	1	3.33804321	-1	-4.31528315e-05	4.31546941e-05	0.948616922	4.31546941e-05	-1	4.31528315e-05	-0.10195706	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/soldier_shield	berserk_front_upper	1	0	0	0	0	1	0	0	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	2.29999995	4.31546941e-05	-1	4.31528315e-05	0	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/soldier_shield	cut_back	1	0	0	0	0	1	0	0	0	0	1	0	1	0	0	1.99272561	0	1	0	0	0	0	1	0
+M	syncmelee/soldier_shield	cut_front	1	0	0	0	0	1	0	0	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	2.75106525	4.31546941e-05	-1	4.31528315e-05	-0.00687965378	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/soldier_shield	crucible_back	1	0	0	0	0	1	0	0	0	0	1	0	1	0	0	2.53731084	0	1	0	0	0	0	1	0
+M	syncmelee/soldier_shield	crucible_front	-1	-4.31528315e-05	4.31546941e-05	2.53731084	4.31546941e-05	-1	4.31528315e-05	3.10730993e-16	4.31528315e-05	4.31546941e-05	1	0	1	0	0	0	0	1	0	0	0	0	1	0
+M	syncmelee/soldier_shield	null	1	0	0	0	0	1	0	0	0	0	1	0	1	0	0	0	0	1	0	0	0	0	1	0
+M	syncmelee/mancubus_fire	kill_above_back	1	0	0	4.26325632e-16	0	1	0	0	0	0	1	3.388134	1	0	0	0.63878268	0	1	0	0.536882102	0	0	1	0
+M	syncmelee/mancubus_fire	kill_above_front	-1	-4.31528315e-05	4.31546941e-05	4.88755131	4.31546941e-05	-1	4.31528315e-05	0.339844078	4.31528315e-05	4.31546941e-05	1	0	1	0	0	0	0	1	0	0	0	0	1	0
+M	syncmelee/mancubus_fire	kill_back_upper	1	0	0	0	0	1	0	0	0	0	1	0	1	0	0	1.77590299	0	1	0	0.378248751	0	0	1	0
+M	syncmelee/mancubus_fire	kill_front_head	1	0	0	0	0	1	0	0	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	3.27142549	4.31546941e-05	-1	4.31528315e-05	0	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/mancubus_fire	kill_front_upper	1	0	0	0	0	1	0	0	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	0	4.31546941e-05	-1	4.31528315e-05	0	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/mancubus_fire	kill_left_upper	5.96046448e-08	0.99999994	0	0.357990175	-0.99999994	5.96046448e-08	6.1028637e-05	2.70158076	6.1028637e-05	0	1	-1.81071082e-05	1	0	0	0	0	1	0	0	0	0	1	0
+M	syncmelee/mancubus_fire	kill_right_upper	5.96046448e-08	-0.99999994	6.1028637e-05	0.371401161	0.99999994	5.96046448e-08	0	-2.87428832	0	6.1028637e-05	1	0	1	0	0	0	0	1	0	0	0	0	1	0
+M	syncmelee/mancubus_fire	berserk_front_upper	-1	-4.31528315e-05	4.31546941e-05	3.68878174	4.31546941e-05	-1	4.31528315e-05	4.51745488e-16	4.31528315e-05	4.31546941e-05	1	0	1	0	0	0	0	1	0	0	0	0	1	0
+M	syncmelee/mancubus_fire	berserk_above_front	-1	-4.31528315e-05	4.31546941e-05	3.50985074	4.31546941e-05	-1	4.31528315e-05	4.29832745e-16	4.31528315e-05	4.31546941e-05	1	0	1	0	0	0	0	1	0	0	0	0	1	0
+M	syncmelee/mancubus_fire	cut_back	1	0	0	-3.83503127	0	1	0	9.39237435e-34	0	0	1	0	1	0	0	0	0	1	0	0	0	0	1	0
+M	syncmelee/mancubus_fire	cut_front	1	0	0	0	0	1	0	0	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	3.81582713	4.31546941e-05	-1	4.31528315e-05	-0.00827570539	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/mancubus_fire	crucible_back	1	0	0	0	0	1	0	0	0	0	1	0	1	0	0	3.30101252	0	1	0	2.41398794e-07	0	0	1	1.0514289e-08
+M	syncmelee/mancubus_fire	crucible_front	-1	-4.31528315e-05	4.31546941e-05	3.87161374	4.31546941e-05	-1	4.31528315e-05	4.74135957e-16	4.31528315e-05	4.31546941e-05	1	0	1	0	0	0	0	1	0	0	0	0	1	0
+M	syncmelee/mancubus_fire	null	1	0	0	0	0	1	0	0	0	0	1	0	1	0	0	0	0	1	0	0	0	0	1	0
+M	syncmelee/whiplash	null	1	0	0	0	0	1	0	0	0	0	1	0	1	0	0	0	0	1	0	0	0	0	1	0
+M	syncmelee/whiplash	kill_right_upper	1	0	0	0	0	1	0	0	0	0	1	0	5.96046448e-08	0.99999994	0	2.74168515	-0.99999994	5.96046448e-08	6.1028637e-05	0	6.1028637e-05	0	1	0
+M	syncmelee/whiplash	kill_back_upper	1	0	0	0	0	1	0	0	0	0	1	0	1	0	0	3	0	1	0	-0.108190536	0	0	1	0
+M	syncmelee/whiplash	kill_above_front	1	0	0	-7.1054272e-17	0	1	0	0	0	0	1	3.39103055	-1	-4.31528315e-05	4.31546941e-05	0.854208231	4.31546941e-05	-1	4.31528315e-05	0	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/whiplash	kill_above_back	1	0	0	0	0	1	0	0	0	0	1	0	1	0	0	0.686981618	0	1	0	9.39237435e-34	0	0	1	0
+M	syncmelee/whiplash	kill_front_upper	1	0	0	0	0	1	0	0	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	3.76663446	4.31546941e-05	-1	4.31528315e-05	-0.108190536	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/whiplash	kill_left_upper	1	0	0	0	0	1	0	0	0	0	1	0	5.96046448e-08	-0.99999994	6.1028637e-05	2.95543885	0.99999994	5.96046448e-08	0	0	0	6.1028637e-05	1	0
+M	syncmelee/whiplash	crucible_front	1	0	0	0	0	1	0	0	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	3.16106582	4.31546941e-05	-1	4.31528315e-05	0	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/whiplash	crucible_back	1	0	0	0	0	1	0	0	0	0	1	0	1	0	0	3.35098314	0	1	0	4.10377087e-16	0	0	1	0
+M	syncmelee/whiplash	cut_front	1	0	0	0	0	1	0	0	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	2.49616456	4.31546941e-05	-1	4.31528315e-05	0	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/whiplash	cut_back	1	0	0	0	0	1	0	0	0	0	1	0	1	0	0	1.79371262	0	1	0	-0.00678984262	0	0	1	7.29753813e-09
+M	syncmelee/whiplash	berserk_above_front	-1	-4.31528315e-05	4.31546941e-05	0.985493302	4.31546941e-05	-1	4.31528315e-05	1.20688113e-16	4.31528315e-05	4.31546941e-05	1	3.33804321	1	0	0	0	0	1	0	0	0	0	1	0
+M	syncmelee/whiplash	berserk_front_upper	-1	-4.31528315e-05	4.31546941e-05	2.94261837	4.31546941e-05	-1	4.31528315e-05	3.60366832e-16	4.31528315e-05	4.31546941e-05	1	0	1	0	0	0	0	1	0	0	0	0	1	0
+M	syncmelee/zombie_worshipper	kill_above_back	1	0	0	-1.1041255	0	1	0	0.130055919	0	0	1	2.16017413	1	0	0	-0.280219078	0	1	0	0.129855081	0	0	1	0
+M	syncmelee/zombie_worshipper	kill_above_front	1	0	0	7.45867155e-08	0	1	0	-9.13423778e-24	0	0	1	1.90499997	-1	-4.31528315e-05	4.31546941e-05	0.554705918	4.31546941e-05	-1	4.31528315e-05	1.26636323e-16	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/zombie_worshipper	kill_back_head	1	0	0	0	0	1	0	0	0	0	1	0	1	0	0	1.68887758	0	1	0	0	0	0	1	0
+M	syncmelee/zombie_worshipper	kill_back_lower	1	0	0	0	0	1	0	0	0	0	1	0	1	0	0	1.64290082	0	1	0	-0.0395404734	0	0	1	0
+M	syncmelee/zombie_worshipper	kill_back_upper	1	0	0	0	0	1	0	0	0	0	1	0	1	0	0	1.85232937	0	1	0	0.159001291	0	0	1	0
+M	syncmelee/zombie_worshipper	kill_front_chest	1	0	0	0	0	1	0	0	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	1.61813486	4.31546941e-05	-1	4.31528315e-05	0.120914496	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/zombie_worshipper	kill_front_head	1	0	0	0	0	1	0	0	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	2.10080767	4.31546941e-05	-1	4.31528315e-05	-0.207453355	4.31528315e-05	4.31546941e-05	1	7.04418301e-09
+M	syncmelee/zombie_worshipper	kill_front_leftarm	1	0	0	0	0	1	0	0	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	1.83489931	4.31546941e-05	-1	4.31528315e-05	0	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/zombie_worshipper	kill_front_lower	1	0	0	0	0	1	0	0	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	0.552164555	4.31546941e-05	-1	4.31528315e-05	-0.136358321	4.31528315e-05	4.31546941e-05	1	0.0169331599
+M	syncmelee/zombie_worshipper	kill_front_rightarm	1	0	0	-7.10542693e-16	0	1	0	2.84063129e-09	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	0.617969394	4.31546941e-05	-1	4.31528315e-05	-0.0601323433	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/zombie_worshipper	kill_left_lower	1	0	0	0	0	1	0	0	0	0	1	0	5.96046448e-08	-0.99999994	6.1028637e-05	1.8594265	0.99999994	5.96046448e-08	0	-0.306099236	0	6.1028637e-05	1	0
+M	syncmelee/zombie_worshipper	kill_left_upper	1	0	0	0	0	1	0	0	0	0	1	0	5.96046448e-08	-0.99999994	6.1028637e-05	2.38155293	0.99999994	5.96046448e-08	0	-0.00609924179	0	6.1028637e-05	1	0
+M	syncmelee/zombie_worshipper	kill_right_lower	5.96046448e-08	-0.99999994	6.1028637e-05	0.116099238	0.99999994	5.96046448e-08	0	-1.83822906	0	6.1028637e-05	1	0	1	0	0	0	0	1	0	0	0	0	1	0
+M	syncmelee/zombie_worshipper	kill_right_upper	1	0	0	0	0	1	0	0	0	0	1	0	-0.232992291	0.972478509	7.15903116e-06	1.6367234	-0.972478509	-0.232992291	6.0607279e-05	0.0118177151	6.0607279e-05	7.15903116e-06	1	0
+M	syncmelee/zombie_worshipper	cut_back	1	0	0	0	0	1	0	0	0	0	1	0	1	0	0	2.7052319	0	1	0	0.000564503716	0	0	1	0.0156788528
+M	syncmelee/zombie_worshipper	cut_front_01	1	0	0	0	0	1	0	0	0	0	1	0	-1.10000002	-4.74681146e-05	4.74701628e-05	2.97987175	4.74701628e-05	-1.10000002	4.74681146e-05	-0.00659999996	4.74681146e-05	4.74701628e-05	1.10000002	0
+M	syncmelee/zombie_worshipper	cut_front_02	1	0	0	0	0	1	0	0	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	3.57944918	4.31546941e-05	-1	4.31528315e-05	0	4.31528315e-05	4.31546941e-05	1	0.0169331543
+M	syncmelee/zombie_worshipper	cut_front_03	1	0	0	0	0	1	0	0	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	3.04982662	4.31546941e-05	-1	4.31528315e-05	0	4.31528315e-05	4.31546941e-05	1	0.0169331543
+M	syncmelee/zombie_worshipper	null	1	0	0	0	0	1	0	0	0	0	1	0	1	0	0	0	0	1	0	0	0	0	1	0
+M	syncmelee/zombie_worshipper	berserk_front_upper	-1	-4.31528315e-05	4.31546941e-05	1.6560992	4.31546941e-05	-1	4.31528315e-05	-1.35412435e-07	4.31528315e-05	4.31546941e-05	1	-7.74860176e-09	1	0	0	0	0	1	0	0	0	0	1	0
+M	syncmelee/zombie_worshipper	berserk_above_front	1	0	0	-7.1054272e-17	0	1	0	7.88860888e-33	0	0	1	3.33804321	-1	-4.31528315e-05	4.31546941e-05	0.954716146	4.31546941e-05	-1	4.31528315e-05	-0.10195706	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/zombie_worshipper	berserk_front_upper_02	-1	-4.31528315e-05	4.31546941e-05	1.51019526	4.31546941e-05	-1	4.31528315e-05	0.0712738335	4.31528315e-05	4.31546941e-05	1	0	1	0	0	0	0	1	0	0	0	0	1	0
+M	syncmelee/zombie_worshipper	crucible_front	1	0	0	0	0	1	0	0	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	2.41792297	4.31546941e-05	-1	4.31528315e-05	-0.0351567492	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/zombie_worshipper	crucible_back	1	0	0	0	0	1	0	0	0	0	1	0	1	0	0	2.54985476	0	1	0	0.0351567492	0	0	1	0
+M	syncmelee/zombie_tier1_hell	kill_above_back	1	0	0	-1.1041255	0	1	0	0.130055919	0	0	1	2.16017413	1	0	0	-0.280219078	0	1	0	0.129855081	0	0	1	0
+M	syncmelee/zombie_tier1_hell	kill_above_front	1	0	0	7.45867155e-08	0	1	0	-9.13423778e-24	0	0	1	1.90499997	-1	-4.31528315e-05	4.31546941e-05	0.554705918	4.31546941e-05	-1	4.31528315e-05	1.26636323e-16	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/zombie_tier1_hell	kill_back_head	1	0	0	0	0	1	0	0	0	0	1	0	1	0	0	1.68887758	0	1	0	0	0	0	1	0
+M	syncmelee/zombie_tier1_hell	kill_back_lower	1	0	0	0	0	1	0	0	0	0	1	0	1	0	0	1.64290082	0	1	0	-0.0395404734	0	0	1	0
+M	syncmelee/zombie_tier1_hell	kill_back_upper	1	0	0	0	0	1	0	0	0	0	1	0	1	0	0	1.85232937	0	1	0	0.159001291	0	0	1	0
+M	syncmelee/zombie_tier1_hell	kill_front_chest	1	0	0	0	0	1	0	0	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	1.61813486	4.31546941e-05	-1	4.31528315e-05	0.120914496	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/zombie_tier1_hell	kill_front_head	1	0	0	0	0	1	0	0	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	2.10080767	4.31546941e-05	-1	4.31528315e-05	-0.207453355	4.31528315e-05	4.31546941e-05	1	7.04418301e-09
+M	syncmelee/zombie_tier1_hell	kill_front_leftarm	1	0	0	0	0	1	0	0	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	1.83489931	4.31546941e-05	-1	4.31528315e-05	0	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/zombie_tier1_hell	kill_front_lower	1	0	0	0	0	1	0	0	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	0.552164555	4.31546941e-05	-1	4.31528315e-05	-0.136358321	4.31528315e-05	4.31546941e-05	1	0.0169331599
+M	syncmelee/zombie_tier1_hell	kill_front_rightarm	1	0	0	-7.10542693e-16	0	1	0	2.84063129e-09	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	0.617969394	4.31546941e-05	-1	4.31528315e-05	-0.0601323433	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/zombie_tier1_hell	kill_left_lower	1	0	0	0	0	1	0	0	0	0	1	0	5.96046448e-08	-0.99999994	6.1028637e-05	1.8594265	0.99999994	5.96046448e-08	0	-0.306099236	0	6.1028637e-05	1	0
+M	syncmelee/zombie_tier1_hell	kill_left_upper	1	0	0	0	0	1	0	0	0	0	1	0	5.96046448e-08	-0.99999994	6.1028637e-05	2.38155293	0.99999994	5.96046448e-08	0	-0.00609924179	0	6.1028637e-05	1	0
+M	syncmelee/zombie_tier1_hell	kill_right_lower	5.96046448e-08	-0.99999994	6.1028637e-05	0.116099238	0.99999994	5.96046448e-08	0	-1.83822906	0	6.1028637e-05	1	0	1	0	0	0	0	1	0	0	0	0	1	0
+M	syncmelee/zombie_tier1_hell	kill_right_upper	1	0	0	0	0	1	0	0	0	0	1	0	-0.232992291	0.972478509	7.15903116e-06	1.6367234	-0.972478509	-0.232992291	6.0607279e-05	0.0118177151	6.0607279e-05	7.15903116e-06	1	0
+M	syncmelee/zombie_tier1_hell	cut_back	1	0	0	0	0	1	0	0	0	0	1	0	1	0	0	2.7052319	0	1	0	0.000564503716	0	0	1	0.0156788528
+M	syncmelee/zombie_tier1_hell	cut_front_01	1	0	0	0	0	1	0	0	0	0	1	0	-1.10000002	-4.74681146e-05	4.74701628e-05	2.97987175	4.74701628e-05	-1.10000002	4.74681146e-05	-0.00659999996	4.74681146e-05	4.74701628e-05	1.10000002	0
+M	syncmelee/zombie_tier1_hell	cut_front_02	1	0	0	0	0	1	0	0	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	3.57944918	4.31546941e-05	-1	4.31528315e-05	0	4.31528315e-05	4.31546941e-05	1	0.0169331543
+M	syncmelee/zombie_tier1_hell	cut_front_03	1	0	0	0	0	1	0	0	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	3.04982662	4.31546941e-05	-1	4.31528315e-05	0	4.31528315e-05	4.31546941e-05	1	0.0169331543
+M	syncmelee/zombie_tier1_hell	null	1	0	0	0	0	1	0	0	0	0	1	0	1	0	0	0	0	1	0	0	0	0	1	0
+M	syncmelee/zombie_tier1_hell	berserk_front_upper	-1	-4.31528315e-05	4.31546941e-05	1.6560992	4.31546941e-05	-1	4.31528315e-05	-1.35412435e-07	4.31528315e-05	4.31546941e-05	1	-7.74860176e-09	1	0	0	0	0	1	0	0	0	0	1	0
+M	syncmelee/zombie_tier1_hell	berserk_above_front	1	0	0	-7.1054272e-17	0	1	0	7.88860888e-33	0	0	1	3.33804321	-1	-4.31528315e-05	4.31546941e-05	0.954716146	4.31546941e-05	-1	4.31528315e-05	-0.10195706	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/zombie_tier1_hell	berserk_front_upper_02	-1	-4.31528315e-05	4.31546941e-05	1.51019526	4.31546941e-05	-1	4.31528315e-05	0.0712738335	4.31528315e-05	4.31546941e-05	1	0	1	0	0	0	0	1	0	0	0	0	1	0
+M	syncmelee/zombie_tier1_hell	crucible_front	1	0	0	0	0	1	0	0	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	2.41792297	4.31546941e-05	-1	4.31528315e-05	-0.0351567492	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/zombie_tier1_hell	crucible_back	1	0	0	0	0	1	0	0	0	0	1	0	1	0	0	2.54985476	0	1	0	0.0351567492	0	0	1	0
+M	syncmelee/carcass	kill_above_front	1	0	0	0	0	1	0	0	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	2.73288441	4.31546941e-05	-1	4.31528315e-05	-0.0986361206	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/carcass	kill_back_lower	1	0	0	0	0	1	0	0	0	0	1	0	1	0	0	2.23007584	0	1	0	0	0	0	1	0
+M	syncmelee/carcass	kill_back_upper	1	0	0	0	0	1	0	0	0	0	1	0	1	0	0	2.34036517	0	1	0	0	0	0	1	0
+M	syncmelee/carcass	kill_front_chest	1	0	0	0	0	1	0	0	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	2.47961593	4.31546941e-05	-1	4.31528315e-05	0.179126233	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/carcass	kill_front_head	1	0	0	0	0	1	0	0	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	2.44710898	4.31546941e-05	-1	4.31528315e-05	0	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/carcass	kill_front_lower	1	0	0	5.68434176e-16	0	1	0	5.68434176e-16	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	2.66620445	4.31546941e-05	-1	4.31528315e-05	-0.0070435619	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/carcass	kill_front_rightarm	1	0	0	0	0	1	0	0	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	2.44710898	4.31546941e-05	-1	4.31528315e-05	0	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/carcass	kill_left_lower	1	0	0	0	0	1	0	0	0	0	1	0	5.96046448e-08	-0.99999994	6.1028637e-05	1.53255761	0.99999994	5.96046448e-08	0	-0.0995748863	0	6.1028637e-05	1	0
+M	syncmelee/carcass	kill_left_upper	1	0	0	0	0	1	0	0	0	0	1	0	5.96046448e-08	-0.99999994	6.1028637e-05	2.4408083	0.99999994	5.96046448e-08	0	-0.27136609	0	6.1028637e-05	1	0
+M	syncmelee/carcass	kill_right_lower	1	0	0	0	0	1	0	0	0	0	1	0	5.96046448e-08	0.99999994	0	2.35144734	-0.99999994	5.96046448e-08	6.1028637e-05	0.352822155	6.1028637e-05	0	1	0
+M	syncmelee/carcass	kill_right_upper	1	0	0	0	0	1	0	0	0	0	1	0	5.96046448e-08	0.99999994	0	2.1041522	-0.99999994	5.96046448e-08	6.1028637e-05	0.0652119592	6.1028637e-05	0	1	0
+M	syncmelee/carcass	kill_front_leftarm	1	0	0	0	0	1	0	0	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	2.44710898	4.31546941e-05	-1	4.31528315e-05	2.99684412e-16	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/carcass	kill_above_back	1	0	0	5.68434176e-16	0	1	0	6.3108871e-32	0	0	1	3.05663347	1	0	0	1.91417336	0	1	0	0.0986361206	0	0	1	0
+M	syncmelee/carcass	null	1	0	0	0	0	1	0	0	0	0	1	0	1	0	0	0	0	1	0	0	0	0	1	0
+M	syncmelee/carcass	berserk_above_front	1	0	0	0	0	1	0	0	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	2.73288441	4.31546941e-05	-1	4.31528315e-05	-0.0986361206	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/carcass	berserk_front_upper	1	0	0	0	0	1	0	0	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	2.81883669	4.31546941e-05	-1	4.31528315e-05	0	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/carcass	cut_front	1	0	0	0	0	1	0	0	0	0	1	0	-1	-4.31528315e-05	4.31546941e-05	2.08134079	4.31546941e-05	-1	4.31528315e-05	3.08092538e-16	4.31528315e-05	4.31546941e-05	1	0
+M	syncmelee/carcass	cut_back	1	0	0	0	0	1	0	0	0	0	1	0	1	0	0	1.78793764	0	1	0	0	0	0	1	0
+M	syncmelee/carcass	crucible_front	-1	-4.31528315e-05	4.31546941e-05	3.25521898	4.31546941e-05	-1	4.31528315e-05	3.98649386e-16	4.31528315e-05	4.31546941e-05	1	0	1	0	0	0	0	1	0	0	0	0	1	0
+M	syncmelee/carcass	crucible_back	1	0	0	0	0	1	0	0	0	0	1	0	1	0	0	3.26670456	0	1	0	4.00055964e-16	0	0	1	0

@@ -44,6 +44,7 @@ internal sealed partial class MainForm : LabPlusForm
     private bool _loadingControls;
     private ActiveEncountersForm? _activeEncounters;
     private InvisibleNumbersForm? _invisibleNumbers;
+    private FinisherVisualizerForm? _finisherVisualizer;
     private EntityGraphForm? _entityGraph;
     private MovementLabForm? _movementLab;
     private LevelStateForm? _levelStates;
