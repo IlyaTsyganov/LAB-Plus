@@ -62,9 +62,13 @@ public sealed record InvisibleNumbersSnapshot(int Process, DateTimeOffset Captur
             }
             else if (cell[0] == "S")
             {
-                if (cell.Length != 5 || cell[1] is not ("bats" or "fast_dblade" or "csc") || !keys.Add("tech:" + cell[1]) ||
-                    cell[3] is not ("active" or "inactive" or "unavailable" or "BATS" or "inverse BATS" or "slower")) return null;
-                if (cell[1] == "csc" && cell[3] is not ("active" or "inactive" or "unavailable")) return null;
+                if (cell.Length != 5 || cell[1] is not ("bats" or "fast_dblade" or "csc" or "heat_blast") || !keys.Add("tech:" + cell[1])) return null;
+                if (cell[1] == "heat_blast")
+                {
+                    if (cell[3] != "unavailable" && !uint.TryParse(cell[3], NumberStyles.None, CultureInfo.InvariantCulture, out _)) return null;
+                }
+                else if (cell[3] is not ("active" or "inactive" or "unavailable" or "BATS" or "inverse BATS" or "slower") ||
+                    (cell[1] == "csc" && cell[3] is not ("active" or "inactive" or "unavailable"))) return null;
                 string state = cell[1] == "bats" ? cell[3] switch { "active" => "BATS", "BATS" or "inverse BATS" or "slower" => cell[3], _ => "inactive" } : cell[3];
                 techs.Add(new(cell[1], cell[1] == "bats" ? "Weapon switch" : cell[2], state, cell[4]));
             }

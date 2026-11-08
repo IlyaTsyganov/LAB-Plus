@@ -33,7 +33,7 @@ internal sealed class InvisibleNumbersForm : LabPlusForm
         var layout = new UiGrid { Dock = DockStyle.Fill, Padding = new(12), ColumnCount = 1, RowCount = 8 };
         layout.ColumnStyles.Add(new(SizeType.Percent, 100));
         foreach (var row in new[] { new RowStyle(SizeType.Absolute, 38), new(SizeType.Absolute, 96), new(SizeType.Absolute, 30),
-            new(SizeType.Percent, 55), new(SizeType.Absolute, 30), new(SizeType.Percent, 45), new(SizeType.Absolute, 30), new(SizeType.Absolute, 96) }) layout.RowStyles.Add(row);
+            new(SizeType.Percent, 55), new(SizeType.Absolute, 30), new(SizeType.Percent, 45), new(SizeType.Absolute, 30), new(SizeType.Absolute, 128) }) layout.RowStyles.Add(row);
         Controls.Add(layout);
         var options = new UiToolbar { Dock = DockStyle.Fill, WrapContents = false };
         foreach (var toggle in new[] { _enemiesHud, _bars, _timersHud, _techsHud }) { toggle.Margin = new(0, 4, 22, 0); options.Controls.Add(toggle); }

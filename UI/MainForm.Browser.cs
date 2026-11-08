@@ -7,7 +7,8 @@ internal sealed partial class MainForm
     internal object WorkspaceSnapshot(ScreenStateAdapter projection) => new
     {
         appVersion = Updates.AppVersion.Display,
-        enabled = _viewerEnabled.Checked, shots = _shotCollision.Checked, trimShots = _trimShotCollision.Checked, world = _worldCollision.Checked, triggers = _triggers.Checked, walls = _invisibleWalls.Checked,
+        enabled = _viewerEnabled.Checked, shots = _shotCollision.Checked,
+        projectileMode = _settings.ShowSharedShotCollision ? "allClips" : _settings.TrimShotCollision ? "trimOverlap" : "shotOnly", world = _worldCollision.Checked, triggers = _triggers.Checked, walls = _invisibleWalls.Checked,
         inspector = _inspector.Checked, disabled = _disabledVolumes.Checked, history = _volumeHistory.Checked,
         style = _outlines.Checked ? "Outlines" : "Filled", distance = (int)_distanceInput.Value,
         gamePath = _settings.GameExecutablePath, gameVersion = _gameVersion.Text.Replace("Version: ", "", StringComparison.Ordinal),
@@ -39,11 +40,20 @@ internal sealed partial class MainForm
             case "setting":
                 string name = message.GetProperty("name").GetString() ?? "";
                 if (name != "enabled" && !_viewerEnabled.Checked) return;
-                if (name == "distance") _distanceInput.Value = Math.Clamp(message.GetProperty("value").GetInt32(), 20, 200);
+                if (name == "projectileMode")
+                {
+                    if (!_shotCollision.Checked) return;
+                    string? mode = message.GetProperty("value").GetString();
+                    if (mode is not ("shotOnly" or "trimOverlap" or "allClips")) return;
+                    _settings.ShowSharedShotCollision = mode == "allClips";
+                    _settings.TrimShotCollision = mode == "trimOverlap";
+                    SaveSettings();
+                }
+                else if (name == "distance") _distanceInput.Value = Math.Clamp(message.GetProperty("value").GetInt32(), 20, 200);
                 else if (name == "style") { if (message.GetProperty("value").GetString() == "Outlines") _outlines.Checked = true; else _filled.Checked = true; }
                 else
                 {
-                    UiToggle? control = name switch { "enabled" => _viewerEnabled, "shots" => _shotCollision, "trimShots" => _trimShotCollision, "world" => _worldCollision, "triggers" => _triggers, "walls" => _invisibleWalls, "inspector" => _inspector, "disabled" => _disabledVolumes, "history" => _volumeHistory, _ => null };
+                    UiToggle? control = name switch { "enabled" => _viewerEnabled, "shots" => _shotCollision, "world" => _worldCollision, "triggers" => _triggers, "walls" => _invisibleWalls, "inspector" => _inspector, "disabled" => _disabledVolumes, "history" => _volumeHistory, _ => null };
                     if (control is not null) control.Checked = message.GetProperty("value").GetBoolean();
                 }
                 break;

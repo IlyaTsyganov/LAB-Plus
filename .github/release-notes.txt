@@ -1,1 +1,11 @@
-minor fix
+# LAB Plus 1.1
+
+- **Finisher Visualizer.** Preview Glory Kill and Chainsaw animations. See where to stand and, for some Glory Kills, which body part to aim at. The preview updates as you move around the enemy.
+- **Projectile Collision.** Choose **SHOTCLIP only**, **Trim overlap**, or **All clips** from the dropdown beneath the toggle. **All clips** includes static surfaces that block both shots and the player. When **World Collision** is also visible, shared surfaces get a fine dashed projectile outline.
+- **Practice Saves.** Resize the checkpoint list, sort by name, campaign, or creation date, and delete custom categories while keeping their checkpoints in **Uncategorized**. LAB Plus remembers the list height and sort order. The action buttons are now above the list, and the mouse wheel scrolls the page unless you hold **Shift** to scroll the list.
+- **Checkpoint loading.** `labplus_load_last_save` now reloads the last successfully loaded archive for the current Steam account, game patch, and campaign. Repeat loads start faster, and the command handles key bindings more reliably. You can load an archive as soon as you enter a campaign slot, even if you haven't reached a new checkpoint in that session.
+- **Enemy HP bars.** Adjusted bar placement and added a Glory Kill stagger marker and HP value where the threshold is available.
+- **Speedrun and movement HUDs.** **Multi Heat Blast** counts blasts from the latest activation and keeps the result visible across weapon swaps until another activation or checkpoint reload. The Speedrun tech HUD also detects inverse BATS with the Plasma Rifle. Movement Lab can show player coordinates and view angles in-game.
+- **Game options.** **Remove checkpoint and mission reset delay** bypasses the pause-menu timers for **Load Checkpoint** and **Reset Mission** on supported game patches from 2.0 onward.
+- **OBS Game Capture.** LAB Plus draws its overlays before OBS captures the frame when the OBS Vulkan layer is enabled and Vulkan Loader 1.3.295 or newer is available. Keep your existing OBS source and fullscreen mode, then relaunch DOOM Eternal through LAB Plus.
+- **Steam startup.** LAB Plus starts Steam when needed before launching DOOM Eternal, including separate installations.

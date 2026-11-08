@@ -27,7 +27,7 @@ internal sealed class LabCommandServer : IDisposable
             {
                 using var pipe = new NamedPipeServerStream(_pipeName, PipeDirection.In, 1,
                     PipeTransmissionMode.Byte, PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly);
-                await pipe.WaitForConnectionAsync(_cancellation.Token);
+                await pipe.WaitForConnectionAsync(_cancellation.Token).ConfigureAwait(false);
                 using var timeout = CancellationTokenSource.CreateLinkedTokenSource(_cancellation.Token);
                 timeout.CancelAfter(TimeSpan.FromSeconds(2));
                 // The native client sends one small UTF-8 line. Never wait for
@@ -35,7 +35,7 @@ internal sealed class LabCommandServer : IDisposable
                 byte[] data = new byte[2048]; int length = 0;
                 while (length < data.Length)
                 {
-                    int read = await pipe.ReadAsync(data.AsMemory(length), timeout.Token);
+                    int read = await pipe.ReadAsync(data.AsMemory(length), timeout.Token).ConfigureAwait(false);
                     if (read == 0) break;
                     length += read;
                     if (Array.IndexOf(data, (byte)'\n', 0, length) >= 0) break;
@@ -46,7 +46,7 @@ internal sealed class LabCommandServer : IDisposable
                     try { receive(process, fields[1..]); } catch (InvalidOperationException) { }
             }
             catch (OperationCanceledException) { }
-            catch (IOException) { if (!_cancellation.IsCancellationRequested) await Task.Delay(100); }
+            catch (IOException) { if (!_cancellation.IsCancellationRequested) await Task.Delay(100).ConfigureAwait(false); }
             catch (UnauthorizedAccessException) { break; }
         }
     }

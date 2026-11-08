@@ -237,7 +237,9 @@ static std::shared_ptr<ProjectileTrim> buildProjectileTrim(const RuntimeScene& s
     struct Target { uint32_t index; float distance; bool visible; };
     std::vector<Target> targets;
     for(uint32_t i=0;i<scene.meshes.size();++i) {
-        const auto& mesh=scene.meshes[i]; if(mesh.kind!=3) continue;
+        const auto& mesh=scene.meshes[i];
+        // Shared SHOTCLIP must stay available even when Trim overlap is enabled.
+        if(mesh.kind!=3||mesh.geometry->sharedProjectile) continue;
         if(!resume) {
             result->reasons[i]=ProjectileTrim::Pending;
             result->originalTriangles+=mesh.geometry->triangles.size()/3; result->originalLines+=mesh.geometry->lines.size()/2;

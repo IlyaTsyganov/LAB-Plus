@@ -188,7 +188,7 @@ public sealed partial class PracticeSaveVault
         WriteSet(Path.Combine(temporary, "slot"), files);
         File.WriteAllText(Path.Combine(temporary, "manifest.json"), JsonSerializer.Serialize(value, new JsonSerializerOptions { WriteIndented = true }));
         _ = VerifyFolder(temporary); Directory.Move(temporary, path);
-        new PracticeLatestSave(Path.GetDirectoryName(_root)!).Remember(value); return value;
+        return value;
     }
     public PracticeSave Capture(string remote, string slot, string name, string category, string map = "", string build = "")
     {
@@ -228,17 +228,25 @@ public sealed partial class PracticeSaveVault
                 || f.Sha256 is not { Length: 64 } || !f.Sha256.All(char.IsAsciiHexDigit)) || value.Files.Select(f => f.Name).Distinct(StringComparer.OrdinalIgnoreCase).Count() != value.Files.Count
             || value.Files.Sum(f => f.Length) > 128_000_000 || RequiredFiles.Any(name => !value.Files.Any(f => f.Name == name))) throw new IOException("Invalid practice-save manifest.");
     }
-    private static (PracticeSave Save, Dictionary<string, byte[]> Files) VerifyFolder(string folder)
+    private static (PracticeSave Save, Dictionary<string, byte[]> Files, string ManifestHash) VerifyFolder(string folder, string? authenticatedManifest = null)
     {
         NoLinks(folder); string manifest = Path.Combine(folder, "manifest.json"); NoLinks(manifest);
-        if (new FileInfo(manifest).Length > 131072) throw new IOException("Manifest too large.");
-        PracticeSave? value; try { value = JsonSerializer.Deserialize<PracticeSave>(File.ReadAllText(manifest)); }
+        using var stream = new FileStream(manifest, FileMode.Open, FileAccess.Read, FileShare.Read);
+        if (stream.Length > 131072) throw new IOException("Manifest too large.");
+        byte[] manifestBytes = new byte[(int)stream.Length];
+        stream.ReadExactly(manifestBytes);
+        string manifestHash = Hash(manifestBytes);
+        using var reader = new StreamReader(new MemoryStream(manifestBytes));
+        PracticeSave? value; try { value = JsonSerializer.Deserialize<PracticeSave>(reader.ReadToEnd()); }
         catch (JsonException ex) { throw new IOException("Invalid archive JSON.", ex); }
         Validate(value); var files = ReadSet(Path.Combine(folder, "slot"));
         if (files.Count != value!.Files.Count || value.Files.Any(f => !files.TryGetValue(f.Name, out var data) || data.Length != f.Length || !Hash(data).Equals(f.Sha256, StringComparison.OrdinalIgnoreCase)))
             throw new IOException("Archive checksum/contents mismatch. Nothing was restored.");
-        if (!Health(files, value.Account).Authenticated) throw new IOException("Archive encryption authentication failed. Nothing was restored.");
-        return (value, files);
+        // A matching manifest and all of its freshly checked file hashes
+        // prove that the same previously authenticated bytes were read.
+        if (authenticatedManifest != manifestHash && !Health(files, value.Account).Authenticated)
+            throw new IOException("Archive encryption authentication failed. Nothing was restored.");
+        return (value, files, manifestHash);
     }
     public PracticeSave Verify(string id) => VerifyFolder(ArchivePath(id)).Save;
     public IReadOnlyList<PracticeSave> List()

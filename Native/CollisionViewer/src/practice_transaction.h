@@ -116,13 +116,20 @@ static PracticeStorageApi practiceStorageApi(const std::string& slot="DLC1-AUTOS
 static PracticeCommitResult commitPracticeRestore(const std::filesystem::path& remote,const std::filesystem::path& bundle,
     const PracticeFiles& incoming,const PracticeFiles& current,const PracticeRestorePlan& plan,const std::string& account,const std::string& token,
     const PracticeStorageApi& storage,const std::function<bool()>& stillIdle,const std::function<void(const char*)>& step={}) {
-    practiceAuthenticate(incoming,account); practiceAuthenticate(current,account);
+    practiceAuthenticate(incoming,account);
+    if(incoming!=current) practiceAuthenticate(current,account);
     if(!practiceToken(token)||!practiceTargetMatches(current,plan)||!practiceFilesMatch(incoming,plan.sources)) throw std::runtime_error("Archive or target checkpoint changed after review. Nothing restored.");
     if(!practiceSlot(plan.slot)) throw std::runtime_error("Unsupported restore slot.");
     auto app=remote.parent_path(),target=remote/std::filesystem::u8path(plan.slot),original=app/(L".labplus-live-original-"+std::wstring(token.begin(),token.end()));
     practiceNoLinks(app); practiceNoLinks(target); practiceNoLinks(original);
     if(std::filesystem::exists(original)||!storage.read||!storage.write) throw std::runtime_error("Restore transaction path already exists or storage unavailable.");
     if(storage.read()!=current||!stillIdle()) throw std::runtime_error("Steam storage and selected disk slot differ, or engine state changed. Nothing restored.");
+    // Already-installed bytes need no storage mutation or recovery copy. Recheck
+    // the disk after the Steam comparison, and let the caller request the engine load.
+    if(incoming==current) {
+        if(readPracticeFiles(target)!=current||!stillIdle()) throw std::runtime_error("Archive or target checkpoint changed after review. Nothing restored.");
+        return {};
+    }
     auto journal=bundle/L"RESTORE_PATHS.txt";
     {
         std::ofstream out(journal,std::ios::binary|std::ios::trunc);

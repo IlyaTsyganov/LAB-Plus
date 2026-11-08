@@ -29,7 +29,6 @@ internal sealed partial class MainForm : LabPlusForm
     private readonly UiToggle _triggers = new WorkspaceSwitch();
     private readonly UiToggle _worldCollision = new WorkspaceSwitch();
     private readonly UiToggle _shotCollision = new WorkspaceSwitch();
-    private readonly UiToggle _trimShotCollision = new WorkspaceSwitch();
     private readonly UiToggle _invisibleWalls = new WorkspaceSwitch();
     private readonly UiToggle _inspector = new WorkspaceSwitch();
     private readonly UiToggle _disabledVolumes = new WorkspaceSwitch();
@@ -97,7 +96,6 @@ internal sealed partial class MainForm : LabPlusForm
         _triggers.Checked = _settings.ShowTriggers;
         _worldCollision.Checked = _settings.ShowWorldCollision;
         _shotCollision.Checked = _settings.ShowShotCollision;
-        _trimShotCollision.Checked = _settings.TrimShotCollision;
         _invisibleWalls.Checked = _settings.ShowInvisibleWalls;
         _inspector.Checked = _settings.InspectVolumes;
         _disabledVolumes.Checked = _settings.ShowDisabledVolumes;
@@ -117,7 +115,6 @@ internal sealed partial class MainForm : LabPlusForm
         _triggers.CheckedChanged += (_, _) => { _settings.ShowTriggers = _triggers.Checked; SaveSettings(); };
         _worldCollision.CheckedChanged += (_, _) => { _settings.ShowWorldCollision = _worldCollision.Checked; UpdateViewerControls(); SaveSettings(); };
         _shotCollision.CheckedChanged += (_, _) => { _settings.ShowShotCollision = _shotCollision.Checked; SaveSettings(); };
-        _trimShotCollision.CheckedChanged += (_, _) => { _settings.TrimShotCollision = _trimShotCollision.Checked; SaveSettings(); };
         _invisibleWalls.CheckedChanged += (_, _) => { _settings.ShowInvisibleWalls = _invisibleWalls.Checked; SaveSettings(); };
         _inspector.CheckedChanged += (_, _) => { _settings.InspectVolumes = _inspector.Checked; SaveSettings(); };
         _disabledVolumes.CheckedChanged += (_, _) => { _settings.ShowDisabledVolumes = _disabledVolumes.Checked; SaveSettings(); };
@@ -249,11 +246,23 @@ internal sealed partial class MainForm : LabPlusForm
 
     internal void ReceiveLabCommand(int process, string[] args)
     {
+        if (PracticeSaveCommand.TryParse(args, out var token))
+        {
+            string directory = _settingsStore.SettingsDirectory;
+            if (!IsHandleCreated || IsDisposed)
+            {
+                PracticeSaveCommand.Reply(directory, process, token, false, "The LAB Plus window is unavailable.");
+                return;
+            }
+            if (!PracticeSaveCommand.Acknowledge(directory, process, token)) return;
+            try { BeginInvoke(() => _ = LoadLastSaveCommand(process, token)); }
+            catch (InvalidOperationException) { PracticeSaveCommand.Reply(directory, process, token, false, "The LAB Plus window is unavailable."); }
+            return;
+        }
         if (!IsHandleCreated || IsDisposed) return;
         BeginInvoke(() =>
         {
             if (IsDisposed || SelectedGameProcess() != process) return;
-            if (PracticeSaveCommand.TryParse(args, out var token)) { _ = LoadLastSaveCommand(process, token); return; }
             if (!LabCommands.Apply(_settings, args, process, DateTime.UtcNow.Ticks)) return;
             _loadingControls = true;
             try { LoadSettingsIntoControls(); }
@@ -264,8 +273,19 @@ internal sealed partial class MainForm : LabPlusForm
 
     private async Task LoadLastSaveCommand(int process, string token)
     {
-        var result = await EnsurePracticeSaves().LoadLastCheckpointFromCommand(process);
-        if (!IsDisposed) PracticeSaveCommand.Reply(_settingsStore.SettingsDirectory, process, token, result.Success, result.Message);
+        string directory = _settingsStore.SettingsDirectory;
+        try
+        {
+            if (IsDisposed || SelectedGameProcess() != process)
+            {
+                PracticeSaveCommand.Reply(directory, process, token, false, "The request did not come from the selected game session.");
+                return;
+            }
+            var result = await EnsurePracticeSaves().LoadLastCheckpointFromCommand(process);
+            PracticeSaveCommand.Reply(directory, process, token, result.Success, result.Message);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException or System.ComponentModel.Win32Exception)
+        { PracticeSaveCommand.Reply(directory, process, token, false, PracticeSaveForm.FriendlyError(ex.Message)); }
     }
 
     internal void StopResearchOnExit()
@@ -322,7 +342,6 @@ internal sealed partial class MainForm : LabPlusForm
     {
         bool enabled = _viewerEnabled.Checked;
         _triggers.Enabled = _worldCollision.Enabled = _invisibleWalls.Enabled = _shotCollision.Enabled = enabled;
-        _trimShotCollision.Enabled = enabled;
         _outlines.Enabled = _filled.Enabled = _distance.Enabled = _distanceInput.Enabled = enabled;
         _inspector.Enabled = enabled;
         _disabledVolumes.Enabled = _volumeHistory.Enabled = enabled;

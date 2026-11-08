@@ -8,7 +8,7 @@ static constexpr LabCommandDefinition labCommandDefinitions[]{
     {"labplus_commands_list","List LAB Plus cvars and action commands"},
     {"labplus_encounters_list","List active encounter managers with reference names"},
     {"labplus_debughud_scale","[0.5..3] - query or set DebugHUD text scale"},
-    {"labplus_load_last_save","Load the last LAB Plus archive for the current account, patch and campaign"},
+    {"labplus_load_last_save","Reload the last successfully loaded LAB Plus archive for the current account, patch and campaign"},
     {"labplus_enemies","0|1 - living enemies and health HUD"},
     {"labplus_enemy_hp_bars","0|1 - world enemy health bars"},
     {"labplus_position","0|1 - player coordinates in debug HUD"},
@@ -69,16 +69,18 @@ static bool printDebugHudScaleQuery(const MeathookHudApi& api,const std::vector<
     text<<"labplus_debughud_scale is "<<debugHudScale.load()<<" (0.5..3)\n";
     api.consolePrint("%s",text.str().c_str()); return true;
 }
-static bool sendLabRequest(const std::vector<std::string>& args) {
+static bool writeLabRequest(const std::vector<std::string>& args,DWORD* openError) {
+    if(openError) *openError=ERROR_SUCCESS;
     if(!labAppAvailable()) return false;
     std::string request=std::to_string(GetCurrentProcessId());
     for(const auto& arg:args) { request+='\t'; request+=arg; }
     request+='\n'; if(request.size()>2000) return false;
     HANDLE pipe=CreateFileW(L"\\\\.\\pipe\\labplus.commands",GENERIC_WRITE,0,nullptr,OPEN_EXISTING,0,nullptr);
-    if(pipe==INVALID_HANDLE_VALUE) return false;
+    if(pipe==INVALID_HANDLE_VALUE) { if(openError) *openError=GetLastError(); return false; }
     DWORD written=0; bool success=WriteFile(pipe,request.data(),static_cast<DWORD>(request.size()),&written,nullptr)&&written==request.size();
     CloseHandle(pipe); return success;
 }
+static bool sendLabRequest(const std::vector<std::string>& args) { return writeLabRequest(args,nullptr); }
 static bool saveCommandTokenValid(const std::string& token) {
     return token.size()==32&&std::all_of(token.begin(),token.end(),[](char c) { return (c>='0'&&c<='9')||(c>='a'&&c<='f'); });
 }
@@ -88,16 +90,17 @@ static std::string newSaveCommandToken() {
     std::string token; const char hex[]="0123456789abcdef";
     for(auto byte:bytes) { token+=hex[byte>>4]; token+=hex[byte&15]; } return token;
 }
-static std::string readSaveCommandReply(const std::filesystem::path& path,DWORD process,const std::string& token) {
+struct SaveCommandReply { std::string detail; bool accepted=false; };
+static SaveCommandReply readSaveCommandReply(const std::filesystem::path& path,DWORD process,const std::string& token) {
     if(!saveCommandTokenValid(token)) return {};
     std::error_code error; auto length=std::filesystem::file_size(path,error); if(error||length>4096) return {};
     std::ifstream file(path,std::ios::binary); std::string line,extra; if(!std::getline(file,line)||std::getline(file,extra)) return {};
     std::istringstream stream(line); std::vector<std::string> fields; std::string part;
     while(std::getline(stream,part,'\t')) fields.push_back(part);
     if(fields.size()!=5||fields[0]!="#LABPLUS_SAVE_COMMAND_V1"||fields[1]!=std::to_string(process)||fields[2]!=token||
-       (fields[3]!="ok"&&fields[3]!="error")||fields[4].empty()||fields[4].size()>3072) return {};
+       (fields[3]!="ok"&&fields[3]!="error"&&fields[3]!="accepted")||fields[4].empty()||fields[4].size()>3072) return {};
     for(auto c:fields[4]) if(static_cast<unsigned char>(c)<32||c==127) return {};
-    return fields[4];
+    return {fields[4],fields[3]=="accepted"};
 }
 
 struct LabCommandSystem { uintptr_t object=0,add=0,exists=0,slot=0; explicit operator bool() const { return object&&add&&exists; } };
@@ -136,8 +139,55 @@ class LabConsole {
     ULONGLONG cvarsRetryAt=0;
     LabCommandSystem commandSystem;
     LabCvarBridge cvars;
+    std::mutex saveMutex;
     std::string saveToken;
     ULONGLONG saveStarted=0,saveReplyPoll=0;
+    bool saveSent=false,saveAccepted=false;
+
+    static bool retrySaveDelivery(DWORD error) { return error==ERROR_PIPE_BUSY||error==ERROR_FILE_NOT_FOUND; }
+    const char* beginSaveCommand() {
+        std::lock_guard<std::mutex> lock(saveMutex);
+        if(!saveToken.empty()) return "A save operation is already pending.";
+        auto token=newSaveCommandToken();
+        if(token.empty()) return "Could not create a save request.";
+        DWORD error=0;
+        const bool sent=writeLabRequest({"labplus_load_last_save",token},&error);
+        if(!sent&&!retrySaveDelivery(error)) return "LAB Plus is unavailable. Retry.";
+        saveToken=std::move(token); saveStarted=GetTickCount64(); saveReplyPoll=0;
+        saveSent=sent; saveAccepted=false;
+        return sent?"Request sent to LAB Plus.":"LAB Plus is busy. Retrying delivery.";
+    }
+    std::string pollSaveCommand(bool available) {
+        std::lock_guard<std::mutex> lock(saveMutex);
+        if(!available) saveToken.clear();
+        const auto now=GetTickCount64();
+        if(saveToken.empty()||now<saveReplyPoll) return {};
+        saveReplyPoll=now+100;
+        if(!saveSent) {
+            DWORD error=0;
+            if(writeLabRequest({"labplus_load_last_save",saveToken},&error)) {
+                saveSent=true; saveStarted=now;
+                return "Request sent to LAB Plus.";
+            }
+            if(retrySaveDelivery(error)&&now-saveStarted<1000) return {};
+            saveToken.clear();
+            return "Could not send the request to LAB Plus. Retry.";
+        }
+        auto directory=researchDirectory();
+        auto reply=readSaveCommandReply(directory/(L"practice-command-"+std::to_wstring(GetCurrentProcessId())+L".tsv"),GetCurrentProcessId(),saveToken);
+        if(reply.accepted) {
+            if(!saveAccepted) { saveAccepted=true; return reply.detail; }
+        } else if(!reply.detail.empty()) { saveToken.clear(); return reply.detail; }
+        if(!saveAccepted&&now-saveStarted>10000) {
+            saveToken.clear();
+            return "LAB Plus did not acknowledge the request. Retry.";
+        }
+        if(now-saveStarted>390000) {
+            saveToken.clear();
+            return "Completion was not confirmed. Check Saves in LAB Plus.";
+        }
+        return {};
+    }
     static LabConsole*& instance() { static LabConsole* value=nullptr; return value; }
     static void callback(void* self) { static_cast<LabConsole*>(self)->frame(); }
     static void command(void* raw) {
@@ -156,11 +206,7 @@ class LabConsole {
         if(!validLabArguments(args)) { self->api->consolePrint("%s","labplus_: invalid arguments. Use labplus_commands_list.\n"); return; }
         args=normalizeLabArguments(args);
         if(args[0]=="labplus_load_last_save") {
-            if(!self->saveToken.empty()) { self->api->consolePrint("%s","labplus_load_last_save: a save operation is already pending.\n"); return; }
-            auto token=newSaveCommandToken();
-            if(token.empty()||!sendLabRequest({args[0],token})) { self->api->consolePrint("%s","labplus_load_last_save: LAB Plus is unavailable or busy; retry.\n"); return; }
-            self->saveToken=token; self->saveStarted=GetTickCount64(); self->saveReplyPoll=0;
-            self->api->consolePrint("%s","labplus_load_last_save: request sent to LAB Plus.\n");
+            self->api->consolePrint("labplus_load_last_save: %s\n",self->beginSaveCommand());
         }
         else if(printDebugHudScaleQuery(*self->api,args)) {}
         else if(args[0]=="labplus_encounters"&&args.size()==1) { printActiveEncounters(*self->api); }
@@ -171,14 +217,8 @@ class LabConsole {
     }
     void frame() {
         bool available=labAppAvailable();
-        if(!available) saveToken.clear();
-        if(!saveToken.empty()&&GetTickCount64()>=saveReplyPoll) {
-            saveReplyPoll=GetTickCount64()+100;
-            auto directory=researchDirectory();
-            auto reply=readSaveCommandReply(directory/(L"practice-command-"+std::to_wstring(GetCurrentProcessId())+L".tsv"),GetCurrentProcessId(),saveToken);
-            if(!reply.empty()) { api->consolePrint("labplus_load_last_save: %s\n",reply.c_str()); saveToken.clear(); }
-            else if(GetTickCount64()-saveStarted>390000) { api->consolePrint("%s","labplus_load_last_save: completion was not confirmed. Check Saves in LAB Plus.\n"); saveToken.clear(); }
-        }
+        auto saveReply=pollSaveCommand(available);
+        if(!saveReply.empty()) api->consolePrint("labplus_load_last_save: %s\n",saveReply.c_str());
         const auto* profile=currentGameProfile(); if(!profile) return;
         if(commandsRegistered) {
             if(available&&!cvars.ready()&&!cvars.blocked()&&GetTickCount64()>=cvarsRetryAt) {

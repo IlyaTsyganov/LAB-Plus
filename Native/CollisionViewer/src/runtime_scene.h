@@ -101,11 +101,11 @@ struct RuntimeSceneBuilder {
             }
             return true;
         }
-        if(contents.shotsOnly&&header[0x22]==9?!contents.hasShotTags(address):!contents.allowsShape(address)) { if(!contents.shotsOnly) ++scene.nonBlocking; return true; }
+        if(contents.projectile()&&header[0x22]==9?!contents.hasShotTags(address):!contents.allowsShape(address)) { if(!contents.projectile()) ++scene.nonBlocking; return true; }
         auto found=cache.find(address);
         if(found==cache.end()) {
             LiveWalls decoder; decoder.memory=memory;
-            auto geometry=std::make_shared<Geometry>(); geometry->kind=contents.shotsOnly?3u:1u;
+            auto geometry=std::make_shared<Geometry>(); geometry->kind=contents.projectile()?3u:1u;
             bool decoded=decoder.shape(address,WallTransform{},*geometry,0,&contents);
             if(decoded&&geometry->triangles.empty()) { ++errors["empty shape"]; return true; }
             if(!decoded) {
@@ -113,8 +113,9 @@ struct RuntimeSceneBuilder {
             }
             // Only native convex leaves can supply subtraction volumes. A
             // compressed surface or a compound is never assumed to be solid.
-            geometry->convexSolid=!contents.shotsOnly&&header[0x22]!=9&&(header[0x20]&2)!=0&&contents.knownPlayerBlocker(address);
+            geometry->convexSolid=!contents.projectile()&&header[0x22]!=9&&(header[0x20]&2)!=0&&contents.knownPlayerBlocker(address);
             geometry->sourceType=header[0x22];
+            geometry->sharedProjectile=contents.selection==ShapeContentsFilter::Selection::SharedShot;
             if(geometry->convexSolid) geometry->solidPlanes=nativePlanes(address,header);
             Cached item{}; item.geometry=geometry;
             for(int k=0;k<3;++k) { item.bounds[k]=FLT_MAX; item.bounds[k+3]=-FLT_MAX; }
@@ -124,7 +125,7 @@ struct RuntimeSceneBuilder {
             }
             found=cache.emplace(address,std::move(item)).first;
         }
-        Mesh mesh{}; mesh.kind=contents.shotsOnly?3u:1u; mesh.geometry=found->second.geometry; memcpy(mesh.matrix,transform.m,48);
+        Mesh mesh{}; mesh.kind=contents.projectile()?3u:1u; mesh.geometry=found->second.geometry; memcpy(mesh.matrix,transform.m,48);
         for(int k=0;k<3;++k) { mesh.bounds[k]=FLT_MAX; mesh.bounds[k+3]=-FLT_MAX; }
         const float* bounds=found->second.bounds;
         for(unsigned corner=0;corner<8;++corner) {
@@ -139,12 +140,12 @@ struct RuntimeSceneBuilder {
         auto start=std::chrono::steady_clock::now();
         auto scene=std::make_shared<RuntimeScene>(); scene->level=level;
         cache.clear(); unsupportedTypes.clear(); errors.clear(); contents.memory=memory; contents.clear(); failed=false;
-        contents.shotsOnly=false;
-        if(!walk(level.world,WallTransform{},*scene)||failed||cancelled()) return {};
-        scene->unique=static_cast<uint32_t>(cache.size()); cache.clear();
-        contents.shotsOnly=true;
-        if(!walk(level.world,WallTransform{},*scene)||failed||cancelled()) return {};
-        scene->unique+=static_cast<uint32_t>(cache.size()); cache.clear();
+        using Selection=ShapeContentsFilter::Selection;
+        for(auto selection:{Selection::World,Selection::ShotOnly,Selection::SharedShot}) {
+            contents.selection=selection;
+            if(!walk(level.world,WallTransform{},*scene)||failed||cancelled()) return {};
+            scene->unique+=static_cast<uint32_t>(cache.size()); cache.clear();
+        }
         scene->order.resize(scene->meshes.size()); std::iota(scene->order.begin(),scene->order.end(),0u);
         if(!scene->meshes.empty()) buildSpatialNodeFor(scene->meshes,scene->nodes,scene->order,0,static_cast<uint32_t>(scene->meshes.size()));
         if(cancelled()) return {};

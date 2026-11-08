@@ -78,6 +78,7 @@ static bool writeInvisibleNumbers(const InvisibleNumbersSnapshot& snapshot,const
     } catch(...) { return false; }
 }
 #include "player_pose_hud.h"
+#include "heat_blast.h"
 class InvisibleNumbersBridge {
     PlayerPoseHud poseHud;
     SyncTargetHud syncHud;
@@ -151,13 +152,14 @@ class InvisibleNumbersBridge {
     }
     void run() {
         uintptr_t base=reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr)); const auto directory=researchDirectory(); unsigned iterations=0;
+        HeatBlastTracker heatBlast;
         for(;;) {
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
             if(!labAppAvailable()) { wanted=false; continue; }
             const bool window=numbersRequestFresh(directory,encounterEpochMillis());
             const unsigned features=(window?7u:((showEnemyHealthHud.load()?1u:0u)|(showGameTimersHud.load()?2u:0u)|(showSpeedrunTechsHud.load()?4u:0u)))|(showEnemyHealthBars.load()?8u:0u);
             wanted=features!=0;
-            if(!wanted.load()) continue;
+            if(!wanted.load()&&!heatBlast.tracking()) continue;
             InvisibleNumbersSnapshot value; value.captured=encounterEpochMillis();
             try {
                 if(!profile) value.phase="unsupported_profile";
@@ -178,6 +180,10 @@ class InvisibleNumbersBridge {
                     if(!level) value.phase="loading";
                     else {
                         value=captureInvisibleNumbers(WallMemory{},base,*profile,level,lookup,features);
+                        if((features&4)||heatBlast.tracking()) {
+                            auto blast=captureHeatBlast(WallMemory{},base,*profile,level,lookup,heatBlast);
+                            if(features&4) value.techs.push_back(std::move(blast));
+                        }
                         if(readLevelIdentity(WallMemory{},base,*profile)!=level) { value.phase="loading"; value.enemies.clear(); value.barEnemies.clear(); value.timers.clear(); value.techs.clear(); }
                         else if(value.phase=="live"&&!gameplayVisible(WallMemory{},base,*profile)) value.phase="paused";
                     }
@@ -186,6 +192,7 @@ class InvisibleNumbersBridge {
                     }
                 }
             } catch(...) { value.phase="read_error"; value.enemies.clear(); value.barEnemies.clear(); value.timers.clear(); value.techs.clear(); }
+            if(!wanted.load()) continue;
             if(window&&showSyncTarget.load()) {
                 const auto preview=std::atomic_load(&syncTargetFrame);
                 if(preview&&preview->phase=="ready"&&preview->level==value.level&&GetTickCount64()-preview->captured<=100&&preview->action==syncTargetAction.load()){

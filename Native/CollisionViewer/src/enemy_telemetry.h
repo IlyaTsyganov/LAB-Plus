@@ -3,6 +3,13 @@
 
 // Read-only encounter membership and health. Every offset comes from reflected
 // fields, including the health-component stride (88 bytes in 1.0, 96 in 5.1).
+struct EnemyPartPose {
+    uintptr_t decl=0;
+    uint32_t animator=~0u,renderModel=~0u,animDecl=~0u,joints=~0u,deferred=~0u;
+    uint32_t origin=~0u,axis=~0u,scale=~0u;
+    uint16_t joint=0;
+    Vec3 translation{};
+};
 struct EnemyTelemetryRow {
     EntityReference entity;
     uint32_t encounterId=0,encounterGeneration=0;
@@ -10,10 +17,16 @@ struct EnemyTelemetryRow {
     double health=0,maximum=0;
     bool staggerKnown=false,staggerActive=false;
     double staggerSeconds=0;
+    int32_t painReaction=-1;
     int64_t staggerDeadline=0,staggerDuration=0;
     uint32_t staggerVolatileOffset=~0u,staggerPainOffset=~0u,staggerReactionOffset=~0u,staggerFinishOffset=~0u,staggerLengthOffset=~0u;
     bool maximumKnown=false,positionKnown=false;
     Vec3 top{};
+    double staggerThreshold=-1;
+    float extraHeight=0;
+    bool showEmpty=false;
+    uint8_t part=0;
+    EnemyPartPose partPose;
     uint32_t physicsOffset=~0u,worldBoundsOffset=~0u,physicsMapOffset=~0u;
     uint32_t healthOffset=~0u,deadOffset=~0u;
 };
@@ -163,6 +176,7 @@ static bool resolveEnemyStaggerPointer(const WallMemory& memory,uintptr_t base,c
         uint64_t(painOffset)+layout.staggerFinish==deadline;
 }
 static bool refreshEnemyStagger(const WallMemory& memory,uintptr_t base,const GameProfile& profile,EnemyTelemetryRow& row,int64_t gameNow=-1) {
+    row.painReaction=-1;
     row.staggerKnown=false; row.staggerActive=false; row.staggerSeconds=0; row.staggerDeadline=0; row.staggerDuration=0;
     if(row.staggerVolatileOffset==~0u||row.staggerPainOffset==~0u||row.staggerReactionOffset==~0u||row.staggerFinishOffset==~0u||
        row.staggerLengthOffset==~0u||!enemyTelemetryIdentity(memory,base,profile,row.entity)) return false;
@@ -177,6 +191,7 @@ static bool refreshEnemyStagger(const WallMemory& memory,uintptr_t base,const Ga
        !memory.get(data+row.staggerPainOffset+row.staggerReactionOffset,finalReaction)||reaction!=finalReaction||
        !memory.get(data+row.staggerPainOffset+row.staggerFinishOffset,finalDeadline)||deadline!=finalDeadline||
        !enemyTelemetryIdentity(memory,base,profile,row.entity)) return false;
+    row.painReaction=reaction;
     row.staggerDeadline=deadline; row.staggerDuration=duration;
     // The vanilla stagger/recovery path accepts both PAIN_STAGGER (16) and
     // PAIN_STAGGER_VULNERABLE (17). A live 1.0 glory-kill demonstration uses
@@ -187,23 +202,27 @@ static bool refreshEnemyStagger(const WallMemory& memory,uintptr_t base,const Ga
     if(!std::isfinite(remaining)||remaining>86400) return false;
     row.staggerKnown=true; row.staggerSeconds=remaining; row.staggerActive=deadline>gameNow; return true;
 }
+// Reflected aiHealthComponent_t: HITPOINTS=0, SHIELD=1, MAX=2.
+static bool readEnemyTelemetryHealthComponent(const WallMemory& memory,uintptr_t actor,const EnemyTelemetryLayout& layout,
+                                              int32_t wanted,float& current,float& maximum) {
+    for(uint32_t i=0;i<layout.componentCount;++i) {
+        const auto values=actor+layout.health+layout.components+i*layout.componentSize;
+        int32_t kind=-1;
+        if(memory.get(values+layout.type,kind)&&kind==wanted)
+            return memory.get(values+layout.current,current)&&memory.get(values+layout.maximum,maximum);
+    }
+    return false;
+}
 enum class EnemyTelemetryRead { Alive,NotAlive,Unavailable };
 static EnemyTelemetryRead readEnemyTelemetryActor(const WallMemory& memory,uintptr_t base,const GameProfile& profile,
-    const EnemyTelemetryLayout& layout,const EntityReference& ref,EnemyTelemetryRow& row) {
+    const EnemyTelemetryLayout& layout,const EntityReference& ref,EnemyTelemetryRow& row,bool includeZeroHealth=false) {
     if(!enemyTelemetryIdentity(memory,base,profile,ref)) return EnemyTelemetryRead::NotAlive;
-    unsigned char dead=2; float hp=0,maximum=0; bool matched=false;
+    unsigned char dead=2; float hp=0,maximum=0;
     if(!memory.get(ref.address+layout.health+layout.dead,dead)||dead>1) return EnemyTelemetryRead::Unavailable;
     if(dead) return EnemyTelemetryRead::NotAlive;
-    for(uint32_t component=0;component<layout.componentCount;++component) {
-        uintptr_t values=ref.address+layout.health+layout.components+component*layout.componentSize; int32_t kind=-1;
-        if(!memory.get(values+layout.type,kind)) continue;
-        // Reflected enum audited in 1.0 and 5.1: HITPOINTS=0,
-        // SHIELD=1, MAX=2. Never report shield as body health.
-        if(kind!=0) continue;
-        matched=memory.get(values+layout.current,hp)&&memory.get(values+layout.maximum,maximum); break;
-    }
-    if(!matched||!std::isfinite(hp)||hp<0||hp>1e9f) return EnemyTelemetryRead::Unavailable;
-    if(hp<=0) return EnemyTelemetryRead::NotAlive;
+    if(!readEnemyTelemetryHealthComponent(memory,ref.address,layout,0,hp,maximum)||
+       !std::isfinite(hp)||hp<0||hp>1e9f) return EnemyTelemetryRead::Unavailable;
+    if(hp==0&&!includeZeroHealth) return EnemyTelemetryRead::NotAlive;
     row.entity=ref; row.health=hp; row.maximum=maximum;
     row.maximumKnown=std::isfinite(maximum)&&maximum>0&&maximum<=1e9f;
     uintptr_t text=0; if(memory.get(ref.address+layout.name+layout.stringData,text)) row.name=readEntityText(memory,text,256);
@@ -219,6 +238,8 @@ static EnemyTelemetryRead readEnemyTelemetryActor(const WallMemory& memory,uintp
     if(!memory.get(ref.address+layout.health+layout.dead,dead)||dead||!enemyTelemetryIdentity(memory,base,profile,ref)) return EnemyTelemetryRead::NotAlive;
     return EnemyTelemetryRead::Alive;
 }
+#include "enemy_bar_telemetry.h"
+
 static EnemyTelemetryCapture captureEnemyTelemetry(const WallMemory& memory,uintptr_t base,const GameProfile& profile,
                                                   const LevelIdentity& level,const GraphLookup& lookup,bool collectBars=false) {
     EnemyTelemetryCapture result; auto layout=resolveEnemyTelemetryLayout(lookup);
@@ -292,12 +313,19 @@ static EnemyTelemetryCapture captureEnemyTelemetry(const WallMemory& memory,uint
     // A visible AI can be spawned by a console/spawner or remain outside a
     // manager's active script. Bars use all living map AI; they do not invent
     // encounter membership for the grouped encounter list above.
-    if(collectBars) for(size_t i=0;i<entries.size()&&result.barEnemies.size()<2048;++i) {
-        if(!entries[i].entity) continue;
-        const auto className=type(entries[i].entity); if(className.empty()||!aiType(className)) continue;
-        EnemyTelemetryRow row; auto read=readEnemyTelemetryActor(memory,base,profile,layout,reference(i,className),row);
-        if(read==EnemyTelemetryRead::Alive) result.barEnemies.push_back(std::move(row));
-        else if(read==EnemyTelemetryRead::Unavailable) ++result.unavailable;
+    if(collectBars) {
+        const auto bars=resolveEnemyBarLayout(lookup);
+        std::unordered_map<uintptr_t,double> thresholds;
+        for(size_t i=0;i<entries.size()&&result.barEnemies.size()<2048;++i) {
+            if(!entries[i].entity) continue;
+            const auto className=type(entries[i].entity);
+            if(className.empty()||!aiType(className)) continue;
+            EnemyTelemetryRow row;
+            const auto read=readEnemyTelemetryActor(memory,base,profile,layout,reference(i,className),row,true);
+            if(read==EnemyTelemetryRead::Alive)
+                collectEnemyHealthBar(memory,layout,bars,base,profile,std::move(row),thresholds,result.barEnemies);
+            else if(read==EnemyTelemetryRead::Unavailable) ++result.unavailable;
+        }
     }
     uintptr_t finalList=0; uint32_t finalCount=0;
     if(readLevelIdentity(memory,base,profile)!=level||!memory.get(map+profile.mapEntitiesOffset,finalList)||finalList!=list||

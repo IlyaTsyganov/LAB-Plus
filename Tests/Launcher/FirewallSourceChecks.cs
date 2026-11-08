@@ -35,9 +35,10 @@ internal static class FirewallSourceChecks
         string layerFixture = Path.Combine(AppContext.BaseDirectory, "Native", "CollisionViewer", "bin", "labplus-layer.dll");
         Directory.CreateDirectory(Path.GetDirectoryName(layerFixture)!);
         if (!File.Exists(layerFixture)) File.WriteAllBytes(layerFixture, [1, 2, 3]);
+        string protectedRuntime = new VulkanLayerRegistration(store).RuntimeDirectory;
         int checks = 0, starts = 0;
         var protectedLauncher = new GameLauncher(store, path => { Check(path == exe, "Rechecked a different target"); checks++; return new(true, "protected"); }, info =>
-        { Check(info.FileName == exe && !info.UseShellExecute, "Started a different process from the verified executable"); Check(info.Environment["LABPLUS_LAUNCHED"] == "1" && info.Environment["SteamAppId"] == "782330", "Child launch identity must survive Steam initialization even without the viewer"); Check(info.Environment["VK_INSTANCE_LAYERS"]!.Contains("VK_LAYER_LABPLUS_collision"), "Saves bridge must load with every overlay disabled"); starts++; return Process.GetCurrentProcess(); }, (_, _) => Task.CompletedTask);
+        { Check(info.FileName == exe && !info.UseShellExecute, "Started a different process from the verified executable"); Check(info.Environment["LABPLUS_LAUNCHED"] == "1" && info.Environment["SteamAppId"] == "782330", "Child launch identity must survive Steam initialization even without the viewer"); Check(info.Environment["VK_INSTANCE_LAYERS"]!.Contains("VK_LAYER_LABPLUS_collision") || (info.Environment.TryGetValue("LABPLUS_ENABLE_CAPTURE_LAYER", out string? capture) && capture == "1" && File.Exists(Path.Combine(protectedRuntime, "capture", "labplus-layer.json"))), "Saves bridge must load with every overlay disabled"); starts++; return Process.GetCurrentProcess(); }, (_, _) => Task.CompletedTask);
         using (protectedLauncher.Start(new() { GameExecutablePath = exe, CollisionViewerEnabled = false })) { }
         Check(checks == 2 && starts == 1, "Protected launch must inspect the rule again immediately before the process starts");
         var steamReady = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);

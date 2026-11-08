@@ -53,11 +53,11 @@ int main() {
     updateViewerSettings();
     expect(!enabled&&!showTriggers&&showCollision&&!showWalls&&!inspectVolumes&&collisionMode==0&&radius==100,"settings file controls viewer without hotkeys");
     Sleep(260);
-    writeSettings(settingsFile,L"Enabled=1\r\nShowTriggers=1\r\nShowCollision=0\r\nShowWalls=1\r\nInspectVolumes=1\r\nShowShotCollision=1\r\nTrimShotCollision=1\r\nShowDisabledVolumes=1\r\nShowVolumeHistory=1\r\nCollisionMode=1\r\nDistance=175\r\n[TriggerClasses]\r\nidTrigger=0\r\nidEncounterTrigger_Commit=0\r\nidTrigger_Teleporter=1\r\nnot_a_class=0\r\n");
+    writeSettings(settingsFile,L"Enabled=1\r\nShowTriggers=1\r\nShowCollision=0\r\nShowWalls=1\r\nInspectVolumes=1\r\nShowShotCollision=1\r\nShowSharedShotCollision=1\r\nTrimShotCollision=1\r\nShowDisabledVolumes=1\r\nShowVolumeHistory=1\r\nCollisionMode=1\r\nDistance=175\r\n[TriggerClasses]\r\nidTrigger=0\r\nidEncounterTrigger_Commit=0\r\nidTrigger_Teleporter=1\r\nnot_a_class=0\r\n");
     WritePrivateProfileStringW(nullptr,nullptr,nullptr,settingsFile.c_str());
     updateViewerSettings();
     expect(enabled&&showTriggers&&!showCollision&&showWalls&&inspectVolumes&&collisionMode==1&&radius==175,"live settings update including inspector toggle");
-    expect(showShotCollision&&trimShotCollision,"projectile visibility and experimental trim update independently through live settings");
+    expect(showShotCollision&&showSharedShotCollision&&!trimShotCollision,"All clips takes priority when legacy settings enabled both modes");
     expect(showDisabledVolumes&&showVolumeHistory,"inactive-volume and history settings update live");
     expect(hiddenTriggerClasses.size()==2&&hiddenTriggerClasses.count("idTrigger")&&hiddenTriggerClasses.count("idEncounterTrigger_Commit"),"only exact valid disabled class entries are loaded");
     WritePrivateProfileStringW(L"TriggerPaths",L"idTrigger|trigger/props/",L"0",settingsFile.c_str());
@@ -65,12 +65,14 @@ int main() {
     WritePrivateProfileStringW(L"TriggerPaths",L"idTrigger|trigger/../",L"0",settingsFile.c_str());
     WritePrivateProfileStringW(L"TriggerPaths",L"invalid|trigger/props/",L"0",settingsFile.c_str());
     WritePrivateProfileStringW(L"TriggerPaths",L"idTrigger|@no_path",L"0",settingsFile.c_str());
+    WritePrivateProfileStringW(L"Viewer",L"ShowSharedShotCollision",L"0",settingsFile.c_str());
     Sleep(260); updateViewerSettings();
+    expect(showShotCollision&&!showSharedShotCollision&&trimShotCollision,"Trim overlap remains selectable on its own");
     expect(hiddenTriggerPaths.size()==1&&hiddenTriggerPaths.count("idTrigger|trigger/props/"),"live path settings accept only valid class-scoped disabled folder rules");
     Sleep(260);
     writeSettings(settingsFile,L"Enabled=1\r\nShowTriggers=1\r\nShowCollision=0\r\nShowWalls=1\r\nCollisionMode=1\r\nDistance=175\r\n");
     WritePrivateProfileStringW(nullptr,nullptr,nullptr,settingsFile.c_str()); updateViewerSettings();
-    expect(!showShotCollision&&!trimShotCollision,"older settings default to original projectile rendering with the experiment off");
+    expect(!showShotCollision&&!showSharedShotCollision&&!trimShotCollision,"older settings default to original projectile rendering");
     expect(hiddenTriggerClasses.empty(),"removing the class section re-enables all classes live");
     expect(hiddenTriggerPaths.empty(),"removing path rules restores path visibility live");
     expect(triggerNamePath("trigger/props/pickup_4")=="trigger/props/"&&triggerNamePath("TRIGGER\\INTERACT\\panel_2")=="trigger/interact/"&&
@@ -468,7 +470,72 @@ int main() {
     const auto shotFill=collectVertices(camera,shotVertices);
     expect(shotFill==shotOnly->meshes[0].geometry->triangles.size()&&!shotVertices.empty(),"fourth category reaches fill and outline renderer");
     expect(shotVertices[0].color[2]==1.f&&shotVertices[0].color[0]==.8f,"rendered shot geometry uses purple");
-    showCollision=true;showShotCollision=false;runtimeWorld.reset();runtimeRendering=false;
+    put(contentsRows.data(),0x08,uint32_t(0x40000088));
+    auto disabledShared=builder.build(levelA);
+    expect(disabledShared&&disabledShared->meshes.empty(),"disabled shared SHOTCLIP stays hidden");
+    put(contentsRows.data(),0x08,uint32_t(0x88));
+    auto shared=builder.build(levelA);
+    expect(shared&&shared->meshes.size()==2&&shared->meshes[0].kind==1&&shared->meshes[1].kind==3&&
+           shared->meshes[1].geometry->sharedProjectile,"combined PLAYERCLIP and SHOTCLIP reaches both categories");
+    runtimeWorld=shared;
+    gatherVisible(camera,shotVisible);
+    expect(shotVisible.empty(),"legacy projectile mode excludes shared SHOTCLIP");
+    showSharedShotCollision=true;
+    expect(collectVertices(camera,shotVertices)==shared->meshes[1].geometry->triangles.size(),
+           "All clips fills shared SHOTCLIP if World Collision is off");
+    showCollision=true;
+    const auto sharedFill=collectVertices(camera,shotVertices);
+    const auto worldLines=shared->meshes[0].geometry->lines.size();
+    expect(sharedFill==shared->meshes[0].geometry->triangles.size()&&shotVertices.size()>sharedFill+2*worldLines,
+           "coincident fill is emitted once with multiple fine dashes per edge");
+    expect(shotVertices[sharedFill+worldLines-1].color[0]!=.8f&&shotVertices[sharedFill+worldLines].color[0]==.8f,
+           "projectile dashes are drawn after the world contours");
+    const auto trim=buildProjectileTrim(*shared);
+    expect(trim&&trim->replacement[1]==-1&&trim->reasons[1]==ProjectileTrim::NotProjectile,
+           "trim preserves shared geometry");
+    showShotCollision=false;
+    expect(collectVertices(camera,shotVertices)==sharedFill&&shotVertices.size()==sharedFill+worldLines,
+           "disabling Projectile Collision suppresses shared dashes");
+    showSharedShotCollision=false;
+    runtimeWorld.reset();runtimeRendering=false;
+
+    // One compressed leaf can mix world-only, shot-only and shared primitives.
+    std::array<unsigned char,112> compressedShape{};
+    std::array<unsigned char,0xc0> compressedData{};
+    std::array<unsigned char,96> section{};
+    std::array<unsigned char,0x58*3> taggedRows{};
+    const std::array<uint32_t,3> flags{0x8,0x80,0x88};
+    for(unsigned i=0;i<flags.size();++i) {
+        put(taggedRows.data(),0x58*i,wrapperAddress);
+        put(taggedRows.data(),0x58*i+8,flags[i]);
+    }
+    put(contentsWrapper.data(),0x08,reinterpret_cast<uintptr_t>(taggedRows.data()));
+    put(contentsWrapper.data(),0x10,uint32_t(flags.size()));
+    compressedShape[0x22]=9;
+    put(compressedShape.data(),0x30,reinterpret_cast<uintptr_t>(taggedRows.data()));
+    put(compressedShape.data(),0x50,reinterpret_cast<uintptr_t>(compressedData.data()));
+    const std::array<float,6> codec{0,0,1,1,1,1};
+    put(section.data(),48,codec);
+    section[88]=9;
+    put(section.data(),80,uint32_t(3));
+    put(section.data(),84,uint32_t(3));
+    const std::array<uint32_t,9> packed{0,1,1<<11,2,3,2+(1<<11),4,5,4+(1<<11)};
+    const unsigned char primitives[][4]{{0,1,2,2},{3,4,5,5},{6,7,8,8}};
+    const unsigned char runs[][4]{{0,0,0,1},{1,0,1,1},{2,0,2,1}};
+    auto array=[&](size_t offset,const void* data,uint32_t count) {
+        put(compressedData.data(),0x20+offset,reinterpret_cast<uintptr_t>(data));
+        put(compressedData.data(),0x20+offset+8,count);
+    };
+    array(64,section.data(),1); array(80,primitives,3); array(112,packed.data(),9); array(144,runs,3);
+    LevelIdentity compressedLevel=levelA;
+    compressedLevel.world=reinterpret_cast<uintptr_t>(compressedShape.data());
+    auto tagged=builder.build(compressedLevel);
+    expect(tagged&&tagged->meshes.size()==3&&tagged->meshes[0].geometry->triangles.size()==6&&
+           tagged->meshes[1].geometry->triangles.size()==3&&tagged->meshes[1].bounds[0]==2&&
+           tagged->meshes[2].geometry->triangles.size()==3&&tagged->meshes[2].bounds[0]==4&&
+           tagged->meshes[2].geometry->sharedProjectile,"compressed primitives classified by their individual contents tags");
+    put(contentsWrapper.data(),0x08,rowsAddress);
+    put(contentsWrapper.data(),0x10,uint32_t(1));
     put(contentsRows.data(),0x08,uint32_t(0x8));
     builder.cancelled=[] { return true; }; expect(!builder.build(levelA),"obsolete build cancellation");
     RuntimeSceneManager manager; manager.request(levelA,b,profile);

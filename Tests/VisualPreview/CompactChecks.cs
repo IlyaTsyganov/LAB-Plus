@@ -17,6 +17,8 @@ internal static class CompactChecks
         await Check(main,"getComputedStyle(document.querySelector('.lr-appbar')).borderBottomWidth==='1px'","Missing header separator");
         await Check(main,"document.querySelector('[data-action=choose] .lr-folder-icon')!==null&&!document.querySelector('[data-action=choose]').innerText.includes('Browse')","Browse did not use the LAB folder icon");
         await Check(main,"(()=>{const b=document.querySelector('[data-action=types]'),t=document.querySelector('[data-setting=triggers]');return b.getBoundingClientRect().top>=t.getBoundingClientRect().bottom&&getComputedStyle(b).borderTopWidth==='1px';})()","Types is not a button beneath the trigger switch");
+        await Check(main,"(()=>{const s=document.querySelector('[data-setting=shots]').getBoundingClientRect(),m=document.querySelector('[data-setting=projectileMode]').getBoundingClientRect(),t=document.querySelector('[data-action=types]').getBoundingClientRect();return m.top>=s.bottom&&Math.abs(m.right-t.right)<1;})()",
+            "Projectile mode must be beneath its switch and align with Types");
         foreach(string page in new[]{"Viewer","LAB"})
         {
             await Script(main,$"document.querySelector('[data-screen={page}]').click()");await Sync(main);
@@ -37,6 +39,20 @@ internal static class CompactChecks
         await Check(main,"(()=>{const text=document.querySelector('[data-help-panel=LAB]').innerText;return text.includes('noclip')&&text.includes('notarget')&&text.includes('god')&&!/75%|quarter|baseline|snapshot|factory|six seconds/i.test(text);})()","Help exposes internal display implementation details");
         await Check(main,"document.querySelector('[data-help-panel=Commands]').innerText.includes('labplus_debughud_scale')","Help is missing the debug HUD scale command");
         await Script(main,"document.querySelector('[data-help-close]').click();document.querySelector('[data-screen=Viewer]').click()");await Sync(main);
+        await Check(main,"(()=>{const e=document.querySelector('select[data-setting=projectileMode]');return e.disabled&&e.value==='shotOnly'&&e.options.length===3;})()",
+            "Projectile mode must offer three choices and default to SHOTCLIP only");
+        await Script(main,"document.querySelector('[data-setting=shots]').click()");await Sync(main);
+        foreach(var (mode,trim,shared) in new[]{("trimOverlap",true,false),("shotOnly",false,false),("allClips",false,true)})
+        {
+            await Script(main,$"(()=>{{const e=document.querySelector('[data-setting=projectileMode]');e.value='{mode}';e.dispatchEvent(new Event('input',{{bubbles:true}}));}})()");
+            await Sync(main);
+            var projectileSettings = new SettingsStore(data).Load();
+            if(!projectileSettings.ShowShotCollision||projectileSettings.ShowSharedShotCollision!=shared||projectileSettings.TrimShotCollision!=trim)
+                throw new Exception("Projectile mode did not persist through the browser: "+mode);
+        }
+        await Script(main,"document.querySelector('[data-setting=shots]').click()");await Sync(main);
+        await Check(main,"(()=>{const e=document.querySelector('[data-setting=projectileMode]');return e.value==='allClips'&&e.disabled;})()",
+            "Projectile master switch must retain the selected mode");
         var appearances = new[] { (Key:"world",Color:"#123456",Opacity:0), (Key:"triggers",Color:"#abcdef",Opacity:37),
             (Key:"walls",Color:"#fedcba",Opacity:100), (Key:"inspector",Color:"#a1b2c3",Opacity:64) };
         foreach(var appearance in appearances)
@@ -66,17 +82,33 @@ internal static class CompactChecks
         // lighting callback. Reproduce that order without starting a game.
         new LabPlus.Game.VulkanLayerRegistration(new SettingsStore(data)).ConfigureLaunch(start);
         if(start.Environment["LABPLUS_LIGHTING_FIX"]!="0"||start.Environment["LABPLUS_HUD_LIGHTING_FIX"]!="0"||start.Environment["VK_INSTANCE_LAYERS"]!.Contains("VK_LAYER_LABPLUS_lighting")||!File.ReadAllText(Path.Combine(hudStore.DirectoryPath,"lighting.ini")).Contains("Enabled=0"))throw new Exception("An unsupported executable inherited a lighting opt-in.");
-        if(!start.Environment["VK_INSTANCE_LAYERS"]!.Contains("VK_LAYER_LABPLUS_collision")||!start.Environment["VK_LAYER_PATH"]!.Split(';').Any(p=>Path.GetFullPath(p).Equals(Path.GetFullPath(LabPlus.Hud.Runtime.GameLauncher.LoaderPath(Path.Combine(data,"viewer-runtime"))),StringComparison.OrdinalIgnoreCase)))throw new Exception("Combined launch hid the collision manifest from the Vulkan loader.");
+        bool beforeObs=start.Environment.TryGetValue("LABPLUS_ENABLE_CAPTURE_LAYER",out string? captureLayer)&&captureLayer=="1";
+        bool explicitViewer=start.Environment["VK_INSTANCE_LAYERS"]!.Split(';').Contains("VK_LAYER_LABPLUS_collision");
+        if(explicitViewer==beforeObs||!start.Environment["VK_LAYER_PATH"]!.Split(';').Any(p=>Path.GetFullPath(p).Equals(Path.GetFullPath(LabPlus.Hud.Runtime.GameLauncher.LoaderPath(Path.Combine(data,"viewer-runtime"))),StringComparison.OrdinalIgnoreCase)))throw new Exception("Combined launch configured the collision layer incorrectly.");
         string probe=Path.GetFullPath(Path.Combine(AppContext.BaseDirectory,"../../../../../Native/CollisionViewer/bin/LayerLoaderProbe.exe"));
         async Task<int> Probe(Dictionary<string,string?> environment,bool joint)
         {
             var probeStart=new System.Diagnostics.ProcessStartInfo(probe){UseShellExecute=false,CreateNoWindow=true,RedirectStandardOutput=true,RedirectStandardError=true};
             probeStart.ArgumentList.Add(Path.Combine(data,"viewer-runtime"));if(joint)probeStart.ArgumentList.Add("--joint");
             foreach(var entry in environment)probeStart.Environment[entry.Key]=entry.Value;
+            probeStart.Environment["VK_LOADER_DEBUG"]="layer";
             using var process=System.Diagnostics.Process.Start(probeStart)!;
             var stdout=process.StandardOutput.ReadToEndAsync();var stderr=process.StandardError.ReadToEndAsync();
             await process.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(30));
-            if(process.ExitCode==0)Console.WriteLine(await stdout);else Console.WriteLine("Probe observation: "+await stderr);
+            var loaderLog=await stderr;
+            if(process.ExitCode==0)
+            {
+                Console.WriteLine(await stdout);
+                if(environment.TryGetValue("LABPLUS_ENABLE_CAPTURE_LAYER",out string? enabled)&&enabled=="1")
+                {
+                    int stack=loaderLog.IndexOf("vkCreateInstance layer callstack",StringComparison.Ordinal);
+                    int viewer=stack<0?-1:loaderLog.IndexOf("VK_LAYER_LABPLUS_collision",stack,StringComparison.Ordinal);
+                    int obs=stack<0?-1:loaderLog.IndexOf("VK_LAYER_OBS_HOOK",stack,StringComparison.Ordinal);
+                    if(obs>=0&&(viewer<0||viewer>obs))throw new Exception("The OBS layer was ahead of LAB Plus.");
+                    if(obs>=0)Console.WriteLine("PASS: actual Vulkan loader put LAB Plus before the installed OBS layer.");
+                }
+            }
+            else Console.WriteLine("Probe observation: "+loaderLog.Split('\n').LastOrDefault(line=>!string.IsNullOrWhiteSpace(line)));
             return process.ExitCode;
         }
         var viewerOnly=start.Environment.ToDictionary(e=>e.Key,e=>e.Value);
@@ -91,6 +123,7 @@ internal static class CompactChecks
         jointEnvironment["LABPLUS_HUD_LIGHTING_FIX"]="0";
         var oldEnvironment=new Dictionary<string,string?>(jointEnvironment);
         oldEnvironment["VK_LAYER_PATH"]=lighting;oldEnvironment["VK_INSTANCE_LAYERS"]="VK_LAYER_LABPLUS_lighting";
+        oldEnvironment["LABPLUS_ENABLE_CAPTURE_LAYER"]="0";
         if(await Probe(oldEnvironment,true)==0)throw new Exception("The previous broken search path unexpectedly loaded collision.");
         if(await Probe(jointEnvironment,true)!=0)throw new Exception("The combined layer search failed in the real Vulkan loader.");
         Console.WriteLine($"PASS: primary GPU vendor=0x{LabPlus.Game.LightingFixPolicy.PrimaryGpuVendor:x}; unsupported builds clear inherited lighting, the old search path fails and the fixed viewer/joint paths load correctly.");

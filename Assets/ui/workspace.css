@@ -220,10 +220,24 @@ body{font-family:'LP UI';font-size:16px}
 #labplus-refined [data-presentation="saves-category-menu"] .lr-btn{white-space:normal;overflow-wrap:anywhere}
 #labplus-refined [data-presentation="saves-category-option"],#labplus-refined [data-presentation="saves-category-active"]{text-align:left;justify-content:flex-start;border-color:transparent;width:100%}
 #labplus-refined [data-presentation="saves-category-active"]{background:var(--lr-elevated);color:var(--lr-gold)}
+#labplus-refined [data-presentation="saves-category-row"].control-grid{grid-template-columns:minmax(0,1fr) 42px!important;gap:6px;align-items:center}
+#labplus-refined [data-presentation="saves-category-delete"].lr-btn{width:42px;min-height:34px;padding:0}
+#labplus-refined .lr-trash-icon{display:block;width:10px;height:10px;margin-top:5px;position:relative;border:1px solid currentColor;border-top:0;border-radius:0 0 1px 1px}
+#labplus-refined .lr-trash-icon:before{content:"";position:absolute;left:-3px;right:-3px;top:-2px;border-top:1px solid currentColor}
+#labplus-refined .lr-trash-icon:after{content:"";position:absolute;left:50%;top:-5px;width:4px;height:3px;border:1px solid currentColor;border-bottom:0;transform:translateX(-50%)}
 #labplus-refined [data-presentation="saves-add-category"].control-grid{grid-template-columns:minmax(0,1fr) 38px!important;border-top:1px solid var(--lr-line);padding-top:10px}
 #labplus-refined [data-presentation="saves-add-category"] .lr-btn{padding:5px}
 #labplus-refined [data-presentation="saves-category-heading"]{color:var(--lr-gold);font-size:13px}
-#labplus-refined [data-presentation="saves-table"]{min-height:112px!important;max-height:146px!important}
+#labplus-refined .control-resizable-table>.control-grid-table{box-sizing:border-box;min-height:0;max-height:none}
+#labplus-refined .control-table-grip{display:grid;place-items:center;height:12px;border:1px solid var(--lr-line);background:var(--lr-elevated);cursor:ns-resize;touch-action:none}
+#labplus-refined .control-table-grip:after{content:'';width:28px;height:3px;border-block:1px solid var(--lr-muted)}
+#labplus-refined .control-table-grip:is(:hover,:focus-visible):after{border-color:var(--lr-gold)}
+#labplus-refined .table-sort{display:flex;align-items:center;gap:6px;width:100%;padding:0;border:0;background:none;color:inherit;font:inherit;letter-spacing:inherit;text-align:left;cursor:pointer}
+#labplus-refined [data-presentation="saves-table"] .table-sort:before{content:'';flex:0 0 12px;height:12px;background:currentColor;opacity:.8;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M1 2h10L7 6.5v3l-2 1v-4z' fill='none' stroke='black' stroke-linejoin='round'/%3E%3C/svg%3E") center/contain no-repeat}
+#labplus-refined .table-sort:not(:disabled):hover,#labplus-refined th[aria-sort] .table-sort{color:var(--lr-gold)}
+#labplus-refined th[aria-sort] .table-sort:after{content:'';width:5px;height:5px;border:solid currentColor;border-width:1px 1px 0 0;transform:rotate(-45deg)}
+#labplus-refined th[aria-sort="descending"] .table-sort:after{transform:rotate(135deg)}
+#labplus-refined [data-presentation="saves-limitations"]{border-top:1px solid var(--lr-line);padding-top:8px;color:var(--lr-muted)}
 #labplus-refined [data-presentation="saves-table"] .empty-row td{height:70px!important}
 #labplus-refined [data-presentation="saves-table"] table{table-layout:fixed}
 #labplus-refined [data-presentation="saves-table"] .table-check-cell{width:38px;padding:8px 10px;text-align:center}
@@ -260,11 +274,8 @@ body{font-family:'LP UI';font-size:16px}
 #labplus-refined .lr-geometry-settings{display:flex;align-items:center;justify-content:space-between;gap:8px}
 #labplus-refined .lr-geometry-settings .lr-trigger-actions{margin:0;flex-shrink:0}
 #labplus-refined .lr-geometry-settings .lr-appearance{gap:12px}
-#labplus-refined .lr-geometry-settings .lr-appearance:has(.lr-trim-option){column-gap:8px}
-#labplus-refined .lr-appearance .lr-trim-option{gap:5px;min-height:24px;font-size:11px;white-space:nowrap;cursor:pointer}
-#labplus-refined .lr-trim-option input{flex-basis:14px;width:14px;height:14px;cursor:inherit}
-#labplus-refined .lr-trim-option input:checked:after{left:2px;top:3px;width:7px;height:4px}
-#labplus-refined .lr-trim-option:has(input:disabled){opacity:.45;cursor:default}
+#labplus-refined .lr-geometry-settings .lr-projectile-mode{flex-shrink:0;min-height:28px;height:28px;font-size:11px;padding:3px 6px}
+#labplus-refined .lr-projectile-mode:disabled{opacity:.45}
 
 #labplus-refined [data-presentation="finisher-layout"]{gap:14px}
 #labplus-refined [data-presentation^="finisher-"]{overflow-wrap:anywhere}

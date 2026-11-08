@@ -93,12 +93,14 @@ static bool practiceRequestMatches(const PracticeRuntime& state,const std::strin
     return bool(state)&&state.slot==requestedSlot;
 }
 struct PracticeIdleWindow {
-    ULONGLONG since=0;
+    ULONGLONG since=0,last=0;
     PracticeRuntime initial;
-    void reset() { since=0; initial={}; }
-    bool update(const PracticeRuntime& state,ULONGLONG now) {
+    void reset() { *this={}; }
+    bool update(const PracticeRuntime& state,ULONGLONG now,ULONGLONG maxSampleGap=0) {
         if(!state) { reset(); return false; }
-        if(!since||initial.engineState!=state.engineState||initial.map!=state.map||initial.record!=state.record||initial.user!=state.user||initial.slot!=state.slot||initial.entryIndex!=state.entryIndex) {
+        const bool missedSample=maxSampleGap&&now-last>maxSampleGap;
+        last=now;
+        if(!since||missedSample||initial.engineState!=state.engineState||initial.map!=state.map||initial.record!=state.record||initial.user!=state.user||initial.slot!=state.slot||initial.entryIndex!=state.entryIndex) {
             initial=state; since=now; return false;
         }
         return now-since>=500;
@@ -204,28 +206,29 @@ static bool requestPracticeReload(const WallMemory& memory,uintptr_t base,const 
     for(int i=2;i>=0;--i) destroy(parms.data()+size_t(i)*48);
     return valid;
 }
-static bool practiceReloadCompleted(bool& sawTransition,uintptr_t originalMap,bool readable,uint32_t state,uintptr_t map,bool requested,bool validCampaignLevel) {
+static bool practiceReloadCompleted(bool& sawTransition,uintptr_t originalMap,bool readable,uint32_t state,uintptr_t map,
+                                    bool requested,bool validCampaignLevel,bool worldChanged=false) {
     // A queued request alone does not prove that the previous map unloaded.
-    if(readable&&(state!=2||map!=originalMap)) sawTransition=true;
+    if(readable&&(state!=2||map!=originalMap||worldChanged)) sawTransition=true;
     return sawTransition&&readable&&state==2&&!requested&&validCampaignLevel;
 }
 struct PracticeReloadReadiness {
-    bool sawGameplay=false;
+    static constexpr ULONGLONG confirmationMs=200;
+    uintptr_t observedMap=0;
     ULONGLONG readySince=0;
-    bool update(bool transitioned,bool gameplay,bool verifiedSession,ULONGLONG now) {
-        if(!transitioned) { sawGameplay=false; readySince=0; return false; }
-        if(gameplay) sawGameplay=true;
-        if(!sawGameplay||!verifiedSession) { readySince=0; return false; }
-        if(!readySince) readySince=now;
-        return now-readySince>=2000;
+    bool update(bool transitioned,uintptr_t verifiedMap,ULONGLONG now) {
+        if(!transitioned||!verifiedMap) { *this={}; return false; }
+        if(observedMap!=verifiedMap) { observedMap=verifiedMap; readySince=now; }
+        return now-readySince>=confirmationMs;
     }
 };
 class PracticeLiveBridge {
     std::mutex work;
     std::string seen,token,operation,account,slot,build,checkpoint,cloudDetail,recoveryDetail; std::filesystem::path remote;
-    uint64_t requested=0; ULONGLONG nextPoll=0,presentPoll=0,loadingSince=0; uintptr_t originalMap=0;
-    PracticeIdleWindow idle;
-    bool loading=false,sawTransition=false;
+    uint64_t requested=0,requestToEngineMs=0; ULONGLONG nextPoll=0,presentPoll=0,loadingSince=0; uintptr_t originalMap=0,originalWorld=0;
+    PracticeIdleWindow idle,observedIdle;
+    static constexpr ULONGLONG maxIdleSampleGapMs=250;
+    bool loading=false,sawTransition=false,installedArchive=false,observeIdle=false;
     PracticeReloadReadiness readiness;
     void result(const std::filesystem::path& directory,const std::string& phase,const std::string& detail,const std::string& level="") {
         auto path=directory/(L"practice-live-"+std::to_wstring(GetCurrentProcessId())+L".tsv"),temporary=path; temporary+=L".tmp";
@@ -255,25 +258,38 @@ public:
         } steamMemory{false};
         try {
             if(loading) {
-                if(!engineFrame) return;
+                // Presentation can observe the loading transition when the engine
+                // callback is suspended. This branch only reads runtime state.
                 uintptr_t system=0,map=0; uint32_t state=0; unsigned char change=0;
                 bool readable=profile&&memory.get(base+profile->gameSystemRva,system)&&memory.get(system+0x44,state)&&memory.get(system+0x50,map)&&memory.get(system+0xb8,change);
-                auto level=profile?readLevelIdentity(memory,base,*profile):LevelIdentity{};
-                bool transitioned=practiceReloadCompleted(sawTransition,originalMap,readable,state,map,change!=0,level&&practiceSlot(slot)&&practiceMapMatches(level.name,*practiceSlot(slot)));
-                bool gameplay=transitioned&&gameplayVisible(memory,base,*profile);
-                auto paused=transitioned&&!gameplay?readPracticeRuntime(memory,base,profile):PracticeRuntime{};
-                bool verified=gameplay||(paused&&paused.map==level.map&&paused.slot==slot);
-                if(readiness.update(transitioned,gameplay,verified,GetTickCount64())) {
+                auto level=readable&&state==2&&!change?readLevelIdentity(memory,base,*profile):LevelIdentity{};
+                auto scope=practiceSlot(slot);
+                bool transitioned=practiceReloadCompleted(sawTransition,originalMap,readable,state,map,change!=0,
+                    level&&scope&&practiceMapMatches(level.name,*scope),originalWorld&&level&&level.world!=originalWorld);
+                // State 2 and the requested slot confirm an entered level even
+                // when opening LAB Plus paused it before an unpaused frame.
+                auto session=transitioned?readPracticeRuntime(memory,base,profile,false):PracticeRuntime{};
+                uintptr_t verifiedMap=session&&session.map==level.map&&session.slot==slot?session.map:0;
+                const auto now=GetTickCount64();
+                if(readiness.update(transitioned,verifiedMap,now)) {
                     auto layout=std::atomic_load(&checkpointMetadata);
                     auto loaded=layout?readLoadedCheckpoint(memory,level.map,level.name,*layout):CheckpointObservation{};
-                    checkpoint=loaded.name; result(directory,"reloaded",operation=="restore"?"Archive installed through Steam storage; engine map transition and active-player stability checks completed.":"Engine map transition and active-player stability checks completed. No save files were replaced.",level.name); loading=false; token.clear();
-                } else if(GetTickCount64()-loadingSince>300000) {
-                    result(directory,"error",operation=="restore"?"Archive files were installed but engine completion was not observed. Use retained Original if recovery is needed.":"Engine reload was requested but completion was not observed."); loading=false; token.clear();
+                    checkpoint=loaded.name;
+                    std::string detail=installedArchive?"Archive installed through Steam storage and engine reload confirmed.":"Engine reload confirmed. No save files were replaced.";
+                    detail+=" Request to engine: "+std::to_string(requestToEngineMs)+" ms. Engine to confirmation: "+std::to_string(now-loadingSince)+" ms.";
+                    result(directory,"reloaded",detail,level.name); loading=false; token.clear();
+                    observeIdle=true; observedIdle.reset();
+                } else if(now-loadingSince>300000) {
+                    result(directory,"error",installedArchive?"Archive files were installed but engine completion was not observed. Use retained Original if recovery is needed.":"Engine reload was requested but completion was not observed."); loading=false; token.clear();
                 }
                 return;
             }
             auto path=directory/(L"practice-live-"+std::to_wstring(GetCurrentProcessId())+L".request");
             if(token.empty()) {
+                // Start observing idleness before the next repeat request, on the
+                // engine thread only. A busy sample, scope change or gap resets it.
+                if(engineFrame&&observeIdle)
+                    observedIdle.update(readPracticeRuntime(memory,base,profile),GetTickCount64(),maxIdleSampleGapMs);
                 std::error_code error; auto length=std::filesystem::file_size(path,error); if(error||length>4096) return;
                 std::ifstream in(path,std::ios::binary); std::string line; if(!std::getline(in,line)) return;
                 std::vector<std::string> values; std::istringstream split(line); std::string part;
@@ -286,7 +302,7 @@ public:
                 requested=std::stoull(values[3]); auto now=encounterEpochMillis();
                 if(requested>now+2000||now>requested+10000) { seen=values[2]; return; }
                 token=seen=values[2]; operation=values[4]; account=values[5]; slot=values[6]; build=practiceProfile(profile)?practiceProfile(profile)->version:"unsupported";
-                if(values[8]!="*"&&values[8]!=build) { result(directory,"error","Archive patch does not match the running game. Original untouched."); token.clear(); return; } checkpoint.clear(); cloudDetail.clear(); recoveryDetail.clear(); idle.reset(); originalMap=0;
+                if(values[8]!="*"&&values[8]!=build) { result(directory,"error","Archive patch does not match the running game. Original untouched."); token.clear(); return; } checkpoint.clear(); cloudDetail.clear(); recoveryDetail.clear(); idle.reset(); originalMap=0; installedArchive=false;
                 remote=std::filesystem::u8path(values[7]);
             }
             if(encounterEpochMillis()>requested+30000) { result(directory,"error","Checkpoint writing did not become idle within thirty seconds. No files installed."); token.clear(); return; }
@@ -296,6 +312,7 @@ public:
             auto state=readPracticeRuntime(memory,base,profile,operation!="status",operation=="archive"||operation=="status");
             if(!state) {
                 idle.reset();
+                if(engineFrame) observedIdle.reset();
                 if(state.busy&&operation!="status") { result(directory,"waiting",state.error); return; }
                 result(directory,"error",state.error); token.clear(); return;
             }
@@ -318,7 +335,11 @@ public:
             }
             if(originalMap&&originalMap!=state.map) { result(directory,"error","Map changed during preparation. Retry in the loaded campaign."); token.clear(); return; }
             originalMap=state.map;
-            if(!idle.update(state,GetTickCount64())) { result(directory,"waiting","Waiting for a stable completed checkpoint.",state.level); return; }
+            const auto sampleTime=GetTickCount64();
+            const bool stable=idle.update(state,sampleTime);
+            const bool alreadyIdle=engineFrame&&observeIdle&&operation=="restore"
+                &&observedIdle.update(state,sampleTime,maxIdleSampleGapMs);
+            if(!stable&&!alreadyIdle) { result(directory,"waiting","Waiting for a stable completed checkpoint.",state.level); return; }
             if(operation=="prepare") { result(directory,"ready","Campaign save queues are idle. No save files read or changed.",state.level); token.clear(); return; }
             auto files=readPracticeFiles(remote/std::filesystem::u8path(slot));
             auto after=readPracticeRuntime(memory,base,profile,true,operation=="archive");
@@ -344,20 +365,28 @@ public:
                         auto check=readPracticeRuntime(memory,base,profile); auto owner=readPracticeSteam();
                         return check&&check.map==state.map&&check.record==state.record&&check.user==state.user&&check.slot==slot&&owner.account==steam.account&&owner.cloudDisabled;
                     };
-                    commitPracticeRestore(remote,bundle,incoming,files,plan,account,token,practiceStorageApi(slot),stillIdle,[&](const char* step) {
+                    auto commit=commitPracticeRestore(remote,bundle,incoming,files,plan,account,token,practiceStorageApi(slot),stillIdle,[&](const char* step) {
                         if(strcmp(step,"backed_up")==0) recoveryDetail=" Original retained: "+(remote.parent_path()/(L".labplus-live-original-"+std::wstring(token.begin(),token.end()))).u8string()+". Recovery journal: "+(bundle/L"RESTORE_PATHS.txt").u8string()+".";
                     });
-                    if(!stillIdle()) throw std::runtime_error("Files installed, but engine/account/Cloud changed before reload. Original retained; do not continue until reviewed.");
+                    installedArchive=!commit.original.empty();
+                    if(!stillIdle()) throw std::runtime_error(installedArchive
+                        ?"Files installed, but engine/account/Cloud changed before reload. Original retained; do not continue until reviewed."
+                        :"Engine/account/Cloud changed before reload. No save files were replaced.");
                 }
+                originalWorld=readLevelIdentity(memory,base,*profile).world;
+                const auto engineRequestTime=GetTickCount64();
+                const auto engineRequestEpoch=encounterEpochMillis();
                 if(!requestPracticeReload(memory,base,state)) throw std::runtime_error("Audited engine-loader signatures or load parameters did not match.");
-                loading=true; loadingSince=GetTickCount64(); sawTransition=false; readiness={}; originalMap=state.map;
-                result(directory,"loading",operation=="restore"?"Archive files installed and verified through Steam storage. Loading PRIMARY checkpoint; continue in the game when loading reaches 100%.":"Requested PRIMARY checkpoint through the engine. No save files replaced. Continue in the game when loading reaches 100%.",state.level);
+                requestToEngineMs=engineRequestEpoch>=requested?engineRequestEpoch-requested:0;
+                loading=true; loadingSince=engineRequestTime; sawTransition=false; readiness={}; originalMap=state.map;
+                observeIdle=false; observedIdle.reset();
+                result(directory,"loading",installedArchive?"Archive files installed and verified through Steam storage. Loading PRIMARY checkpoint; continue in the game when loading reaches 100%.":"Requested PRIMARY checkpoint through the engine. No save files replaced. Continue in the game when loading reaches 100%.",state.level);
                 // Keep the request token until asynchronous completion is reported.
             }
         } catch(const PracticeCheckpointBusy& error) {
             // Only initial checkpoint reads may wait. Once originals exist, a
             // restore error must retain its recovery report and stop.
-            if(!token.empty()&&recoveryDetail.empty()) { idle.reset(); result(directory,"waiting",error.what()); }
+            if(!token.empty()&&recoveryDetail.empty()) { idle.reset(); observedIdle.reset(); result(directory,"waiting",error.what()); }
             else { if(!token.empty()) result(directory,"error",error.what()); token.clear(); loading=false; }
         } catch(const std::exception& error) { if(!token.empty()) result(directory,"error",error.what()); token.clear(); loading=false; }
     }

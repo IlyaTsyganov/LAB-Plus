@@ -30,6 +30,12 @@ internal static class InvisibleNumbersChecks
                 Check(InvisibleNumbersSnapshot.Parse(new[] { head }.Concat(rows).ToArray()) is null, "Orphaned, foreign, empty and duplicate aim hints must be rejected.");
             foreach (var rows in new[] { new[] { "A\torphan" }, new[] { "P\t2\t9:3" }, new[] { "P\t0\twrong" }, new[] { "P\t0\t9:3", "A\tkill_front", "A\tkill_front" }, new[] { "P\t0\t9:3", "A\tbad=name" } })
                 Check(InvisibleNumbersSnapshot.Parse(new[] { head }.Concat(rows).ToArray()) is null, "Malformed animation choices must be rejected.");
+            const string blast = "S\theat_blast\tMulti Heat Blast\t";
+            foreach (string value in new[] { "0", "1", "3", "unavailable" })
+                Check(InvisibleNumbersSnapshot.Parse([head, blast + value + "\tLast activation"])?.Techs.Single().State == value,
+                    "Heat Blast count must survive the native protocol");
+            foreach (string bad in new[] { "-1", "1.5", "active", "4294967296" })
+                Check(InvisibleNumbersSnapshot.Parse([head, blast + bad + "\tLast activation"]) is null, "Invalid Heat Blast count accepted");
             foreach (string state in new[] { "active", "inactive", "unavailable" })
             {
                 var csc = InvisibleNumbersSnapshot.Parse([head, tech, $"S\tcsc\tCSC\t{state}\tCombo Swap Chain"]);
@@ -68,11 +74,12 @@ internal static class InvisibleNumbersChecks
             foreach (string command in new[] { "labplus_enemies", "labplus_enemy_hp_bars", "labplus_timers", "labplus_techs" })
                 Check(LabCommands.Apply(settings, [command, "1"], 123, 1) && !LabCommands.Apply(settings, [command, "2"], 123, 1), "Number feature commands did not validate input.");
             Check(settings.ShowEnemyHealthHud && settings.ShowEnemyHealthBars && settings.ShowGameTimersHud && settings.ShowSpeedrunTechsHud, "Number settings did not apply.");
-            Check(!settings.TrimShotCollision, "Projectile trim must default off.");
+            Check(!settings.TrimShotCollision && !settings.ShowSharedShotCollision, "Projectile trim and All clips must default off.");
             Check(!settings.ShowSyncTarget, "Experimental enemy zones must default off.");
             Check(settings.SyncTargetAction == 0, "Sync preview must default to Glory Kill.");
             Check(new LabPlusSettings { ShowSyncTarget = true }.NeedsNativeLayer, "Enemy zones must load their renderer without Collision Viewer.");
             settings.TrimShotCollision = true;
+            settings.ShowSharedShotCollision = true;
             settings.ShowSyncTarget = true;
             settings.SyncTargetAction = 1;
             settings.SyncGloryKillAnimation = "kill_front_lower"; settings.SyncChainsawAnimation = "cut_back";
@@ -81,6 +88,7 @@ internal static class InvisibleNumbersChecks
             Check(loaded.ShowEnemyHealthHud && loaded.ShowEnemyHealthBars && loaded.ShowGameTimersHud && loaded.ShowSpeedrunTechsHud, "Number settings did not persist.");
             string ini = File.ReadAllText(store.ViewerSettingsPath);
             Check(loaded.TrimShotCollision && ini.Contains("TrimShotCollision=1"), "Experimental projectile trim must persist through JSON and the native INI transport.");
+            Check(loaded.ShowSharedShotCollision && ini.Contains("ShowSharedShotCollision=1"), "All clips must persist independently through JSON and the native INI transport.");
             Check(loaded.ShowSyncTarget && ini.Contains("ShowSyncTarget=1"), "Enemy hit zones must persist through JSON and native settings.");
             Check(loaded.SyncTargetAction == 1 && ini.Contains("SyncTargetAction=1"), "Chainsaw preview selection must persist through JSON and native settings.");
             Check(loaded.SyncGloryKillAnimation == "kill_front_lower" && loaded.SyncChainsawAnimation == "cut_back" && ini.Contains("SyncGloryKillAnimation=kill_front_lower") && ini.Contains("SyncChainsawAnimation=cut_back"), "Independent selected animations must persist to native settings.");

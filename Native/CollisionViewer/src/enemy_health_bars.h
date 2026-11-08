@@ -6,7 +6,7 @@
 #include "eternal_ui2_font.h"
 
 struct EnemyHealthBarGeometry {
-    std::vector<Vertex> triangles,lines;
+    std::vector<Vertex> triangles,iconTriangles,lines;
     size_t bars=0;
 };
 static std::array<float,4> enemyHealthBarColor(double fraction) {
@@ -17,8 +17,10 @@ static std::array<float,4> enemyHealthBarColor(double fraction) {
 static std::string enemyHealthBarNumber(double value) {
     std::ostringstream output; output.imbue(std::locale::classic()); output<<std::setprecision(6)<<value; return output.str();
 }
-static std::string enemyHealthBarText(double current,double maximum) {
-    return enemyHealthBarNumber(current)+"/"+enemyHealthBarNumber(maximum);
+static std::string enemyHealthBarText(double current,double maximum,double threshold=-1) {
+    auto label=enemyHealthBarNumber(current)+"/"+enemyHealthBarNumber(maximum);
+    if(threshold>0&&threshold<=maximum) label+=" ("+enemyHealthBarNumber(threshold)+")";
+    return label;
 }
 static std::string enemyStaggerBarText(double seconds,double maximum=-1) {
     if(!std::isfinite(seconds)||seconds<0||seconds>600) return {};
@@ -26,14 +28,14 @@ static std::string enemyStaggerBarText(double seconds,double maximum=-1) {
     if(std::isfinite(maximum)&&maximum>0&&maximum<=600) output<<" / "<<maximum<<" s"; else output<<'s';
     return output.str();
 }
-// All vertices remain in world space and use the existing depth-aware
-// triangle pipeline. Pixel sizing keeps numbers readable at normal distances.
+// Both groups stay anchored in world space and keep a readable pixel size.
+// The renderer can draw the Icon's parts over surfaces that cover their tags.
 // Validation may refresh both the pose and current health/stagger values in
 // the copied row; nothing in this renderer reads or changes game memory.
 template<class Validate> static void populateEnemyHealthBars(EnemyHealthBarGeometry& result,const GameCamera& camera,
     const InvisibleNumbersSnapshot& snapshot,const LevelIdentity& level,uint64_t now,float distance,
     uint32_t viewportHeight,Validate&& validate) {
-    result.triangles.clear(); result.lines.clear(); result.bars=0;
+    result.triangles.clear(); result.iconTriangles.clear(); result.lines.clear(); result.bars=0;
     if(snapshot.phase!="live"||snapshot.level!=level||now>snapshot.captured+250||snapshot.captured>now+1000||
        !viewportHeight||viewportHeight>32768||!std::isfinite(distance)||distance<=0) return;
     Vec3 right{camera.matrix[0],camera.matrix[1],camera.matrix[2]},up{camera.matrix[4],camera.matrix[5],camera.matrix[6]};
@@ -42,16 +44,21 @@ template<class Validate> static void populateEnemyHealthBars(EnemyHealthBarGeome
     right=motionScale(right,1/rightLength); up=motionScale(up,1/upLength);
     const Vec3 cameraPosition{camera.position[0],camera.position[1],camera.position[2]};
     if(!motionFinite(cameraPosition)) return;
-    std::unordered_set<uintptr_t> seen;
+    std::unordered_map<uintptr_t,uint16_t> seen;
     for(const auto& observed:snapshot.barEnemies) {
         auto row=observed;
-        if(!row.positionKnown||!row.maximumKnown||!row.entity||seen.count(row.entity.address)) continue;
+        if(!row.positionKnown||!row.maximumKnown||!row.entity||row.part>8) continue;
+        const auto partBit=static_cast<uint16_t>(1u<<row.part);
+        auto& drawn=seen[row.entity.address];
+        if(drawn&partBit) continue;
         Vec3 top{};
         if(!validate(row,top)||!motionFinite(top)||!std::isfinite(row.maximum)||row.maximum<=0||
-           !std::isfinite(row.health)||row.health<=0||motionLength(motionSub(top,cameraPosition))>distance) continue;
+           !std::isfinite(row.health)||row.health<0||(!row.showEmpty&&row.health==0)||
+           motionLength(motionSub(top,cameraPosition))>(row.part?std::max(distance,150.f):distance)) continue;
         // The reader's top already includes a small margin over the bounds.
         // Raising the whole panel another 0.6m leaves the enemy unobscured.
-        Vec3 center=top; center.z+=.6f;
+        Vec3 center=top;
+        if(!row.part) center.z+=.6f;
         const float w=camera.matrix[12]*center.x+camera.matrix[13]*center.y+camera.matrix[14]*center.z+camera.matrix[15];
         if(!std::isfinite(w)||w<=.05f) continue;
         const float projectedX=(camera.matrix[0]*center.x+camera.matrix[1]*center.y+camera.matrix[2]*center.z+camera.matrix[3])/w;
@@ -60,15 +67,17 @@ template<class Validate> static void populateEnemyHealthBars(EnemyHealthBarGeome
         // Limit size very close to the camera; otherwise preserve 14px digits.
         const float pixel=std::max(.0001f,2.f*w/(static_cast<float>(viewportHeight)*upLength));
         const double ratio=std::clamp(row.health/row.maximum,0.0,1.0);
-        const std::string health=enemyHealthBarText(row.health,row.maximum);
+        const bool thresholdKnown=row.staggerThreshold>0&&row.staggerThreshold<=row.maximum;
+        const std::string health=enemyHealthBarText(row.health,row.maximum,row.staggerThreshold);
         const std::string stagger=row.staggerKnown&&row.staggerActive?enemyStaggerBarText(row.staggerSeconds,row.staggerDuration>0?static_cast<double>(row.staggerDuration)/999960.0:-1):std::string{};
         auto textWidth=[](const std::string& text) { return eternalUi2TextWidth(text); };
         const float width=std::max(96.f,std::max(textWidth(health),textWidth(stagger))+12.f);
+        auto& triangles=row.part?result.iconTriangles:result.triangles;
         auto point=[&](float x,float y) { return motionAdd(center,motionAdd(motionScale(right,x*pixel),motionScale(up,y*pixel))); };
         auto quad=[&](float left,float bottom,float rightEdge,float topEdge,const std::array<float,4>& color) {
             if(rightEdge<=left||topEdge<=bottom) return;
             const Vec3 positions[]{point(left,bottom),point(rightEdge,bottom),point(rightEdge,topEdge),point(left,bottom),point(rightEdge,topEdge),point(left,topEdge)};
-            for(const auto& position:positions) { Vertex vertex{}; vertex.position=position; memcpy(vertex.color,color.data(),sizeof(vertex.color)); result.triangles.push_back(vertex); }
+            for(const auto& position:positions) { Vertex vertex{}; vertex.position=position; memcpy(vertex.color,color.data(),sizeof(vertex.color)); triangles.push_back(vertex); }
         };
         auto text=[&](const std::string& value,float baseline,const std::array<float,4>& color) {
             const float x=-textWidth(value)*.5f;
@@ -81,7 +90,7 @@ template<class Validate> static void populateEnemyHealthBars(EnemyHealthBarGeome
                             Vertex vertex{};vertex.position=positions[index];
                             memcpy(vertex.color,glyphColor.data(),sizeof(vertex.color));
                             memcpy(vertex.texcoord,coordinates[index],sizeof(vertex.texcoord));
-                            result.triangles.push_back(vertex);
+                            triangles.push_back(vertex);
                         }
                     });
             };
@@ -91,9 +100,15 @@ template<class Validate> static void populateEnemyHealthBars(EnemyHealthBarGeome
         quad(-width*.5f-1.5f,-6,width*.5f+1.5f,6,frame);
         quad(-width*.5f,-4.5f,width*.5f,4.5f,{.16f,.025f,.025f,1});
         quad(-width*.5f,-4.5f,-width*.5f+width*static_cast<float>(ratio),4.5f,enemyHealthBarColor(ratio));
+        if(thresholdKnown) {
+            const float marker=width*(static_cast<float>(row.staggerThreshold/row.maximum)-.5f);
+            quad(marker-2,-5,marker+2,5,{.025f,.025f,.03f,1});
+            quad(marker-.8f,-4.5f,marker+.8f,4.5f,{1,.8f,.18f,1});
+        }
         text(health,10,{1,1,1,1});
         if(!stagger.empty()) text(stagger,28,{1,.8f,.18f,1});
-        seen.insert(row.entity.address); ++result.bars;
+        drawn|=partBit;
+        ++result.bars;
     }
     return;
 }

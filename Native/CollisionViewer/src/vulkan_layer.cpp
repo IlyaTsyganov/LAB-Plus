@@ -57,7 +57,7 @@ template<class T> static void* key(T object) { return *reinterpret_cast<void**>(
 
 struct Vec3 { float x,y,z; };
 struct Vertex { Vec3 position; float color[4]; float texcoord[2]{-1,-1}; };
-struct Geometry { uint32_t kind; std::vector<Vec3> lines,triangles; bool convexSolid=false; uint8_t sourceType=255; std::vector<std::array<float,4>> solidPlanes; };
+struct Geometry { uint32_t kind; std::vector<Vec3> lines,triangles; bool convexSolid=false,sharedProjectile=false; uint8_t sourceType=255; std::vector<std::array<float,4>> solidPlanes; };
 struct Mesh {
     uint32_t kind; float bounds[6]; std::shared_ptr<const Geometry> geometry;
     EntityReference entity;
@@ -104,7 +104,7 @@ static uint32_t buildSpatialNode(uint32_t begin,uint32_t end) { return buildSpat
 static bool debugHudEngineVisible(const MeathookHudApi* api);
 static bool sceneLoaded=false, showTriggers=true, showCollision=true, showWalls=true, showShotCollision=false, enabled=true;
 static bool inspectVolumes=false;
-static bool trimShotCollision=false;
+static bool trimShotCollision=false,showSharedShotCollision=false;
 static bool showDisabledVolumes=false,showVolumeHistory=false;
 static std::atomic<bool> showActiveEncountersHud{false};
 static std::atomic<bool> showEnemyHealthHud{false},showEnemyHealthBars{false},showGameTimersHud{false},showSpeedrunTechsHud{false};
@@ -459,6 +459,7 @@ static void initialize(Swapchain& swap,uint32_t family) {
     if(sceneTest()) loadScene(); note("Independent Vulkan renderer initialized.");
 }
 
+static bool iconHealthBarSmokeTest() { static const bool active=[] { wchar_t value[8]{}; return GetEnvironmentVariableW(L"LABPLUS_TEST_ICON_HEALTH_BARS",value,8)&&value[0]==L'1'; }(); return active; }
 static bool healthBarHiddenSmokeTest() { static const bool active=[] { wchar_t value[8]{}; return GetEnvironmentVariableW(L"LABPLUS_TEST_HEALTH_BARS_HIDDEN",value,8)&&value[0]==L'1'; }(); return active; }
 static bool healthBarSmokeTest() { static const bool active=[] { wchar_t value[8]{}; return GetEnvironmentVariableW(L"LABPLUS_TEST_HEALTH_BARS",value,8)&&value[0]==L'1'; }(); return active; }
 static bool smokeTest() { static const bool value=GetEnvironmentVariableW(L"LABPLUS_SMOKE_TEST",nullptr,0)>0; return value; }
@@ -495,7 +496,9 @@ static void updateViewerSettings(bool force=false) {
     showTriggers=GetPrivateProfileIntW(L"Viewer",L"ShowTriggers",showTriggers?1:0,settingsPath.c_str())!=0;
     showCollision=GetPrivateProfileIntW(L"Viewer",L"ShowCollision",showCollision?1:0,settingsPath.c_str())!=0;
     showShotCollision=GetPrivateProfileIntW(L"Viewer",L"ShowShotCollision",0,settingsPath.c_str())!=0;
-    trimShotCollision=GetPrivateProfileIntW(L"Viewer",L"TrimShotCollision",0,settingsPath.c_str())!=0;
+    showSharedShotCollision=GetPrivateProfileIntW(L"Viewer",L"ShowSharedShotCollision",0,settingsPath.c_str())!=0;
+    // Older preferences could enable both options. All clips takes priority.
+    trimShotCollision=!showSharedShotCollision&&GetPrivateProfileIntW(L"Viewer",L"TrimShotCollision",0,settingsPath.c_str())!=0;
     showWalls=GetPrivateProfileIntW(L"Viewer",L"ShowWalls",showWalls?1:0,settingsPath.c_str())!=0;
     inspectVolumes=GetPrivateProfileIntW(L"Viewer",L"InspectVolumes",0,settingsPath.c_str())!=0;
     showDisabledVolumes=GetPrivateProfileIntW(L"Viewer",L"ShowDisabledVolumes",0,settingsPath.c_str())!=0;
@@ -694,6 +697,7 @@ static uint32_t gatherVisible(const GameCamera& camera,std::vector<Candidate>& v
             ++examined;
             const uint32_t meshIndex=order[i];
             const Mesh* chosen=&source[meshIndex];
+            if(chosen->geometry->sharedProjectile&&!showSharedShotCollision) continue;
             if(runtimeRendering&&trimShotCollision&&runtimeTrim&&chosen->kind==3&&meshIndex<runtimeTrim->replacement.size()) {
                 int32_t replacement=runtimeTrim->replacement[meshIndex];
                 if(replacement==-2) continue;
@@ -718,9 +722,16 @@ static uint32_t gatherVisible(const GameCamera& camera,std::vector<Candidate>& v
     return examined;
 }
 
-static uint32_t collectVertices(const GameCamera& camera,std::vector<Vertex>& output,uint32_t viewportHeight=1080,uint32_t* healthTriangles=nullptr) {
+struct HealthBarVertexCounts { uint32_t regular=0,icon=0; };
+static uint32_t collectVertices(const GameCamera& camera,std::vector<Vertex>& output,uint32_t viewportHeight=1080,HealthBarVertexCounts* health=nullptr) {
     auto started=std::chrono::steady_clock::now();
-    output.clear(); if(healthTriangles) *healthTriangles=0;
+    output.clear();
+    if(health) *health={};
+    auto appendHealth=[&](const EnemyHealthBarGeometry& bars) {
+        if(health) *health={static_cast<uint32_t>(bars.triangles.size()),static_cast<uint32_t>(bars.iconTriangles.size())};
+        output.insert(output.end(),bars.triangles.begin(),bars.triangles.end());
+        output.insert(output.end(),bars.iconTriangles.begin(),bars.iconTriangles.end());
+    };
     auto append=[&](Vec3 position,const std::array<float,4>& color) { Vertex vertex{}; vertex.position=position; memcpy(vertex.color,color.data(),16); output.push_back(vertex); };
     if(occlusionCase()) {
         float z=(occlusionCase()==3||occlusionCase()==7)?.5f:2.0f;
@@ -739,10 +750,12 @@ static uint32_t collectVertices(const GameCamera& camera,std::vector<Vertex>& ou
             for(unsigned index=0;index<3;++index) {
                 InvisibleEnemyRow row; row.entity={0x10000+index,1,0x20000+index*32,index,1,"idAI2"};
                 row.positionKnown=row.maximumKnown=true; row.health=index==0?200:index==1?100:25; row.maximum=200; const float centers[]{.625f,.140625f,-.6875f}; row.top={0,4,4*centers[index]-.6f};
+                if(index==0&&iconHealthBarSmokeTest()) { row.part=1; row.top.z+=.6f; }
                 row.staggerKnown=row.staggerActive=index==2; row.staggerSeconds=2.5; row.staggerDuration=999960LL*5; snapshot.barEnemies.push_back(row);
             }
             auto geometry=buildEnemyHealthBars(camera,snapshot,snapshot.level,1000,40,viewportHeight,[](InvisibleEnemyRow& row,Vec3& top) { top=row.top; return true; });
-            output=std::move(geometry.triangles); if(healthTriangles) *healthTriangles=static_cast<uint32_t>(output.size()); return static_cast<uint32_t>(output.size());
+            appendHealth(geometry);
+            return static_cast<uint32_t>(output.size());
         }
         append({-.6f,-.6f,0},{1,0,0,1}); append({.6f,-.6f,0},{0,1,0,1}); append({0,.6f,0},{0,0,1,1});
         append({-.8f,0,0},{1,1,1,1}); append({.8f,0,0},{1,1,1,1}); return 3;
@@ -772,13 +785,19 @@ static uint32_t collectVertices(const GameCamera& camera,std::vector<Vertex>& ou
     // Prioritize geometry nearest the screen center, then nearer objects. The
     // GPU upload buffer grows on demand, so this ordering does not omit edges.
     sortVisibleCandidates(visible);
+    if(showCollision&&showShotCollision&&showSharedShotCollision) {
+        // Lines do not write depth. Submit the common edges after World Collision.
+        std::stable_partition(visible.begin(),visible.end(),[](const Candidate& candidate) {
+            return !candidate.mesh->geometry->sharedProjectile;
+        });
+    }
     static WorldVertexCache worldVertices;
     worldVertices.begin(runtimeRendering?runtimeWorld:nullptr,visible,runtimeRendering&&trimShotCollision?runtimeTrim:nullptr);
     uint32_t collisionTriangleVertices=0,collisionFilledMeshes=0;
     for(const Candidate& candidate:visible) {
         const Mesh* mesh=candidate.mesh;
         VolumeStyle style=volumeStyle(*mesh,mesh==selected.mesh,now);
-        if(!collisionMode||!style.filled||style.fill[3]<=0.f) continue;
+        if(!collisionMode||!style.filled||style.fill[3]<=0.f||(showCollision&&mesh->geometry->sharedProjectile)) continue;
         const size_t firstTriangle=output.size();
         if(const auto* positions=worldVertices.positions(*mesh)) {
             for(size_t i=0;i<mesh->geometry->triangles.size();++i) append((*positions)[i],style.fill);
@@ -787,7 +806,7 @@ static uint32_t collectVertices(const GameCamera& camera,std::vector<Vertex>& ou
     }
     if(output.size()>std::numeric_limits<uint32_t>::max()) throw std::runtime_error("Visible collision fill exceeds Vulkan draw vertex count");
     static EnemyHealthBarGeometry enemyBars;
-    enemyBars.triangles.clear(); enemyBars.lines.clear(); enemyBars.bars=0;
+    enemyBars.triangles.clear(); enemyBars.iconTriangles.clear(); enemyBars.lines.clear(); enemyBars.bars=0;
     if(!smokeTest()&&!sceneTest()&&!occlusionCase()&&showEnemyHealthBars.load()) {
         auto snapshot=invisibleNumbers().snapshot(); const auto* profile=currentGameProfile();
         if(snapshot&&profile) {
@@ -795,16 +814,15 @@ static uint32_t collectVertices(const GameCamera& camera,std::vector<Vertex>& ou
             const auto level=readLevelIdentity(WallMemory{},base,*profile);
             const auto clock=snapshot->gameClockFlameOffset!=~0u?readGameTimerClock(WallMemory{},base,*profile,level,snapshot->gameClockFlameOffset):GameTimerClock{};
             populateEnemyHealthBars(enemyBars,camera,*snapshot,level,encounterEpochMillis(),radius,viewportHeight,[&](InvisibleEnemyRow& row,Vec3& top) {
-                if(!refreshEnemyTelemetryTop(WallMemory{},base,*profile,row,top)) return false;
-                refreshEnemyStagger(WallMemory{},base,*profile,row,clock.valid?clock.ticks:-1);
+                if(!refreshEnemyBarTop(WallMemory{},base,*profile,row,top)) return false;
+                if(!row.part&&row.staggerVolatileOffset!=~0u) refreshEnemyStagger(WallMemory{},base,*profile,row,clock.valid?clock.ticks:-1);
                 return true;
             });
         }
     }
     auto syncTarget=!smokeTest()&&!sceneTest()&&!occlusionCase()?syncTargetForDraw(camera):nullptr;
     if(syncTarget) appendSyncTargetGeometry(camera,*syncTarget,output,false);
-    if(healthTriangles) *healthTriangles=static_cast<uint32_t>(enemyBars.triangles.size());
-    output.insert(output.end(),enemyBars.triangles.begin(),enemyBars.triangles.end());
+    appendHealth(enemyBars);
     if(output.size()>std::numeric_limits<uint32_t>::max()) throw std::runtime_error("Visible fill exceeds Vulkan draw vertex count");
     uint32_t triangles=static_cast<uint32_t>(output.size());
     uint32_t drawn[4]{},segments[4]{};
@@ -814,14 +832,24 @@ static uint32_t collectVertices(const GameCamera& camera,std::vector<Vertex>& ou
         const auto& lines=mesh->geometry->lines;
         const auto* positions=worldVertices.positions(*mesh);
         const size_t firstLine=mesh->geometry->triangles.size();
+        const bool sharedOutline=showCollision&&mesh->geometry->sharedProjectile;
         for(size_t i=0;i+1<lines.size();i+=2) {
             Vec3 a=positions?(*positions)[firstLine+i]:mesh->world(lines[i]);
             Vec3 b=positions?(*positions)[firstLine+i+1]:mesh->world(lines[i+1]);
-            if(!style.dashed) { append(a,style.line); append(b,style.line); }
-            else for(unsigned segment=0;segment<3;++segment) {
-                auto point=[&](float t) { return Vec3{a.x+(b.x-a.x)*t,a.y+(b.y-a.y)*t,a.z+(b.z-a.z)*t}; };
-                append(point(float(segment)*.4f),style.line); append(point(float(segment)*.4f+.2f),style.line);
-            }
+            if(sharedOutline||style.dashed) {
+                const float dx=b.x-a.x,dy=b.y-a.y,dz=b.z-a.z;
+                auto point=[&](float t) { return Vec3{a.x+dx*t,a.y+dy*t,a.z+dz*t}; };
+                if(sharedOutline) {
+                    const float length=sqrtf(dx*dx+dy*dy+dz*dz);
+                    const auto count=static_cast<unsigned>(std::clamp(std::ceil(length/.3f),1.f,48.f));
+                    for(unsigned segment=0;segment<count;++segment) {
+                        append(point(float(segment)/count),style.line);
+                        append(point((float(segment)+.55f)/count),style.line);
+                    }
+                } else for(unsigned segment=0;segment<3;++segment) {
+                    append(point(float(segment)*.4f),style.line); append(point(float(segment)*.4f+.2f),style.line);
+                }
+            } else { append(a,style.line); append(b,style.line); }
         }
         ++drawn[mesh->kind]; segments[mesh->kind]+=static_cast<uint32_t>(mesh->geometry->lines.size()/2);
     }
@@ -905,8 +933,8 @@ static bool draw(Swapchain& swap,VkQueue queue,uint32_t imageIndex,const VkPrese
     uint32_t consoleTop=consoleClipTop(consoleFraction,swap.extent.height);
     if(consoleTop==swap.extent.height&&!smokeTest()) return false;
     static std::vector<Vertex> vertices;
-    uint32_t healthTriangleVertices=0;
-    uint32_t triangleVertices=collectVertices(camera,vertices,swap.extent.height,&healthTriangleVertices);
+    HealthBarVertexCounts health;
+    uint32_t triangleVertices=collectVertices(camera,vertices,swap.extent.height,&health);
     const auto& hud=debugHudVertices(swap.extent.width,swap.extent.height,consoleFraction>0);
     const auto hudOffset=static_cast<uint32_t>(vertices.size()),hudVertices=static_cast<uint32_t>(hud.size());
     vertices.insert(vertices.end(),hud.begin(),hud.end());
@@ -950,7 +978,7 @@ static bool draw(Swapchain& swap,VkQueue queue,uint32_t imageIndex,const VkPrese
     VkDeviceSize offset=0; d.CmdBindVertexBuffers(frame.commands,0,1,&frame.vertices,&offset);
     d.CmdPushConstants(frame.commands,swap.layout,VK_SHADER_STAGE_VERTEX_BIT|VK_SHADER_STAGE_FRAGMENT_BIT,0,sizeof(push),&push);
     d.CmdBindDescriptorSets(frame.commands,VK_PIPELINE_BIND_POINT_GRAPHICS,swap.layout,0,1,&frame.depthSet,0,nullptr);
-    const uint32_t worldTriangleVertices=triangleVertices-healthTriangleVertices;
+    const uint32_t worldTriangleVertices=triangleVertices-health.regular-health.icon;
     if(worldTriangleVertices) {
         auto fillPush=push; fillPush.depth[3]=fillDepthBias(push.depth[3]);
         d.CmdPushConstants(frame.commands,swap.layout,VK_SHADER_STAGE_VERTEX_BIT|VK_SHADER_STAGE_FRAGMENT_BIT,0,sizeof(fillPush),&fillPush);
@@ -959,8 +987,15 @@ static bool draw(Swapchain& swap,VkQueue queue,uint32_t imageIndex,const VkPrese
     }
     uint32_t lineVertices=hudOffset-triangleVertices;
     if(lineVertices) { d.CmdBindPipeline(frame.commands,VK_PIPELINE_BIND_POINT_GRAPHICS,swap.lines); d.CmdDraw(frame.commands,lineVertices,1,triangleVertices,0); }
-    // UI layers use painter order, while the fragment shader still tests the game depth.
-    if(healthTriangleVertices) { d.CmdBindPipeline(frame.commands,VK_PIPELINE_BIND_POINT_GRAPHICS,swap.healthFill); d.CmdDraw(frame.commands,healthTriangleVertices,1,worldTriangleVertices,0); }
+    if(health.regular||health.icon)
+        d.CmdBindPipeline(frame.commands,VK_PIPELINE_BIND_POINT_GRAPHICS,swap.healthFill);
+    if(health.regular) d.CmdDraw(frame.commands,health.regular,1,worldTriangleVertices,0);
+    if(health.icon) {
+        // The game's depth buffer cannot distinguish the Icon's body from other surfaces.
+        auto iconPush=push; iconPush.options[3]=0;
+        d.CmdPushConstants(frame.commands,swap.layout,VK_SHADER_STAGE_VERTEX_BIT|VK_SHADER_STAGE_FRAGMENT_BIT,0,sizeof(iconPush),&iconPush);
+        d.CmdDraw(frame.commands,health.icon,1,worldTriangleVertices+health.regular,0);
+    }
     if(hudVertices) {
         PushConstants screen{}; screen.matrix[0]=screen.matrix[5]=screen.matrix[10]=screen.matrix[15]=1;
         d.CmdPushConstants(frame.commands,swap.layout,VK_SHADER_STAGE_VERTEX_BIT|VK_SHADER_STAGE_FRAGMENT_BIT,0,sizeof(screen),&screen);
@@ -1025,7 +1060,9 @@ static bool draw(Swapchain& swap,VkQueue queue,uint32_t imageIndex,const VkPrese
             if(r>220&&g<100&&b<100) ++healthRed;
         }
         bool passed=sceneTest()?(green>0||cyan>0):(pixel[0]>10||pixel[1]>10||pixel[2]>10);
-        if(healthBarSmokeTest()) passed=healthBarHiddenSmokeTest()?(triangleVertices>250&&belowConsole==0):(triangleVertices>250&&green>300&&healthWhite>100&&healthRed>20);
+        if(healthBarSmokeTest()&&iconHealthBarSmokeTest())
+            passed=health.regular>0&&health.icon>0&&green>300&&healthWhite>20&&healthRed==0;
+        else if(healthBarSmokeTest()) passed=healthBarHiddenSmokeTest()?(triangleVertices>250&&belowConsole==0):(triangleVertices>250&&green>300&&healthWhite>100&&healthRed>20);
         if(occlusionCase()==1||occlusionCase()==5) passed=green==0&&cyan==0;
         if(occlusionCase()==2||occlusionCase()==6) passed=green>0&&cyan>0&&leftColored==0&&rightColored>0&&fillColors.size()==1;
         if(occlusionCase()==3||occlusionCase()==7) passed=green>0&&cyan>0&&leftColored>0&&rightColored>0&&fillColors.size()==1;
@@ -1266,7 +1303,10 @@ static PFN_vkVoidFunction interception(const char* name) {
 
 EXPORT VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL vkGetInstanceProcAddr(VkInstance instance,const char* name) {
     if(!name) return nullptr;
-    if(!instance) return (strcmp(name,"vkGetInstanceProcAddr")==0||strcmp(name,"vkCreateInstance")==0)?interception(name):nullptr;
+    // The loader can query vkCreateInstance with a preallocated handle
+    // before this layer has registered any instance state.
+    if(strcmp(name,"vkGetInstanceProcAddr")==0||strcmp(name,"vkCreateInstance")==0) return interception(name);
+    if(!instance) return nullptr;
     std::lock_guard<std::recursive_mutex> lock(guard); auto found=instances.find(key(instance)); if(found==instances.end()) return nullptr;
     auto next=found->second->gipa(instance,name); if(!next) return nullptr;
     if(auto own=interception(name)) return own;

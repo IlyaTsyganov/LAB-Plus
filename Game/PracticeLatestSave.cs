@@ -2,14 +2,14 @@ using System.Text.Json;
 
 namespace LabPlus.Game;
 
-// Keep the last-created identity even after deletion. A console load must not
-// silently select an older checkpoint when its intended archive disappears.
+// Keep the last confirmed load even after deletion. Capturing an archive
+// must never change the destination of the repeat-load console command.
 internal sealed class PracticeLatestSave
 {
     private sealed record Entry(string Account, string Build, string Campaign, string Id, long Captured);
     private static readonly object Gate = new();
     private readonly string _path;
-    internal PracticeLatestSave(string directory) => _path = Path.Combine(directory, "practice-latest.json");
+    internal PracticeLatestSave(string directory) => _path = Path.Combine(directory, "practice-last-loaded.json");
     private List<Entry> Read()
     {
         PracticeSaveVault.NoLinks(_path);
@@ -30,16 +30,19 @@ internal sealed class PracticeLatestSave
     }
     internal string? Find(string account, string build, string slot)
     { lock (Gate) return Read().SingleOrDefault(e => e.Account == account && e.Build == build && e.Campaign == PracticeSaveSource.Campaign(slot))?.Id; }
-    internal void Remember(PracticeSave save)
+    internal void Remember(LiveRestorePlan plan, LivePracticeResult result)
     {
-        if (!PracticeSaveSource.SupportsLive(save)) return;
+        if (result.Phase != "reloaded" || result.Token != plan.Token || result.Process != plan.Process
+            || result.Account != plan.Account || result.Build != plan.Build || result.Slot != plan.Slot
+            || !PracticeSaveSource.SupportsSlot(plan.Build, plan.Slot) || !LevelStateSnapshot.ValidToken(plan.ArchiveId)) return;
         lock (Gate)
         {
-            var entries = Read(); string build = PracticeSaveSource.LiveBuild(save)!, campaign = PracticeSaveSource.Campaign(save.SourceSlot);
-            var previous = entries.SingleOrDefault(e => e.Account == save.Account && e.Build == build && e.Campaign == campaign);
-            if (previous is not null && previous.Captured > save.Captured) return;
+            var entries = Read();
+            string campaign = PracticeSaveSource.Campaign(plan.Slot);
+            var previous = entries.SingleOrDefault(e => e.Account == plan.Account && e.Build == plan.Build && e.Campaign == campaign);
+            if (previous is not null && previous.Captured > result.Captured) return;
             if (previous is not null) entries.Remove(previous);
-            entries.Add(new(save.Account, build, campaign, save.Id, save.Captured));
+            entries.Add(new(plan.Account, plan.Build, campaign, plan.ArchiveId, result.Captured));
             if (entries.Count > 10000) throw new IOException("Last-save index limit reached.");
             PracticeSaveVault.NoLinks(_path + ".tmp"); Directory.CreateDirectory(Path.GetDirectoryName(_path)!);
             File.WriteAllText(_path + ".tmp", JsonSerializer.Serialize(entries)); File.Move(_path + ".tmp", _path, true);
@@ -49,28 +52,12 @@ internal sealed class PracticeLatestSave
 
 public sealed partial class PracticeSaveVault
 {
-    public PracticeSave LastLiveArchive(string remote, string targetSlot, string build)
+    internal string LastLoadedLiveArchiveId(string remote, string targetSlot, string build)
     {
         var location = SteamSaveLocation.Parse(remote);
         if (!PracticeSaveSource.SupportsSlot(build, targetSlot)) throw new IOException("Load a supported campaign slot first.");
-        var latest = new PracticeLatestSave(Path.GetDirectoryName(_root)!);
-        string? id = latest.Find(location.Account, build, targetSlot);
-        if (id is null)
-        {
-            // One-time migration for libraries created before last-save tracking.
-            var existing = List().Where(s => s.Account == location.Account && PracticeSaveSource.LoadBlockReason(s, build, targetSlot) is null)
-                .OrderByDescending(s => s.Captured).ThenByDescending(s => s.Id, StringComparer.Ordinal).FirstOrDefault();
-            if (existing is null) throw new IOException("No LAB Plus save is available for this account, patch and campaign.");
-            latest.Remember(existing); id = existing.Id;
-        }
-        _step?.Invoke("latest_selected");
-        try
-        {
-            var save = Verify(id);
-            if (save.Account != location.Account || PracticeSaveSource.LoadBlockReason(save, build, targetSlot) is not null) throw new IOException("Last save no longer matches the running game.");
-            return save;
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException or System.Security.Cryptography.CryptographicException)
-        { throw new IOException("The last LAB Plus save was deleted, is unavailable or is damaged. Create a new save before using this command again.", ex); }
+        var history = new PracticeLatestSave(Path.GetDirectoryName(_root)!);
+        return history.Find(location.Account, build, targetSlot)
+            ?? throw new IOException("No LAB Plus checkpoint has been loaded in this campaign on the current patch. Load an archive from Saves first.");
     }
 }

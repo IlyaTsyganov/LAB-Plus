@@ -122,6 +122,31 @@ int main(int argc,char** argv) {
     requireHealthBar(healthy[0]==0&&healthy[1]==1&&low[0]==1&&healthBarNear(low[1],.2f),"fill changes from green to red with remaining percentage");
 
     const size_t ordinaryVertices=geometry.triangles.size();
+    snapshot.barEnemies[0].staggerThreshold=50;
+    auto thresholdGeometry=buildEnemyHealthBars(camera,snapshot,level,1000,40,1080,pose);
+    requireHealthBar(enemyHealthBarText(100,200,50)=="100/200 (50)"&&enemyHealthBarText(100,200,201)=="100/200",
+        "show a known GK threshold after max HP");
+    requireHealthBar(healthBarColorVertices(thresholdGeometry,1,.8f,.18f)==6&&thresholdGeometry.triangles.size()>ordinaryVertices,
+        "show a distinct threshold tick without a stagger timer");
+    snapshot.barEnemies[0].staggerThreshold=-1;
+    {
+        auto parts=snapshot;
+        parts.barEnemies.clear();
+        for(uint8_t id=1;id<=8;++id) {
+            auto part=row;
+            part.part=id;
+            part.showEmpty=true;
+            part.health=id==8?0:100;
+            parts.barEnemies.push_back(part);
+        }
+        parts.barEnemies.push_back(parts.barEnemies.front());
+        auto body=buildEnemyHealthBars(camera,parts,level,1000,40,1080,[](InvisibleEnemyRow& part,Vec3& top) {
+            top={static_cast<float>(part.part),60,2}; return true;
+        });
+        requireHealthBar(body.bars==8,"one bar per Icon part at boss scale, including depleted parts");
+        requireHealthBar(body.triangles.empty()&&!body.iconTriangles.empty(),
+            "Icon parts use their own draw range with depth sampling disabled");
+    }
     snapshot.barEnemies[0].staggerKnown=snapshot.barEnemies[0].staggerActive=true;
     snapshot.barEnemies[0].staggerSeconds=1.25;
     geometry=buildEnemyHealthBars(camera,snapshot,level,1000,40,1080,pose);

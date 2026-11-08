@@ -108,7 +108,13 @@ internal sealed class ScreenStateAdapter : IDisposable
     {
         node["kind"] = "table";
         var columns = grid.Columns.Cast<UiTableColumn>().Where(c => c.Visible).OrderBy(c => c.DisplayIndex).ToArray();
-        node["columns"] = columns.Select(c => new { index = c.Index, text = c.HeaderText }).ToArray();
+        node["columns"] = columns.Select(c => new
+        {
+            index = c.Index, text = c.HeaderText, sortable = c.SortMode == DataGridViewColumnSortMode.Programmatic,
+            sort = c.Index == grid.SortColumn ? grid.SortDirection.ToString().ToLowerInvariant() : "none"
+        }).ToArray();
+        node["resize"] = grid.ResizableHeight
+            ? new { height = grid.ResizeHeight, minimum = UiTable.MinResizeHeight, maximum = UiTable.MaxResizeHeight } : null;
         int limit = _limits.GetValueOrDefault(grid, 200);
         var rows = new List<object>();
         for (int row = 0; row < Math.Min(limit, grid.RowCount); row++)
@@ -156,7 +162,8 @@ internal sealed class ScreenStateAdapter : IDisposable
             else if (action == "select") treeNode.TreeView.SelectedNode = treeNode;
             return;
         }
-        if (!_controls.TryGetValue(id, out var control) || control.IsDisposed || !control.Enabled) return;
+        if (!_controls.TryGetValue(id, out var control) || control.IsDisposed) return;
+        if (!control.Enabled && action != "table-height") return;
         switch (action)
         {
             case "click" when control is UiAction button: button.PerformClick(); break;
@@ -186,6 +193,14 @@ internal sealed class ScreenStateAdapter : IDisposable
                     grid.SelectRow(row, column, message.TryGetProperty("ctrl", out var toggle) && toggle.GetBoolean(), message.TryGetProperty("shift", out var range) && range.GetBoolean());
                 else { grid.CurrentCell = grid.Rows[row].Cells[column]; grid.Rows[row].Selected = true; }
                 if (action == "row-double") grid.DoubleClickCell(row,column);
+                break;
+            case "table-height" when control is UiTable { ResizableHeight: true } resized:
+                if (message.TryGetProperty("height", out var tableHeight) && tableHeight.TryGetInt32(out int height))
+                    resized.RequestResize(height);
+                break;
+            case "sort" when control is UiTable sortGrid:
+                if (message.TryGetProperty("column", out var sortColumn) && sortColumn.TryGetInt32(out int columnIndex))
+                    sortGrid.RequestSort(columnIndex);
                 break;
             case "row-check" when control is UiTable { MultiSelect: true, ShowSelectionChecks: true } checkGrid:
                 int checkedRow = message.GetProperty("row").GetInt32();

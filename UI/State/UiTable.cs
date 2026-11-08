@@ -67,6 +67,11 @@ internal sealed class UiTable : UiNode
     public bool AllowUserToAddRows { get; set; } public bool AllowUserToDeleteRows { get; set; }
     public bool RowHeadersVisible { get; set; } public bool MultiSelect { get; set; }
     public bool ShowSelectionChecks { get; set; }
+    internal const int MinResizeHeight = 112, MaxResizeHeight = 1200, DefaultResizeHeight = 146;
+    public bool ResizableHeight { get; set; }
+    public int ResizeHeight { get; set; } = DefaultResizeHeight;
+    public int SortColumn { get; set; } = -1;
+    public SortOrder SortDirection { get; set; }
     public string EmptyText { get; set; } = "No data yet.";
     private int _selectionAnchor = -1;
     public IReadOnlyList<int> SelectedIndices => Enumerable.Range(0, Rows.Count).Where(i => Rows[i].Selected).ToArray();
@@ -103,6 +108,20 @@ internal sealed class UiTable : UiNode
     public event EventHandler<DataGridViewCellValueEventArgs>? CellValueNeeded;
     public event EventHandler<UiCellTipEvent>? CellToolTipTextNeeded;
     public event EventHandler<DataGridViewCellEventArgs>? CellDoubleClick;
+    public event EventHandler<DataGridViewCellEventArgs>? SortRequested;
+    public event EventHandler? ResizeHeightChanged;
+    internal void RequestResize(int height)
+    {
+        height = Math.Clamp(height, MinResizeHeight, MaxResizeHeight);
+        if (height == ResizeHeight) return;
+        ResizeHeight = height;
+        ResizeHeightChanged?.Invoke(this, EventArgs.Empty);
+    }
+    internal void RequestSort(int column)
+    {
+        if (column >= 0 && column < ColumnCount && Columns[column] is { Visible: true, SortMode: DataGridViewColumnSortMode.Programmatic })
+            SortRequested?.Invoke(this, new(column, -1));
+    }
     internal object? CellValue(int row,int column) { var e=new DataGridViewCellValueEventArgs(column,row);CellValueNeeded?.Invoke(this,e);return e.Value; }
     internal string? CellTip(int row,int column) { var e=new UiCellTipEvent(column,row);CellToolTipTextNeeded?.Invoke(this,e);return e.ToolTipText; }
     internal void DoubleClickCell(int row,int column)=>CellDoubleClick?.Invoke(this,new(column,row));

@@ -50,6 +50,24 @@ internal static class SaveLibraryChecks
         Check(File.ReadAllBytes(Path.Combine(root, "practice-saves", source.Id, "manifest.json")).SequenceEqual(manifestBefore) && vault.Verify(source.Id).Category == "Practice", "Category transfer changed the authenticated archive manifest");
         Reject(() => library.Transfer(ordered, new HashSet<string> { source.Id, new string('f', 32) }, "Other"), "Transfer accepted a missing archive");
         Reject(() => library.Transfer(ordered, new HashSet<string> { source.Id }, PracticeSaveLibrary.All), "Transfer accepted the aggregate view as a category");
+        Reject(() => library.DeleteCategory(PracticeSaveLibrary.All, vault.List()), "Category deletion accepted the aggregate view");
+        Reject(() => library.DeleteCategory("uncategorized", vault.List()), "Category deletion accepted the built-in fallback");
+        library.DeleteCategory("my route", vault.List());
+        library = new PracticeSaveLibrary(root);
+        categorized = library.Categorized(vault.List());
+        Check(library.Category == PracticeSaveLibrary.All && !library.Categories(categorized).Contains("My route")
+            && categorized.Where(s => s.Id != sibling.Id).All(s => s.Category == PracticeSaveLibrary.Uncategorized)
+            && categorized.Single(s => s.Id == sibling.Id).Category == "Other", "Category deletion lost or moved unrelated checkpoints or left the view invalid");
+        Check(File.ReadAllBytes(Path.Combine(root, "practice-saves", source.Id, "manifest.json")).SequenceEqual(manifestBefore)
+            && vault.Verify(source.Id).Category == "Practice", "Category deletion changed the authenticated archive");
+        library.DeleteCategory("Other", vault.List());
+        library = new PracticeSaveLibrary(root);
+        categorized = library.Categorized(vault.List());
+        Check(!library.Categories(categorized).Contains("Other") && categorized.Single(s => s.Id == sibling.Id).Category == PracticeSaveLibrary.Uncategorized,
+            "Deleting a category stored in the original manifest allowed it to reappear");
+        library.Add("Empty");
+        library.DeleteCategory("Empty", vault.List());
+        Check(!new PracticeSaveLibrary(root).Categories([]).Contains("Empty"), "Empty category deletion did not persist");
         Check(PracticeSaveSource.Campaign("GAME-AUTOSAVE0") == "Main", "Main campaign label did not change");
         // Prevalidation and rename rollback must keep a bulk failure from losing
         // an unrelated archive or changing game files.

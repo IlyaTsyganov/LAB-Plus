@@ -3,7 +3,9 @@ namespace LabPlus.Hud.Runtime;
 // Availability is separate from the in-game letters, which mirror preferences.
 internal sealed record FeatureStatus(string Lighting,string Modbot,string Tint)
 {
-    internal static FeatureStatus Restart {get;}=new("Restart game","Restart game","Restart game");
+    public string? CheckpointDelay { get; init; }
+
+    internal static FeatureStatus Restart {get;}=new("Restart game","Restart game","Restart game"){CheckpointDelay="Restart game"};
 
     internal static FeatureStatus Pending(LabSettings settings)=>new(settings.LightingFix?"Waiting":"Off",settings.ModbotFix?"Waiting":"Off",settings.TintOpacity==100?"Default · 100%":"Waiting");
 

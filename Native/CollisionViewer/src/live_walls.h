@@ -9,14 +9,20 @@ struct ShapeContentsFilter {
     static constexpr uintptr_t shapeUserData=0x30, tableList=0x08, tableCount=0x10;
     static constexpr size_t entrySize=0x58;
     static constexpr uint32_t solid=0x1, playerClip=0x8, shotClip=0x80, noCollision=0x40000000;
-    bool shotsOnly=false;
-    static bool blocksShotsOnly(uint32_t flags) {
-        // Retail contents enum: SHOTCLIP=0x80. Both MASK_SHOT and
-        // MASK_PROJECTILE include it; neither player SOLID nor PLAYERCLIP.
-        return (flags&shotClip)&&!blocksPlayer(flags)&&!(flags&noCollision);
+    enum class Selection { World, ShotOnly, SharedShot };
+    Selection selection=Selection::World;
+    bool projectile() const { return selection!=Selection::World; }
+    static bool blocksShots(uint32_t flags) { return (flags&shotClip)&&!(flags&noCollision); }
+    static bool blocksShotsOnly(uint32_t flags) { return blocksShots(flags)&&!blocksPlayer(flags); }
+    static bool blocksBoth(uint32_t flags) { return blocksShots(flags)&&blocksPlayer(flags); }
+    bool allows(uint32_t flags) const {
+        switch(selection) {
+            case Selection::ShotOnly: return blocksShotsOnly(flags);
+            case Selection::SharedShot: return blocksBoth(flags);
+            default: return blocksPlayer(flags);
+        }
     }
-    bool allows(uint32_t flags) const { return shotsOnly?blocksShotsOnly(flags):blocksPlayer(flags); }
-    struct Table { uintptr_t data=0; std::vector<uint32_t> contents; bool shots=false; };
+    struct Table { uintptr_t data=0; std::vector<uint32_t> contents; bool shotOnly=false,sharedShot=false; };
     WallMemory memory;
     std::unordered_map<uintptr_t,Table> tables;
     void clear() { tables.clear(); }
@@ -38,7 +44,9 @@ struct ShapeContentsFilter {
                         uintptr_t owner=0; uint32_t flags=0;
                         memcpy(&owner,rows.data()+i*entrySize,8);
                         if(owner!=wrapper) { table.contents.clear(); break; }
-                        memcpy(&flags,rows.data()+i*entrySize+8,4); table.contents.push_back(flags); table.shots=table.shots||blocksShotsOnly(flags);
+                        memcpy(&flags,rows.data()+i*entrySize+8,4); table.contents.push_back(flags);
+                        table.shotOnly=table.shotOnly||blocksShotsOnly(flags);
+                        table.sharedShot=table.sharedShot||blocksBoth(flags);
                     }
                 }
             }
@@ -51,7 +59,7 @@ struct ShapeContentsFilter {
     }
     bool hasShotTags(uintptr_t shape) {
         size_t index=0; const Table* table=lookup(shape,index);
-        return table&&table->shots;
+        return table&&(selection==Selection::SharedShot?table->sharedShot:table->shotOnly);
     }
     bool knownPlayerBlocker(uintptr_t shape) {
         size_t index=0; const Table* table=lookup(shape,index);
@@ -59,11 +67,11 @@ struct ShapeContentsFilter {
     }
     bool allowsShape(uintptr_t shape) {
         size_t index=0; const Table* table=lookup(shape,index);
-        return table?allows(table->contents[index]):!shotsOnly;
+        return table?allows(table->contents[index]):!projectile();
     }
     bool allowsTag(uintptr_t shape,uint16_t tag) {
         size_t index=0; const Table* table=lookup(shape,index);
-        return table&&tag!=0xffff&&tag<table->contents.size()?allows(table->contents[tag]):!shotsOnly;
+        return table&&tag!=0xffff&&tag<table->contents.size()?allows(table->contents[tag]):!projectile();
     }
 };
 struct WallTransform {
@@ -174,7 +182,7 @@ struct LiveWalls {
             for(unsigned i=0;i<(primitiveDesc&255);++i) {
                 const auto& p=primitives[(primitiveDesc>>8)+i];
                 if(p==std::array<unsigned char,4>{0xde,0xad,0xde,0xad}) continue;
-                if(contents&&contents->shotsOnly&&!haveTags) continue;
+                if(contents&&contents->projectile()&&!haveTags) continue;
                 if(haveTags&&!contents->allowsTag(address,tags[i])) continue;
                 for(unsigned v:p) if(v>=points.size()) return shapeFailure("compressed primitive vertex index");
                 triangle(p[0],p[1],p[2]); triangle(p[0],p[2],p[3]);
@@ -212,7 +220,7 @@ struct LiveWalls {
             }
             return true;
         }
-        if(contents&&!(contents->shotsOnly&&data[0x22]==9)&&!contents->allowsShape(address)) return true;
+        if(contents&&!(contents->projectile()&&data[0x22]==9)&&!contents->allowsShape(address)) return true;
         if(data[0x22]==9) return compressed(address,transform,geometry,contents);
         // Box shapes (type 6) are also convex polytopes, with the same reflected arrays.
         if(!(u16(0x20)&2)) { shapeError="shape type "+std::to_string(data[0x22]); return false; }

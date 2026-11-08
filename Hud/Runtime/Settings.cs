@@ -14,6 +14,7 @@ internal sealed class LabSettings
     public string GamePath {get;set;}="";
     public bool LightingFix {get;set;}=true;
     public bool ModbotFix {get;set;}=true;
+    public bool RemoveCheckpointDelay {get;set;}
     public bool HideDriverName {get;set;}=true;
     public bool SpeedometersEnabled {get;set;}=false;
     public double TintOpacity {get;set;}=100;
@@ -49,7 +50,7 @@ internal sealed class SettingsStore
     internal bool Apply(string key,JsonElement value)=>Update(s=>
     {
         if(key=="gamePath"&&value.ValueKind==JsonValueKind.String){s.GamePath=value.GetString()??"";return true;}
-        if(value.ValueKind is JsonValueKind.True or JsonValueKind.False){bool v=value.GetBoolean();switch(key){case "lightingFix":s.LightingFix=v;return true;case "modbotFix":s.ModbotFix=v;return true;case "hideDriverName":s.HideDriverName=v;return true;case "speedometersEnabled":s.SpeedometersEnabled=v;return true;case "verticalShowSign":s.VerticalShowSign=v;return true;}}
+        if(value.ValueKind is JsonValueKind.True or JsonValueKind.False){bool v=value.GetBoolean();switch(key){case "lightingFix":s.LightingFix=v;return true;case "modbotFix":s.ModbotFix=v;return true;case "removeCheckpointDelay":s.RemoveCheckpointDelay=v;return true;case "hideDriverName":s.HideDriverName=v;return true;case "speedometersEnabled":s.SpeedometersEnabled=v;return true;case "verticalShowSign":s.VerticalShowSign=v;return true;}}
         if(key=="tintOpacity"&&Number(value,0,100,out double tint)){s.TintOpacity=tint;return true;}
         string[] parts=key.Split('.');if(parts.Length!=2||!new[]{"current","landing","vertical"}.Contains(parts[0]))return false;
         var m=s.Meter(parts[0]);switch(parts[1]){

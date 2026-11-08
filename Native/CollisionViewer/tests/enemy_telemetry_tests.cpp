@@ -27,6 +27,69 @@ static std::unordered_map<std::string,GraphType> makeSchemas(uint32_t stride) {
     return result;
 }
 int main() {
+    {
+        EnemyTelemetryLayout layout;
+        layout.health=0; layout.components=0; layout.componentCount=2;
+        layout.componentSize=16; layout.type=0; layout.current=4; layout.maximum=8;
+        std::array<unsigned char,32> values{};
+        put(values.data(),0,int32_t(1)); put(values.data(),4,120.f); put(values.data(),8,800.f);
+        put(values.data(),16,int32_t(0)); put(values.data(),20,1750.f); put(values.data(),24,6000.f);
+        EnemyTelemetryRow samur;
+        samur.entity.address=reinterpret_cast<uintptr_t>(values.data());
+        expect(readEnemySamurPhaseHealth(WallMemory{},layout,samur)&&samur.health==1870&&samur.maximum==6800,
+            "Samur's active phase includes current and maximum shield and body HP");
+        put(values.data(),4,0.f); put(values.data(),8,0.f);
+        put(values.data(),20,4300.f); put(values.data(),24,7000.f);
+        expect(readEnemySamurPhaseHealth(WallMemory{},layout,samur)&&samur.health==4300&&samur.maximum==7000,
+            "Samur reads the updated maximum when entering a new phase");
+        put(values.data(),20,0.f);
+        expect(readEnemySamurPhaseHealth(WallMemory{},layout,samur)&&samur.health==0&&samur.showEmpty,
+            "Samur's depleted pool keeps a visible zero HP bar");
+    }
+    {
+        EnemyTelemetryRow boss;
+        boss.maximumKnown=true; boss.maximum=20000; boss.health=20000;
+        expect(applyEnemyDarkLordPhaseHealth(boss)&&boss.health==20000&&boss.showEmpty,
+            "Dark Lord begins a phase with its full maximum");
+        boss.painReaction=0; boss.health=7500;
+        expect(applyEnemyDarkLordPhaseHealth(boss)&&boss.health==12500&&boss.maximum==20000,
+            "Dark Lord reports remaining phase HP using the same inversion as the native HUD");
+        boss.maximum=15000; boss.health=3500; boss.painReaction=17;
+        expect(applyEnemyDarkLordPhaseHealth(boss)&&boss.health==11500&&boss.maximum==15000,
+            "the active phase maximum is used and vulnerable stagger does not force zero");
+        boss.health=14999; boss.painReaction=16;
+        expect(applyEnemyDarkLordPhaseHealth(boss)&&boss.health==0&&boss.showEmpty,
+            "the final stagger of the phase shows a depleted bar");
+        boss.health=5000; boss.painReaction=-1;
+        expect(!applyEnemyDarkLordPhaseHealth(boss),"an unreadable pain state cannot produce a false Dark Lord HP value");
+    }
+    {
+        const EnemyIconLayout icon{0x1c8,0x160,0x80,0x84,~0u,true};
+        std::array<unsigned char,0x160> part{};
+        const auto address=reinterpret_cast<uintptr_t>(part.data());
+        put(part.data(),0x80,5000.f); put(part.data(),0x84,4321.f);
+        put(part.data(),0xb8,1200.f); put(part.data(),0xd8,1667.f); put(part.data(),0xdc,1667.f);
+        float hp=0,maximum=0;
+        expect(readEnemyIconPartHealth(WallMemory{},address,icon,false,hp,maximum)&&hp==4321&&maximum==5000,
+            "Icon phase one uses current armor HP");
+        expect(readEnemyIconPartHealth(WallMemory{},address,icon,true,hp,maximum)&&hp==4534&&maximum==5000,
+            "Icon phase two reports the sum of the remaining body health pools");
+        put(part.data(),0xb8,-20.f);
+        expect(readEnemyIconPartHealth(WallMemory{},address,icon,true,hp,maximum)&&hp==3334,
+            "overkill in an exhausted pool does not consume the following pool twice");
+        put(part.data(),0xb4,1u); put(part.data(),0xd8,700.f);
+        expect(readEnemyIconPartHealth(WallMemory{},address,icon,true,hp,maximum)&&hp==2367,
+            "phase two HP keeps falling after the first damage state");
+        put(part.data(),0xb4,2u); put(part.data(),0xdc,200.f);
+        expect(readEnemyIconPartHealth(WallMemory{},address,icon,true,hp,maximum)&&hp==200,
+            "only the final pool counts in the last damage state");
+        put(part.data(),0xb4,3u);
+        expect(readEnemyIconPartHealth(WallMemory{},address,icon,true,hp,maximum)&&hp==0,
+            "a destroyed body part has zero HP");
+        auto unsupported=icon; unsupported.bodyHealth=false;
+        expect(!readEnemyIconPartHealth(WallMemory{},address,unsupported,true,hp,maximum),
+            "an unknown phase two layout cannot display stale phase one HP");
+    }
     for(const auto* selected:{&kProfile20,&kProfile21,&kProfile30,&kProfile31,&kProfile40,&kProfile41,&kProfile50,&kProfile10,&kProfile11,&kProfile51,&kProfile60,&kProfile61,&kProfile62,&kProfile63,&kProfile64,&kProfile6660,&kProfile6661,&kProfile66611,&kProfile6662,&kProfile66622,&kProfile6663,&kProfile66632}) {
         uint32_t stride=(selected==&kProfile30||selected==&kProfile31||selected==&kProfile40||selected==&kProfile41||selected==&kProfile50||selected==&kProfile51||selected==&kProfile60||selected==&kProfile61||selected==&kProfile62||selected==&kProfile63||selected==&kProfile64)?96u:(selected==&kProfile10||selected==&kProfile11||selected==&kProfile20||selected==&kProfile21?88u:176u);
         auto schemas=makeSchemas(stride); auto lookup=[&](const std::string& name)->const GraphType& { auto found=schemas.find(name); static const GraphType empty; return found==schemas.end()?empty:found->second; };

@@ -22,7 +22,7 @@ internal sealed class PracticeSaveForm : LabPlusForm
     private readonly UiInput _folder = new() { Dock = DockStyle.Fill, ReadOnly = true, PlaceholderText = "Select the Steam save folder" };
     private readonly UiText _folderLabel = new() { Text = "Steam save folder", Dock = DockStyle.Fill, Presentation = "saves-folder-label" };
     private readonly UiInput _newCategory = new() { Dock = DockStyle.Fill, MaxLength = 160, PlaceholderText = "New category" };
-    private readonly UiTable _grid = new() { MultiSelect = true, ShowSelectionChecks = true, Presentation = "saves-table" };
+    private readonly UiTable _grid = new() { MultiSelect = true, ShowSelectionChecks = true, Presentation = "saves-table", ResizableHeight = true };
     private readonly UiAction _save = MakeButton("Save", ActionWidth), _load = MakeButton("Load", ActionWidth), _delete = MakeButton("Delete", ActionWidth);
     private readonly UiAction _up = MakeButton("Up", 62, false), _down = MakeButton("Down", 62, false), _categories = MakeButton("Categories", ActionWidth, false);
     private readonly UiAction _chooseFolder = MakeButton("Choose Steam save folder", 42, false), _tools = MakeButton("Tools and diagnostics…", 220, false);
@@ -47,7 +47,7 @@ internal sealed class PracticeSaveForm : LabPlusForm
     private IReadOnlyList<PracticeSave> _all = [];
     private List<PracticeSave> _visible = [];
     private string _remote = "", _details = "", _slot = "", _runtimeMessage = "Load a campaign slot in the game first.";
-    private bool _busy, _populating, _runtimeReady, _runtimePolling = true;
+    private bool _busy, _awaitingReload, _populating, _runtimeReady, _runtimePolling = true;
     private int _lastProcess, _buildProcess = -1, _sourceGeneration;
     private long _nextRuntimeRefresh;
     private Task? _runtimeRefresh;
@@ -89,13 +89,18 @@ internal sealed class PracticeSaveForm : LabPlusForm
         root.Controls.Add(Bar(_search, anchor, "saves-filters")); root.Controls.Add(_categoryHeading);
         _grid.Dock = DockStyle.Fill; _grid.ReadOnly = true; _grid.AllowUserToAddRows = _grid.AllowUserToDeleteRows = false; _grid.RowHeadersVisible = false;
         _grid.SelectionMode = DataGridViewSelectionMode.FullRowSelect; _grid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
-        foreach (var title in new[] { "Checkpoint", "Campaign", "Created" }) _grid.Columns.Add(new UiTableColumn { HeaderText = title, SortMode = DataGridViewColumnSortMode.NotSortable });
-        root.Controls.Add(_grid); root.Controls.Add(_selection);
+        foreach (var title in new[] { "Checkpoint", "Campaign", "Created" }) _grid.Columns.Add(new UiTableColumn { HeaderText = title, SortMode = DataGridViewColumnSortMode.Programmatic });
         var actions = new UiGrid { Dock = DockStyle.Fill, ColumnCount = 3, RowCount = 1, Presentation = "saves-actions" };
         actions.ColumnStyles.Add(new(SizeType.Percent, 100)); actions.ColumnStyles.Add(new(SizeType.Absolute, ActionWidth)); actions.ColumnStyles.Add(new(SizeType.Absolute, ActionWidth));
         var order = new UiToolbar { Dock = DockStyle.Fill, Presentation = "saves-order" }; order.Controls.Add(_up); order.Controls.Add(_down); order.Controls.Add(_moveCategory);
         actions.Controls.Add(order, 0, 0); actions.Controls.Add(_delete, 1, 0); actions.Controls.Add(_load, 2, 0); root.Controls.Add(actions);
+        root.Controls.Add(_grid); root.Controls.Add(_selection);
         root.Controls.Add(_connection); root.Controls.Add(_status);
+        root.Controls.Add(new UiText
+        {
+            Text = "Saves capture ammo, health, and armor at the last checkpoint you reached. If a level has no working checkpoint when you start or reset it, ammo may not restore correctly.",
+            Dock = DockStyle.Fill, Font = LabPlusTheme.Ui(9.5f), Presentation = "saves-limitations"
+        });
         // Keep the advanced implementation available internally, outside Saves.
         _tools.Visible = false; root.Controls.Add(_tools); _tools.Click += (_, _) => OpenTools();
         if (context is not null) _name.Text = context.Name;
@@ -111,10 +116,19 @@ internal sealed class PracticeSaveForm : LabPlusForm
         _chooseFolder.Click += (_, _) => BrowseFolder(); _search.TextChanged += (_, _) => Populate();
         _grid.SelectionChanged += (_, _) => { if (!_populating) { _categoryMenu.Visible = false; RefreshState(); } };
         _grid.CellDoubleClick += (_, e) => { if (e.RowIndex >= 0) _load.PerformClick(); };
+        _grid.SortRequested += (_, e) =>
+        {
+            _grid.SortDirection = _grid.SortColumn != e.ColumnIndex ? SortOrder.Ascending
+                : _grid.SortDirection == SortOrder.Ascending ? SortOrder.Descending : SortOrder.None;
+            _grid.SortColumn = _grid.SortDirection == SortOrder.None ? -1 : e.ColumnIndex;
+            SaveViewPreference(p => p with { SortColumn = _grid.SortColumn, SortDirection = _grid.SortDirection });
+            Populate();
+        };
+        _grid.ResizeHeightChanged += (_, _) => SaveViewPreference(p => p with { TableHeight = _grid.ResizeHeight });
         _name.KeyDown += (_, e) => { if (e.KeyCode == Keys.Enter) { e.SuppressKeyPress = true; _save.PerformClick(); } };
         _grid.KeyDown += (_, e) => { if (e.KeyCode == Keys.Enter) { e.SuppressKeyPress = true; _load.PerformClick(); } };
         KeyDown += (_, e) => { if (e.Control && e.KeyCode == Keys.S) { e.SuppressKeyPress = true; _save.PerformClick(); } };
-        _lastProcess = _gameProcess(); Discover(); Reload();
+        _lastProcess = _gameProcess(); Discover(restoreLayout: true); Reload();
         _timer.Tick += (_, _) => Tick(); _timer.Start(); FormClosed += (_, _) => { _timer.Stop(); _timer.Dispose(); };
         _nextCloudRefresh = Environment.TickCount64 + 2000; _cloudRefresh = RefreshCloudSettings();
     }
@@ -126,15 +140,47 @@ internal sealed class PracticeSaveForm : LabPlusForm
     private SteamSaveLocation? SaveLocation()
     { try { return SteamSaveLocation.Parse(_remote); } catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { return null; } }
     private string PreferencePath => Path.Combine(_directory, "practice-ui.json");
-    private sealed record Preferences(string Remote);
-    private void Discover()
+    private sealed record Preferences(string Remote = "", int TableHeight = UiTable.DefaultResizeHeight,
+        int SortColumn = -1, SortOrder SortDirection = SortOrder.None);
+    private Preferences ReadPreferences()
     {
-        string? preferred = null;
-        try { PracticeSaveVault.NoLinks(PreferencePath); if (File.Exists(PreferencePath) && new FileInfo(PreferencePath).Length < 4096) preferred = JsonSerializer.Deserialize<Preferences>(File.ReadAllText(PreferencePath))?.Remote; }
+        try
+        {
+            PracticeSaveVault.NoLinks(PreferencePath);
+            if (File.Exists(PreferencePath) && new FileInfo(PreferencePath).Length < 4096)
+                return JsonSerializer.Deserialize<Preferences>(File.ReadAllText(PreferencePath)) ?? new();
+        }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException) { }
-        // Keep the explicit choice across launches and Steam account changes.
-        // Runtime account/path validation still gates every live operation.
-        _remote = preferred ?? ""; _folder.Text = _remote;
+        return new();
+    }
+    private void Discover(bool restoreLayout = false)
+    {
+        var preferred = ReadPreferences();
+        _remote = preferred.Remote ?? "";
+        _folder.Text = _remote;
+        if (!restoreLayout) return;
+        _grid.ResizeHeight = Math.Clamp(preferred.TableHeight, UiTable.MinResizeHeight, UiTable.MaxResizeHeight);
+        if (preferred.SortColumn >= 0 && preferred.SortColumn < _grid.Columns.Count
+            && preferred.SortDirection is SortOrder.Ascending or SortOrder.Descending)
+        {
+            _grid.SortColumn = preferred.SortColumn;
+            _grid.SortDirection = preferred.SortDirection;
+        }
+    }
+    private void SavePreferences(Func<Preferences, Preferences> update)
+    {
+        Directory.CreateDirectory(_directory);
+        string temporaryPath = PreferencePath + ".tmp";
+        PracticeSaveVault.NoLinks(PreferencePath);
+        PracticeSaveVault.NoLinks(temporaryPath);
+        File.WriteAllText(temporaryPath, JsonSerializer.Serialize(update(ReadPreferences())));
+        File.Move(temporaryPath, PreferencePath, true);
+    }
+    private void SaveViewPreference(Func<Preferences, Preferences> update)
+    {
+        try { SavePreferences(update); }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        { _status.Text = "The Saves layout preference could not be saved."; }
     }
     private void UseSource(string remote)
     {
@@ -142,8 +188,8 @@ internal sealed class PracticeSaveForm : LabPlusForm
         // SaveLocation still validates it before listing archives or live operations.
         _remote = remote; _folder.Text = _remote; _sourceGeneration++; _runtimeReady = false; _cloudDisabled = null; _slot = ""; _nextRuntimeRefresh = 0; _status.Text = "";
         _nextCloudRefresh = 0; _configuredCloud = SteamCloudPreference.Unknown("Checking Steam Cloud settings.");
-        Directory.CreateDirectory(_directory); PracticeSaveVault.NoLinks(PreferencePath); PracticeSaveVault.NoLinks(PreferencePath + ".tmp");
-        File.WriteAllText(PreferencePath + ".tmp", JsonSerializer.Serialize(new Preferences(_remote))); File.Move(PreferencePath + ".tmp", PreferencePath, true); Populate();
+        SavePreferences(p => p with { Remote = _remote });
+        Populate();
     }
     private void BrowseFolder()
     {
@@ -207,7 +253,19 @@ internal sealed class PracticeSaveForm : LabPlusForm
     private void Populate(HashSet<string>? selected = null)
     {
         selected ??= SelectedIds; var location = SaveLocation(); string query = _search.Text.Trim();
-        _visible = _library.Ordered(_all.Where(s => location?.Account == s.Account && (_library.Category == PracticeSaveLibrary.All || s.Category.Equals(_library.Category, StringComparison.OrdinalIgnoreCase)) && $"{s.Name} {s.Category} {s.Map}".Contains(query, StringComparison.OrdinalIgnoreCase))).ToList();
+        var ordered = _library.Ordered(_all.Where(s => location?.Account == s.Account && (_library.Category == PracticeSaveLibrary.All || s.Category.Equals(_library.Category, StringComparison.OrdinalIgnoreCase)) && $"{s.Name} {s.Category} {s.Map}".Contains(query, StringComparison.OrdinalIgnoreCase)));
+        bool descending = _grid.SortDirection == SortOrder.Descending;
+        IEnumerable<PracticeSave> sorted = _grid.SortColumn switch
+        {
+            0 => SortBy(s => s.Name, StringComparer.CurrentCultureIgnoreCase),
+            1 => SortBy(s => PracticeSaveSource.Campaign(s.SourceSlot), StringComparer.CurrentCultureIgnoreCase),
+            2 => SortBy(s => s.Captured, Comparer<long>.Default),
+            _ => ordered
+        };
+        _visible = sorted.ToList();
+
+        IOrderedEnumerable<PracticeSave> SortBy<T>(Func<PracticeSave, T> key, IComparer<T> comparer) =>
+            descending ? ordered.OrderByDescending(key, comparer) : ordered.OrderBy(key, comparer);
         _populating = true; _grid.Rows.Clear();
         foreach (var save in _visible)
         {
@@ -219,7 +277,8 @@ internal sealed class PracticeSaveForm : LabPlusForm
     }
     private void RebuildCategories()
     {
-        var accountSaves = _all.Where(s => SaveLocation()?.Account == s.Account).ToArray();
+        string? account = SaveLocation()?.Account;
+        var accountSaves = _all.Where(s => account == s.Account).ToArray();
         string signature = JsonSerializer.Serialize(new { _movingCategory, _library.Category, categories = _library.Categories(accountSaves), counts = accountSaves.GroupBy(s => s.Category).Select(g => new { g.Key, Count = g.Count() }) });
         if (signature == _categorySignature) return; _categorySignature = signature;
         foreach (var button in _categoryButtons.Controls.ToArray()) button.Dispose(); _categoryButtons.Controls.Clear();
@@ -228,9 +287,37 @@ internal sealed class PracticeSaveForm : LabPlusForm
             int count = accountSaves.Count(s => category == PracticeSaveLibrary.All || s.Category.Equals(category, StringComparison.OrdinalIgnoreCase));
             var button = MakeButton($"{category} ({count})", 260, false); button.Dock = DockStyle.Fill;
             button.Presentation = category.Equals(_library.Category, StringComparison.OrdinalIgnoreCase) ? "saves-category-active" : "saves-category-option";
-            button.Click += (_, _) => { if (_movingCategory) _ = TransferSelected(category); else _ = Run(() => { _library.Select(category); _categoryMenu.Visible = false; Populate(new HashSet<string>()); return Task.CompletedTask; }); }; _categoryButtons.Controls.Add(button);
+            button.Click += (_, _) => { if (_movingCategory) _ = TransferSelected(category); else _ = Run(() => { _library.Select(category); _categoryMenu.Visible = false; Populate(new HashSet<string>()); return Task.CompletedTask; }); };
+            if (_movingCategory || !PracticeSaveLibrary.CanDeleteCategory(category))
+            {
+                _categoryButtons.Controls.Add(button);
+                continue;
+            }
+
+            var remove = MakeButton("Delete category " + category, 42, false);
+            remove.Icon = "trash";
+            remove.Presentation = "saves-category-delete";
+            remove.Click += (_, _) => _ = DeleteCategory(category);
+            var row = new UiGrid { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 1, Margin = Padding.Empty, Presentation = "saves-category-row" };
+            row.Controls.Add(button, 0, 0);
+            row.Controls.Add(remove, 1, 0);
+            _categoryButtons.Controls.Add(row);
         }
     }
+    private Task DeleteCategory(string category) => Run(() =>
+    {
+        using var review = new WorkspaceMessageForm($"Delete the category {category}?\n\nIts checkpoints will be moved to Uncategorized.",
+            "Delete category", [("Cancel", DialogResult.Cancel), ("Delete", DialogResult.OK)]);
+        if (review.ShowDialog(OwnerScreen) != DialogResult.OK) return Task.CompletedTask;
+
+        var selected = SelectedIds;
+        var saves = _vault.List();
+        _library.DeleteCategory(category, saves);
+        _all = _library.Categorized(saves);
+        Populate(selected);
+        _status.Text = $"Deleted category: {category}.";
+        return Task.CompletedTask;
+    });
     private void UpdateAvailability()
     {
         string? build = RunningBuild();
@@ -245,10 +332,13 @@ internal sealed class PracticeSaveForm : LabPlusForm
     {
         bool running = _gameProcess() > 0, ready = running && _runtimeReady && _cloudDisabled == true && SaveLocation() is not null; var selected = SelectedArchives; var one = Selected;
         _save.Enabled = !_busy && ready; _load.Enabled = !_busy && ready && one is not null && PracticeSaveSource.LoadBlockReason(one, RunningBuild(), _slot) is null;
-        _delete.Enabled = !_busy && selected.Count > 0; _categories.Enabled = _chooseFolder.Enabled = _categoryMenu.Enabled = !_busy; _grid.Enabled = _search.Enabled = _name.Enabled = !_busy;
+        _delete.Enabled = !_busy && selected.Count > 0; _categories.Enabled = _chooseFolder.Enabled = _categoryMenu.Enabled = !_busy; _grid.Enabled = !_busy || _awaitingReload; _search.Enabled = _name.Enabled = !_busy;
         _moveCategory.Enabled = !_busy && selected.Count > 0;
         var ids = _visible.Select(s => s.Id).ToArray(); var chosen = selected.Select(s => s.Id).ToHashSet();
-        _up.Enabled = !_busy && PracticeSaveLibrary.CanMove(ids, chosen, -1); _down.Enabled = !_busy && PracticeSaveLibrary.CanMove(ids, chosen, 1);
+        bool manualOrder = _grid.SortColumn < 0;
+        _up.Enabled = !_busy && manualOrder && PracticeSaveLibrary.CanMove(ids, chosen, -1);
+        _down.Enabled = !_busy && manualOrder && PracticeSaveLibrary.CanMove(ids, chosen, 1);
+        _up.ToolTipText = _down.ToolTipText = manualOrder ? "" : "Click the sorted column until its arrow disappears to return to manual order.";
         _selection.Text = selected.Count > 1 ? $"{selected.Count} checkpoints selected · Load is unavailable" : one is not null ? "Selected: " + one.Name : "Select checkpoints.";
         bool sourceReady = SaveLocation() is not null;
         _grid.EmptyText = !sourceReady ? "Choose the Steam save folder to view your checkpoints." : ready ? "No checkpoints match this account, category and search. Save a checkpoint to add one." : "No checkpoints here. Complete the steps above to enable Save and Load.";
@@ -266,10 +356,11 @@ internal sealed class PracticeSaveForm : LabPlusForm
         if (!cloudReady) _cloudNotice.Text += " (?)";
         _cloudNotice.Presentation = cloudReady ? "saves-step-ready" : "saves-step-required";
         _checkpointNotice.Text = !running ? "Game checkpoint: launch the game through LAB Plus and load a campaign slot."
+            : _awaitingReload ? "Game checkpoint: waiting for the current load to finish."
             : _runtimeReady ? "Game checkpoint: loaded · " + PracticeSaveSource.SlotLabel(_slot) + "."
             : !sourceReady ? "Game checkpoint: select the save folder to check the running game."
-            : "Game checkpoint: " + _runtimeMessage;
-        _checkpointNotice.Presentation = running && _runtimeReady ? "saves-step-ready" : "saves-step-required";
+            : "Game checkpoint: " + (_runtimeMessage.Length == 0 ? "checking the current campaign slot…" : _runtimeMessage);
+        _checkpointNotice.Presentation = running && _runtimeReady && !_awaitingReload ? "saves-step-ready" : "saves-step-required";
         _connection.Text = SaveLocation() is null ? (_remote.Length == 0 ? "Choose the Steam save folder below." : "The selected Steam save folder is unavailable. Choose it again below.") : !running ? "Launch the game through LAB Plus and open a campaign slot."
             : !_runtimeReady ? _runtimeMessage : _cloudDisabled != true ? (_cloudDisabled == false ? "Disable Steam Cloud to enable Save and Load." : "Waiting for Steam Cloud status; Save and Load are unavailable.")
             : one is not null && PracticeSaveSource.LoadBlockReason(one, RunningBuild(), _slot) is string reason ? reason
@@ -282,7 +373,7 @@ internal sealed class PracticeSaveForm : LabPlusForm
         try { if (needsRuntime && _runtimeRefresh is { IsCompleted: false }) await _runtimeRefresh; await action(); }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException or System.Security.Cryptography.CryptographicException or InvalidOperationException or System.ComponentModel.Win32Exception)
         { failure?.Invoke(ex); if (!IsDisposed) { _details = ex.Message; _status.Text = FriendlyError(ex.Message) + (ex.Message.Contains("original", StringComparison.OrdinalIgnoreCase) ? "\n" + ex.Message : ""); } }
-        finally { _busy = false; if (!IsDisposed) { UpdateAvailability(); RefreshState(); } }
+        finally { _busy = _awaitingReload = false; if (!IsDisposed) { UpdateAvailability(); RefreshState(); } }
     }
     internal static string FriendlyError(string text)
     {
@@ -309,13 +400,25 @@ internal sealed class PracticeSaveForm : LabPlusForm
     {
         RequireRuntime(); string remote = SaveLocation()?.Remote ?? throw new IOException("Choose the Steam save folder below."), name = _name.Text.Trim();
         if (name.Length == 0) name = "Checkpoint — " + DateTime.Now.ToString("dd.MM HH:mm:ss");
-        string category = _library.Category == PracticeSaveLibrary.All ? "Uncategorized" : _library.Category; _status.Text = "Saving checkpoint…";
+        string category = _library.Category == PracticeSaveLibrary.All ? PracticeSaveLibrary.Uncategorized : _library.Category; _status.Text = "Saving checkpoint…";
         var capture = await LivePracticeBridge.Execute(_directory, _gameProcess, "archive", remote, _slot, true, value =>
         { if (!IsDisposed && value.Phase == "waiting") _status.Text = value.Detail.Split("Steam Cloud flags:")[0]; });
         var save = await Task.Run(() => _vault.ImportLiveCheckpoint(_directory, capture, remote, name, category));
         if (IsDisposed) return; _search.Clear(); Reload(save.Id); _details = capture.Detail; _status.Text = "Saved: " + save.Name;
     }, needsRuntime: true);
-    private Task LoadCheckpoint() => Run(() => LoadArchive(Selected ?? throw new IOException("Select one checkpoint to load.")), needsRuntime: true);
+    private LiveRestorePlan? _lastRestore;
+
+    private bool HasWarmRestoreScope(int process, string remote, string slot, string build) =>
+        _lastRestore is { } previous && previous.Process == process && previous.Slot == slot && previous.Build == build
+        && previous.Remote.Equals(remote, StringComparison.OrdinalIgnoreCase);
+
+    private Task LoadCheckpoint() => Run(async () =>
+    {
+        var save = Selected ?? throw new IOException("Select one checkpoint to load.");
+        if (PracticeSaveSource.LoadBlockReason(save, RunningBuild(), _slot) is string reason) throw new IOException(reason);
+        await LoadArchive(save.Id);
+    }, needsRuntime: true);
+
     internal async Task<(bool Success, string Message)> LoadLastCheckpointFromCommand(int process)
     {
         if (_busy) return (false, "A checkpoint operation is already running. Wait for it to finish.");
@@ -323,33 +426,88 @@ internal sealed class PracticeSaveForm : LabPlusForm
         Exception? error = null; bool completed = false;
         await Run(async () =>
         {
-            Discover(); await RefreshRuntime();
-            if (!_runtimeReady) throw new IOException(_runtimeMessage);
-            RequireRuntime(); string remote = SaveLocation()?.Remote ?? throw new IOException("Choose the Steam save folder in Saves first.");
-            string build = RunningBuild() ?? "", slot = _slot;
-            var save = await Task.Run(() => _vault.LastLiveArchive(remote, slot, build));
-            await LoadArchive(save); completed = !IsDisposed;
+            Discover();
+            string remote = SaveLocation()?.Remote ?? throw new IOException("Choose the Steam save folder in Saves first.");
+            bool warm = _runtimeReady && _cloudDisabled == true && HasWarmRestoreScope(process, remote, _slot, RunningBuild() ?? "");
+            if (!warm) await RefreshRuntime();
+            async Task LoadLastForCurrentScope()
+            {
+                if (process != _gameProcess()) throw new IOException("The selected game process changed.");
+                if (!_runtimeReady) throw new IOException(_runtimeMessage);
+                RequireRuntime();
+                string build = RunningBuild() ?? "", slot = _slot;
+                string id = await Task.Run(() => _vault.LastLoadedLiveArchiveId(remote, slot, build));
+                await LoadArchive(id);
+            }
+            try { await LoadLastForCurrentScope(); }
+            catch (LiveRestoreRetryException ex) when (warm && ex.SlotChanged)
+            {
+                await RefreshRuntime();
+                await LoadLastForCurrentScope();
+            }
+            completed = !IsDisposed;
         }, needsRuntime: true, failure: ex => error = ex);
         string message = error is FileNotFoundException or DirectoryNotFoundException or JsonException or System.Security.Cryptography.CryptographicException
-            ? "The last LAB Plus save became unavailable or damaged. Loading was stopped." : error is null ? _status.Text : FriendlyError(error.Message);
+            ? "The last loaded checkpoint archive is unavailable or damaged. Load an archive from Saves first."
+            : error is null ? _status.Text : FriendlyError(error.Message);
         return (completed && error is null, message);
     }
-    private async Task LoadArchive(PracticeSave save)
+
+    private async Task LoadArchive(string id)
     {
         RequireRuntime();
-        if (PracticeSaveSource.LoadBlockReason(save, RunningBuild(), _slot) is string reason) throw new IOException(reason);
-        string remote = SaveLocation()?.Remote ?? throw new IOException("Choose the Steam save folder below."); int process = _gameProcess(); _status.Text = "Preparing checkpoint load…";
-        await LivePracticeBridge.Execute(_directory, _gameProcess, "prepare", remote, _slot, true, value =>
+        string remote = SaveLocation()?.Remote ?? throw new IOException("Choose the Steam save folder below.");
+        int process = _gameProcess();
+        string slot = _slot, build = RunningBuild() ?? "";
+        _status.Text = "Preparing checkpoint load…";
+
+        async Task<bool> StageAndLoad(bool retryIfBusy)
+        {
+            if (IsDisposed) return true;
+            (LiveRestorePlan Plan, PracticeSave Save) staged;
+            try { staged = await Task.Run(() => _vault.PrepareLiveRestore(_directory, process, id, remote, slot, build)); }
+            catch (IOException ex) when (retryIfBusy && ((ex.HResult & 0xffff) is 32 or 33 || ex.Message.StartsWith("Save file changed during inspection.", StringComparison.Ordinal)))
+            { return false; }
+            if (IsDisposed) return true;
+            _details = staged.Plan.Description;
+            LivePracticeResult result;
+            try
+            {
+                result = await LivePracticeBridge.ExecuteRestore(_directory, _gameProcess, staged.Plan, true, value =>
+                {
+                    if (!IsDisposed && value.Phase is "waiting" or "loading")
+                    {
+                        _details = value.Detail;
+                        if (value.Phase == "loading" && !_awaitingReload)
+                        {
+                            _awaitingReload = true;
+                            RefreshState();
+                        }
+                        _status.Text = value.Phase == "loading" ? "Return to the game. Continue when loading reaches 100%." : value.Detail.Split("Steam Cloud flags:")[0];
+                    }
+                });
+            }
+            catch (LiveRestoreRetryException ex) when (retryIfBusy && !ex.SlotChanged) { return false; }
+            _lastRestore = staged.Plan;
+            if (!IsDisposed)
+            {
+                _details = result.Detail;
+                _status.Text = "Loaded: " + staged.Save.Name + (result.LoadHistoryRecorded ? "" : ". Last-loaded history could not be saved.");
+            }
+            return true;
+        }
+        if (HasWarmRestoreScope(process, remote, slot, build) && await StageAndLoad(retryIfBusy: true)) return;
+        await LivePracticeBridge.Execute(_directory, _gameProcess, "prepare", remote, slot, true, value =>
         { if (!IsDisposed && value.Phase == "waiting") _status.Text = value.Detail.Split("Steam Cloud flags:")[0]; });
-        if (IsDisposed) return;
-        var plan = await Task.Run(() => _vault.PlanLiveRestore(process, save.Id, remote, _slot, true));
-        await Task.Run(() => _vault.StageLiveRestore(_directory, plan)); if (IsDisposed) return; _details = plan.Description;
-        var result = await LivePracticeBridge.ExecuteRestore(_directory, _gameProcess, plan, true, value =>
-        { if (!IsDisposed && value.Phase is "waiting" or "loading") { _details = value.Detail; _status.Text = value.Phase == "loading" ? "Return to the game. Continue when loading reaches 100%." : value.Detail.Split("Steam Cloud flags:")[0]; } });
-        if (IsDisposed) return; _details = result.Detail; _status.Text = "Loaded: " + save.Name;
+        await StageAndLoad(retryIfBusy: false);
     }
     private Task MoveSelected(int direction) => Run(() =>
-    { var selected = SelectedIds; _library.Move(_all, _visible.Select(s => s.Id).ToArray(), selected, direction); Populate(selected); return Task.CompletedTask; });
+    {
+        if (_grid.SortColumn >= 0) return Task.CompletedTask;
+        var selected = SelectedIds;
+        _library.Move(_all, _visible.Select(s => s.Id).ToArray(), selected, direction);
+        Populate(selected); return Task.CompletedTask;
+    });
     private Task DeleteSelected() => Run(async () =>
     {
         var selected = SelectedArchives; if (selected.Count == 0) return;

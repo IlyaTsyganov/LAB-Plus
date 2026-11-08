@@ -19,6 +19,18 @@ internal static class LifecycleChecks
         Check(Environment.GetEnvironmentVariable("VK_LAYER_PATH") == parentPaths &&
             Environment.GetEnvironmentVariable("VK_INSTANCE_LAYERS") == parentLayers,
             "Layer preparation changed the parent environment used by unrelated launches");
+        child.Environment.Remove("VK_IMPLICIT_LAYER_PATH");
+        child.Environment["VK_ADD_IMPLICIT_LAYER_PATH"] = @"C:\OtherImplicit";
+        VulkanLayerRegistration.ConfigureEnvironment(child, @"C:\LabLayers", beforeObs: true);
+        VulkanLayerRegistration.ConfigureEnvironment(child, @"C:\LabLayers", beforeObs: true);
+        Check(child.Environment["VK_INSTANCE_LAYERS"] == "VK_LAYER_OTHER" &&
+            child.Environment["VK_ADD_IMPLICIT_LAYER_PATH"] == @"C:\LabLayers\capture;C:\OtherImplicit" &&
+            child.Environment["LABPLUS_ENABLE_CAPTURE_LAYER"] == "1",
+            "OBS compatibility must activate the collision layer before the system layers without an explicit duplicate");
+        child.Environment["VK_IMPLICIT_LAYER_PATH"] = @"C:\OverrideImplicit";
+        VulkanLayerRegistration.ConfigureEnvironment(child, @"C:\LabLayers", beforeObs: true);
+        Check(child.Environment["VK_IMPLICIT_LAYER_PATH"] == @"C:\LabLayers\capture;C:\OverrideImplicit",
+            "OBS compatibility must preserve an inherited implicit path override");
         string name = @"Local\labplus-instance-test-" + Guid.NewGuid().ToString("N");
         using var ready = new ManualResetEventSlim(); using var finish = new ManualResetEventSlim();
         var owner = new Thread(() => { using var lease = SingleInstance.TryAcquire(name); Check(lease is not null, "First instance rejected"); ready.Set(); finish.Wait(); });

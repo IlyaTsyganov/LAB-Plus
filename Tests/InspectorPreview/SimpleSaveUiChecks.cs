@@ -27,8 +27,8 @@ internal static class SimpleSaveUiChecks
         var tag2 = vault.Capture(remote, "DLC2-AUTOSAVE8", "TAG2 route", "DLC", build: PracticeSaveSource.ArchiveBuild("5.0"));
         // Old offline preferences must not reintroduce a mode switch or slot filter.
         File.WriteAllText(Path.Combine(directory, "practice-ui.json"), System.Text.Json.JsonSerializer.Serialize(new { Remote = remote, Slot = "DLC1-AUTOSAVE5", Live = false }));
-        var type = Assembly.Load("labplus").GetType("LabPlus.PracticeSaveForm", true)!;
-        using var form = (LabPlusForm)Activator.CreateInstance(type, directory, null, vault, null, (Func<int>)(() => process))!;
+        var type = typeof(PracticeSaveForm);
+        using var form = new PracticeSaveForm(directory, vault: vault, gameProcess: () => process);
         form.Show(); Application.DoEvents(); Field<System.Windows.Forms.Timer>(form, "_timer").Stop(); type.GetMethod("UseSource", Private)!.Invoke(form, [remote]);
         var save = Field<UiAction>(form, "_save"); var load = Field<UiAction>(form, "_load"); var delete = Field<UiAction>(form, "_delete"); var grid = Field<UiTable>(form, "_grid");
         Check(save.Size == load.Size && save.Size == delete.Size && delete.Primary, "Save/Load/Delete size or style differs");
@@ -38,7 +38,7 @@ internal static class SimpleSaveUiChecks
         string stem = Path.Combine(directory, $"practice-live-{process}"), request = stem + ".request";
         Task Call(string method) => (Task)type.GetMethod(method, Private)!.Invoke(form, null)!;
         string[] Request(string op) { Pump(() => File.Exists(request) && File.ReadAllText(request).Contains("\t" + op + "\t")); return File.ReadAllText(request).TrimEnd().Split('\t'); }
-        void Reply(string token, string phase) => File.WriteAllText(stem + ".tsv", $"#LABPLUS_LIVE_PRACTICE_V2\t{process}\t{token}\t{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}\t{phase}\t{location.Account}\tGAME-AUTOSAVE0\tgame/sp/e1m1_intro/e1m1_intro\tcp_01a\tFixture result\t1.1\n");
+        void Reply(string token, string phase) => File.WriteAllText(stem + ".tsv", $"#LABPLUS_LIVE_PRACTICE_V2\t{process}\t{token}\t{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}\t{phase}\t{location.Account}\tGAME-AUTOSAVE0\tgame/sp/e1m1_intro/e1m1_intro\tcp_01a\tFixture result Steam Cloud flags: account=1, app=0.\t1.1\n");
         var status = Call("RefreshRuntime"); var h = Request("status"); Check(h[6] == "*", "Status did not discover current slot"); Reply(h[2], "ready"); Pump(() => status.IsCompleted); status.GetAwaiter().GetResult();
         Check(save.Enabled && Field<string>(form, "_slot") == "GAME-AUTOSAVE0", "In-game default did not resolve current slot");
         int Row(string name) => Enumerable.Range(0, grid.RowCount).Single(i => grid.Rows[i].Cells[0].Value?.ToString() == name);
@@ -68,15 +68,15 @@ internal static class SimpleSaveUiChecks
         var transfer = (Task)type.GetMethod("TransferSelected", Private)!.Invoke(form, ["Moved route"])!; Pump(() => transfer.IsCompleted); transfer.GetAwaiter().GetResult();
         Check(grid.RowCount == 2 && grid.SelectedIndices.Count == 2 && !load.Enabled && delete.Enabled, "Transferred rows did not appear selected in their destination category");
         Check(new PracticeSaveLibrary(directory).Categorized(vault.List()).Count(s => s.Category == "Moved route") == 2, "UI transfer did not persist");
-        var last = vault.List().Single(s => s.Id != source.Id && s.Id != tag1.Id && s.Id != tag2.Id);
-        Task<(bool Success, string Message)> Command() => (Task<(bool, string)>)type.GetMethod("LoadLastCheckpointFromCommand", Private)!.Invoke(form, [process])!;
-        File.Delete(request); var command = Command(); h = Request("status"); Reply(h[2], "ready"); h = Request("prepare"); Reply(h[2], "ready"); h = Request("restore");
+        Task<(bool Success, string Message)> Command() => form.LoadLastCheckpointFromCommand(process);
+        File.Delete(request); var command = Command(); h = Request("restore");
         string commandPlan = Path.Combine(directory, "live-practice", "restore-pending", process.ToString(), h[2], "plan.tsv");
-        Check(File.ReadAllLines(commandPlan)[0].Split('\t')[5] == last.Id && h[6] == "GAME-AUTOSAVE0", "Console command used UI selection/category instead of the last compatible archive and current slot");
+        Check(File.ReadAllLines(commandPlan)[0].Split('\t')[5] == source.Id && h[6] == "GAME-AUTOSAVE0", "Console command must repeat the last confirmed load in the current slot without preparing again");
         Reply(h[2], "reloaded"); Pump(() => command.IsCompleted); Check(command.GetAwaiter().GetResult().Success, "Valid console load failed");
-        vault.DeleteArchives([last.Id]); File.Delete(request); command = Command(); h = Request("status"); Reply(h[2], "ready"); Pump(() => command.IsCompleted);
+        vault.DeleteArchives([source.Id]); File.Delete(request); command = Command(); Pump(() => command.IsCompleted);
         var missing = command.GetAwaiter().GetResult();
-        Check(!missing.Success && missing.Message.Contains("deleted") && File.ReadAllText(request).Contains("\tstatus\t"), "Deleted latest archive sent another load request or silently selected an older save");
+        Check(!missing.Success && missing.Message.Contains("unavailable", StringComparison.OrdinalIgnoreCase) && !File.Exists(request),
+            "Deleted last-loaded archive sent another request or silently selected another save");
         File.Delete(request); var menuStatus = Call("RefreshRuntime"); h = Request("status");
         File.WriteAllText(stem + ".tsv", $"#LABPLUS_LIVE_PRACTICE_V2\t{process}\t{h[2]}\t{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}\terror\t{location.Account}\t*\t\t\tLoad the selected campaign slot first.\t1.1\n");
         Pump(() => menuStatus.IsCompleted); menuStatus.GetAwaiter().GetResult();
@@ -86,8 +86,8 @@ internal static class SimpleSaveUiChecks
         process = 0; type.GetMethod("RefreshState", Private)!.Invoke(form, null);
         Check(!save.Enabled && !load.Enabled && delete.Enabled, "Closed-game state blocks archive deletion or permits live operations");
         form.Close();
-        using var reopened = (LabPlusForm)Activator.CreateInstance(type, directory, null, vault, null, (Func<int>)(() => 0))!;
-        Check(Field<UiTable>(reopened, "_grid").RowCount == 2 && !Field<UiAction>(reopened, "_save").Enabled, "Reopening lost transferred category or restored obsolete filtering");
+        using var reopened = new PracticeSaveForm(directory, vault: vault, gameProcess: () => 0);
+        Check(Field<UiTable>(reopened, "_grid").RowCount == 1 && !Field<UiAction>(reopened, "_save").Enabled, "Reopening lost transferred category or restored obsolete filtering");
         Console.WriteLine("PASS: Saves UI discovers the live target, restores slot 3 into slot 1, preserves all categories/slots, disables unavailable DLC and multi-load, retains Delete without a game, and shares action button sizes.");
     }
     private static IEnumerable<UiNode> Descendants(UiNode parent)

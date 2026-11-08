@@ -61,6 +61,16 @@ static void transactionTests() {
     auto result=commitPracticeRestore(remote,bundle,second,first,plan,owner,std::string(32,'8'),api,[] { return true; });
     expect(readPracticeFiles(target)==second&&readPracticeFiles(result.original)==first,"successful commit retains exact original and installs complete incoming files");
     expect(std::filesystem::exists(result.journal),"restore journal preserved");
+    auto replayPlan=plan; replayPlan.targets=replayPlan.sources;
+    auto replayBundle=root/L"replay"; std::filesystem::create_directory(replayBundle);
+    writes=0;
+    auto replay=commitPracticeRestore(remote,replayBundle,second,second,replayPlan,owner,std::string(32,'a'),api,[] { return true; });
+    expect(!writes&&replay.original.empty()&&replay.journal.empty()&&std::filesystem::is_empty(replayBundle)&&readPracticeFiles(target)==second,
+        "already installed archive is verified without writing Steam files or duplicating a recovery copy");
+    bool mismatched=false;
+    try { commitPracticeRestore(remote,replayBundle,second,second,replayPlan,owner,std::string(32,'b'),cached,[] { return true; }); }
+    catch(const std::exception&) { mismatched=true; }
+    expect(mismatched&&!writes,"already installed archive still requires a matching Steam cache");
     std::string text; { std::ifstream file(remote/L"PROFILE"/L"profile.bin"); std::getline(file,text); } expect(text=="profile sentinel","PROFILE untouched");
     { std::ifstream file(remote.parent_path()/L"remotecache.vdf"); std::getline(file,text); } expect(text=="index sentinel","no direct Steam metadata overwrite");
     auto expectedRoot=std::filesystem::temp_directory_path()/(L"labplus-live-transaction-fixture-"+std::to_wstring(GetCurrentProcessId()));
@@ -105,10 +115,12 @@ int main(int argc,char** argv) {
     auto feedbackPath=std::filesystem::temp_directory_path()/(L"labplus-save-reply-"+std::to_wstring(GetCurrentProcessId())+L".tsv");
     auto feedback=[&](const std::string& text) { std::ofstream out(feedbackPath,std::ios::binary); out<<text; };
     auto feedbackLine="#LABPLUS_SAVE_COMMAND_V1\t"+std::to_string(GetCurrentProcessId())+"\t"+feedbackToken+"\terror\tLast save was deleted.\n";
-    feedback(feedbackLine); expect(readSaveCommandReply(feedbackPath,GetCurrentProcessId(),feedbackToken)=="Last save was deleted.","deleted-save feedback is safe console text");
-    expect(readSaveCommandReply(feedbackPath,GetCurrentProcessId()+1,feedbackToken).empty()&&readSaveCommandReply(feedbackPath,GetCurrentProcessId(),std::string(32,'a')).empty(),"foreign process and stale console replies are rejected");
-    feedback(feedbackLine+"extra\n"); expect(readSaveCommandReply(feedbackPath,GetCurrentProcessId(),feedbackToken).empty(),"multiline console reply is rejected");
-    feedback(std::string(4097,'x')); expect(readSaveCommandReply(feedbackPath,GetCurrentProcessId(),feedbackToken).empty(),"oversized console reply is rejected");
+    feedback(feedbackLine); expect(readSaveCommandReply(feedbackPath,GetCurrentProcessId(),feedbackToken).detail=="Last save was deleted.","deleted-save feedback is safe console text");
+    expect(readSaveCommandReply(feedbackPath,GetCurrentProcessId()+1,feedbackToken).detail.empty()&&readSaveCommandReply(feedbackPath,GetCurrentProcessId(),std::string(32,'a')).detail.empty(),"foreign process and stale console replies are rejected");
+    auto acceptedLine="#LABPLUS_SAVE_COMMAND_V1\t"+std::to_string(GetCurrentProcessId())+"\t"+feedbackToken+"\taccepted\tLAB Plus received the request.\n";
+    feedback(acceptedLine); expect(readSaveCommandReply(feedbackPath,GetCurrentProcessId(),feedbackToken).accepted,"delivery acknowledgement does not complete the load");
+    feedback(feedbackLine+"extra\n"); expect(readSaveCommandReply(feedbackPath,GetCurrentProcessId(),feedbackToken).detail.empty(),"multiline console reply is rejected");
+    feedback(std::string(4097,'x')); expect(readSaveCommandReply(feedbackPath,GetCurrentProcessId(),feedbackToken).detail.empty(),"oversized console reply is rejected");
     std::filesystem::remove(feedbackPath);
     expect(practiceMayRunFromPresent("status")&&practiceMayRunFromPresent("archive"),"loading-screen presentation can only identify/copy checkpoints");
     for(const char* operation:{"prepare","reload","restore","unknown"}) expect(!practiceMayRunFromPresent(operation),"presentation must never prepare replacements, write Steam saves or call the engine loader");
@@ -203,6 +215,15 @@ int main(int argc,char** argv) {
     expect(!idle.update(f.read(),1600),"autosave resets the quiescence window");
     put(reinterpret_cast<void*>(f.system),0x9ca8,uint32_t(0));
     expect(!idle.update(f.read(),2000)&&!idle.update(f.read(),2499)&&idle.update(f.read(),2500),"after autosave a full new idle interval is required");
+    PracticeIdleWindow observed;
+    for(ULONGLONG now=3000;now<3500;now+=100)
+        expect(!observed.update(f.read(),now,250),"warm observation must still accumulate the full idle window");
+    expect(observed.update(f.read(),3500,250),"repeat can reuse 500 ms of recently observed idleness");
+    expect(!observed.update(f.read(),3751,250),"a sampling gap invalidates previously observed idleness");
+    observed.reset();
+    for(ULONGLONG now=4000;now<=4500;now+=100) observed.update(f.read(),now,250);
+    auto switched=f.read(); switched.entryIndex++;
+    expect(!observed.update(switched,4600,250),"a different save-list entry cannot inherit the idle window");
     auto changed=f.read(); changed.record+=8; expect(!idle.update(changed,2600),"changing the selected user record resets quiescence");
     changed=f.read(); changed.map+=8; expect(!idle.update(changed,2700),"changing the active map resets quiescence");
     put(reinterpret_cast<void*>(f.system),0xb8,uint8_t(1)); expect(!f.read(),"map transition blocked"); put(reinterpret_cast<void*>(f.system),0xb8,uint8_t(0));
@@ -215,20 +236,24 @@ int main(int argc,char** argv) {
     expect(!practiceRemote(L"C:\\Steam\\userdata\\10001\\782330\\..\\remote",76561197960275729ULL),"path traversal blocked");
     expect(!practiceToken("../../escape")&&practiceToken(std::string(32,'a')),"bounded opaque request token");
     PracticeReloadReadiness ready;
-    expect(!ready.update(true,false,false,100)&&!ready.update(true,false,false,10000),"map identity before Space is not completed loading");
-    expect(!ready.update(true,true,true,11000),"first active-player frame starts stability observation");
-    expect(!ready.update(true,false,true,12999),"paused after Space still needs the stability interval");
-    expect(ready.update(true,false,true,13000),"verified player/session remains ready after a stable interval");
-    expect(!ready.update(false,false,false,14000)&&!ready.sawGameplay,"another transition resets gameplay observation");
-    expect(!ready.update(true,false,true,18000),"a paused loading prompt cannot reuse old gameplay evidence");
-    expect(!ready.update(true,true,true,19000)&&!ready.update(true,false,false,19500),"invalid session interrupts stability");
-    expect(!ready.update(true,false,true,22000)&&ready.update(true,false,true,24000),"verified session must regain a complete stability interval");
+    expect(!ready.update(false,10,100)&&!ready.update(false,10,10000),"map identity at the loading prompt is not completion");
+    expect(!ready.update(true,0,10900),"unverified slot cannot start observation");
+    expect(!ready.update(true,10,11000)&&!ready.update(true,10,11199),"entered slot still needs the stability interval");
+    expect(ready.update(true,10,11200),"verified entered slot confirms after 200 ms even while paused");
+    expect(!ready.update(true,11,11500),"a different map cannot inherit the previous observation");
+    expect(!ready.update(false,0,14000),"another transition resets observation");
+    expect(!ready.update(true,10,19000)&&!ready.update(true,0,19150),"invalid session interrupts stability");
+    expect(!ready.update(true,10,19200)&&!ready.update(true,10,19399)&&ready.update(true,10,19400),
+           "verified session must regain a complete stability interval");
     bool transition=false;
     expect(!practiceReloadCompleted(transition,100,true,2,100,true,true)&&!transition,"queued load is not a map transition");
     expect(!practiceReloadCompleted(transition,100,true,2,100,false,true),"queue clearing is not completion");
     expect(!practiceReloadCompleted(transition,100,true,1,100,true,false)&&transition,"loading state observed");
     expect(!practiceReloadCompleted(transition,100,true,2,100,false,false),"missing/wrong loaded map is not completion");
     expect(practiceReloadCompleted(transition,100,true,2,100,false,true),"returned player/map completes observed reload");
+    transition=false;
+    expect(practiceReloadCompleted(transition,100,true,2,100,false,true,true)&&transition,
+           "a replaced physics world proves a same-address map reloaded even between engine callbacks");
     auto temporary=std::filesystem::temp_directory_path()/(L"labplus-live-fixture-"+std::to_wstring(GetCurrentProcessId())); std::filesystem::create_directory(temporary);
     const wchar_t* names[]{L"game.details",L"game.details-BACKUP",L"game_duration.dat",L"game_duration.dat-BACKUP"};
     for(auto name:names) { std::ofstream out(temporary/name,std::ios::binary); out<<std::string(28,'x'); }

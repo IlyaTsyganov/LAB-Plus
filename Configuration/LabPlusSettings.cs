@@ -26,6 +26,7 @@ public sealed class LabPlusSettings
     public bool ShowTriggers { get; set; } = true;
     public bool ShowWorldCollision { get; set; } = true;
     public bool ShowShotCollision { get; set; }
+    public bool ShowSharedShotCollision { get; set; }
     public bool TrimShotCollision { get; set; }
     public bool ShowSyncTarget { get; set; }
     public int SyncTargetAction { get; set; }
@@ -165,6 +166,7 @@ public sealed class SettingsStore
             $"ShowTriggers={(settings.ShowTriggers ? 1 : 0)}{Environment.NewLine}" +
             $"ShowCollision={(settings.ShowWorldCollision ? 1 : 0)}{Environment.NewLine}" +
             $"ShowShotCollision={(settings.ShowShotCollision ? 1 : 0)}{Environment.NewLine}" +
+            $"ShowSharedShotCollision={(settings.ShowSharedShotCollision ? 1 : 0)}{Environment.NewLine}" +
             $"TrimShotCollision={(settings.TrimShotCollision ? 1 : 0)}{Environment.NewLine}" +
             $"ShowSyncTarget={(settings.ShowSyncTarget ? 1 : 0)}{Environment.NewLine}" +
             $"SyncTargetAction={(settings.SyncTargetAction == 1 ? 1 : 0)}{Environment.NewLine}" +

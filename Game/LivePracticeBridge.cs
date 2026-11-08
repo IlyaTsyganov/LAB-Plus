@@ -4,6 +4,8 @@ namespace LabPlus.Game;
 
 public sealed record LivePracticeResult(int Process, string Token, long Captured, string Phase, string Account, string Slot, string Map, string Checkpoint, string Detail, string Build = "6.66 Rev 3")
 {
+    internal bool LoadHistoryRecorded { get; init; } = true;
+
     public static LivePracticeResult? Parse(string text)
     {
         if (text.Length > 8192 || text.TrimEnd('\r', '\n').Contains('\n')) return null;
@@ -35,6 +37,10 @@ public sealed record LivePracticeResult(int Process, string Token, long Captured
         return Path.Combine(directory, "live-practice", Process.ToString(System.Globalization.CultureInfo.InvariantCulture), Token, "slot");
     }
 }
+internal sealed class LiveRestoreRetryException(string message, bool slotChanged) : IOException(message)
+{
+    internal bool SlotChanged { get; } = slotChanged;
+}
 public static class LivePracticeBridge
 {
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<int, SemaphoreSlim> Requests = new();
@@ -60,9 +66,38 @@ public static class LivePracticeBridge
         if (location.Account != plan.Account) throw new IOException("Live restore owner mismatch. Account mixing is blocked.");
         _ = plan.Bundle(directory);
         string request = $"#LABPLUS_LIVE_PRACTICE_REQUEST_V2\t{plan.Process}\t{plan.Token}\t{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}\trestore\t{location.Account}\t{plan.Slot}\t{location.Remote}\t{plan.Build}\n";
-        return await Submit(directory, gameProcess, "restore", location, plan.Slot, plan.Process, plan.Token, request, progress);
+        LivePracticeResult result;
+        try { result = await Submit(directory, gameProcess, "restore", location, plan.Slot, plan.Process, plan.Token, request, progress, plan.Build); }
+        catch (LiveRestoreRetryException) { RemoveUnwrittenBundle(directory, plan); throw; }
+        if (result.Detail.Contains("No save files were replaced.", StringComparison.Ordinal)) RemoveUnwrittenBundle(directory, plan);
+        try { new PracticeLatestSave(directory).Remember(plan, result); }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return result with { Detail = result.Detail + " Last-loaded history could not be saved.", LoadHistoryRecorded = false };
+        }
+        return result;
     }
-    private static async Task<LivePracticeResult> Submit(string directory, Func<int> gameProcess, string operation, SteamSaveLocation location, string slot, int process, string token, string request, Action<LivePracticeResult>? progress)
+    private static void RemoveUnwrittenBundle(string directory, LiveRestorePlan plan)
+    {
+        // Only remove known staging files after the engine confirmed no write or
+        // explicitly rejected the request before changing the checkpoint.
+        string bundle = plan.Bundle(directory);
+        try
+        {
+            PracticeSaveVault.NoLinks(bundle);
+            if (!Directory.Exists(bundle) || File.Exists(Path.Combine(bundle, "RESTORE_PATHS.txt"))) return;
+            string incoming = Path.Combine(bundle, "incoming");
+            foreach (string path in PracticeSaveVault.RequiredFiles.Select(name => Path.Combine(incoming, name)).Append(Path.Combine(bundle, "plan.tsv")))
+            {
+                PracticeSaveVault.NoLinks(path);
+                File.Delete(path);
+            }
+            Directory.Delete(incoming);
+            Directory.Delete(bundle);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
+    }
+    private static async Task<LivePracticeResult> Submit(string directory, Func<int> gameProcess, string operation, SteamSaveLocation location, string slot, int process, string token, string request, Action<LivePracticeResult>? progress, string? expectedBuild = null)
     {
         var gate = Requests.GetOrAdd(process, _ => new SemaphoreSlim(1, 1));
         await gate.WaitAsync();
@@ -71,11 +106,11 @@ public static class LivePracticeBridge
             if (gameProcess() != process) throw new IOException("Selected game process changed; live operation stopped.");
             // A status request may have waited behind a complete loading cycle.
             string[] fields = request.TrimEnd('\n').Split('\t'); fields[3] = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString(System.Globalization.CultureInfo.InvariantCulture);
-            return await SubmitCore(directory, gameProcess, operation, location, slot, process, token, string.Join('\t', fields) + "\n", progress);
+            return await SubmitCore(directory, gameProcess, operation, location, slot, process, token, string.Join('\t', fields) + "\n", progress, expectedBuild);
         }
         finally { gate.Release(); }
     }
-    private static async Task<LivePracticeResult> SubmitCore(string directory, Func<int> gameProcess, string operation, SteamSaveLocation location, string slot, int process, string token, string request, Action<LivePracticeResult>? progress)
+    private static async Task<LivePracticeResult> SubmitCore(string directory, Func<int> gameProcess, string operation, SteamSaveLocation location, string slot, int process, string token, string request, Action<LivePracticeResult>? progress, string? expectedBuild)
     {
         Directory.CreateDirectory(directory); PracticeSaveVault.NoLinks(directory);
         string stem = Path.Combine(directory, $"practice-live-{process}"), path = stem + ".request";
@@ -94,7 +129,7 @@ public static class LivePracticeBridge
         long started = Environment.TickCount64, deadline = started + (operation == "status" ? 15000 : operation is "archive" or "prepare" ? 45000 : 360000), reported = 0; bool received = false;
         while (Environment.TickCount64 < deadline)
         {
-            await Task.Delay(100);
+            await Task.Delay(received && (operation is "reload" or "restore") ? 100 : 40);
             if (!received && Environment.TickCount64 - started >= 15000) break;
             try { using var game = Process.GetProcessById(process); if (game.HasExited) throw Interrupted("Game closed during live operation."); }
             catch (ArgumentException) { throw Interrupted("Game closed during live operation."); }
@@ -107,7 +142,20 @@ public static class LivePracticeBridge
             if (result is null || result.Process != process || result.Token != token) continue;
             long now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(); if (result.Captured > now + 2000 || result.Captured < now - 90000) continue;
             if (result.Account != location.Account || operation != "status" && result.Slot != slot) throw new IOException("Live response owner/slot mismatch. Account mixing is blocked.");
-            received = true; if (result.Phase == "error") throw new IOException(result.Detail);
+            received = true;
+            if (result.Phase == "error")
+            {
+                if (operation == "restore")
+                {
+                    const string slotChanged = "Requested slot is not the currently loaded campaign slot.";
+                    const string targetChanged = "Archive or target checkpoint changed after review. Nothing restored.";
+                    string reason = result.Detail.Split(" Steam Cloud flags:", 2, StringSplitOptions.None)[0];
+                    if (reason == slotChanged || reason == targetChanged)
+                        throw new LiveRestoreRetryException(result.Detail, reason == slotChanged);
+                }
+                throw new IOException(result.Detail);
+            }
+            if (expectedBuild is not null && result.Build != expectedBuild) throw Interrupted("Live response patch mismatch.");
             bool validPhase = operation switch
             {
                 "status" => result.Phase == "ready",

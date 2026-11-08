@@ -6,7 +6,7 @@ $ErrorActionPreference='Stop'
 $projectRoot=Split-Path -Parent $PSScriptRoot
 $bin=Join-Path $projectRoot 'bin'
 $results=@()
-foreach($case in @('debug-hud','debug-hud-hidden','debug-hud-console','health-bars','health-bars-hidden','hidden','partial','front','reverse','inverted','inverted-partial','inverted-front','console-half','console-full','concurrent-hidden','concurrent-partial','concurrent-front','concurrent-console-half','concurrent-console-full','exclusive-hidden','exclusive-partial','exclusive-front','exclusive-console-half','exclusive-console-full')) {
+foreach($case in @('debug-hud','debug-hud-hidden','debug-hud-console','health-bars','health-bars-hidden','health-bars-icon-through-body','hidden','partial','front','reverse','inverted','inverted-partial','inverted-front','console-half','console-full','concurrent-hidden','concurrent-partial','concurrent-front','concurrent-console-half','concurrent-console-full','exclusive-hidden','exclusive-partial','exclusive-front','exclusive-console-half','exclusive-console-full')) {
     $baseCase=$case; $split=''
     if($case.StartsWith('concurrent-')){$split='concurrent';$baseCase=$case.Substring(11)}
     if($case.StartsWith('exclusive-')){$split='exclusive';$baseCase=$case.Substring(10)}
@@ -33,7 +33,8 @@ foreach($case in @('debug-hud','debug-hud-hidden','debug-hud-console','health-ba
     if($LightingFix){$info.Environment['LABPLUS_TEST_LIGHTING_FIX']='1'}else{$info.Environment.Remove('LABPLUS_TEST_LIGHTING_FIX') | Out-Null}
     if($split){$info.Environment['LABPLUS_TEST_SPLIT_PRESENT']=$split}else{$info.Environment.Remove('LABPLUS_TEST_SPLIT_PRESENT') | Out-Null}
     $info.Environment['LABPLUS_TEST_HEALTH_BARS']=if($baseCase.StartsWith('health-bars')){'1'}else{'0'}
-    $info.Environment['LABPLUS_TEST_HEALTH_BARS_HIDDEN']=if($baseCase -eq 'health-bars-hidden'){'1'}else{'0'}
+    $info.Environment['LABPLUS_TEST_HEALTH_BARS_HIDDEN']=if($baseCase -in @('health-bars-hidden','health-bars-icon-through-body')){'1'}else{'0'}
+    $info.Environment['LABPLUS_TEST_ICON_HEALTH_BARS']=if($baseCase -eq 'health-bars-icon-through-body'){'1'}else{'0'}
     $info.Environment['LABPLUS_TEST_DEBUG_HUD']=if($baseCase.StartsWith('debug-hud')){'1'}else{'0'}
     $info.Environment['LABPLUS_TEST_DEBUG_HUD_HIDDEN']=if($baseCase -eq 'debug-hud-hidden'){'1'}else{'0'}
     if($baseCase.StartsWith('debug-hud')) {

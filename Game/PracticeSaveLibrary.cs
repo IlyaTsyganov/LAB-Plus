@@ -6,6 +6,7 @@ namespace LabPlus.Game;
 public sealed class PracticeSaveLibrary
 {
     public const string All = "All checkpoints";
+    public const string Uncategorized = "Uncategorized";
     private sealed record State(string Category, string[] Categories, string[] Order, Dictionary<string, string>? Assignments = null);
     private readonly string _path;
     public string Category { get; private set; } = All;
@@ -29,7 +30,7 @@ public sealed class PracticeSaveLibrary
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException) { }
     }
     public static bool ValidCategory(string? text) => text is { Length: > 0 and <= 160 } && !text.Any(char.IsControl);
-    public IReadOnlyList<string> Categories(IEnumerable<PracticeSave> saves) => _categories.Concat(saves.Select(s => s.Category)).Where(c => c != All).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+    public IReadOnlyList<string> Categories(IEnumerable<PracticeSave> saves) => _categories.Concat(saves.Select(s => s.Category)).Where(c => !c.Equals(All, StringComparison.OrdinalIgnoreCase)).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
     public IReadOnlyList<PracticeSave> Categorized(IEnumerable<PracticeSave> saves) => saves.Select(s => _assignments.TryGetValue(s.Id, out var category) ? s with { Category = category } : s).ToArray();
     public void Transfer(IReadOnlyList<PracticeSave> all, ISet<string> selected, string category)
     {
@@ -61,6 +62,40 @@ public sealed class PracticeSaveLibrary
         if (!ValidCategory(category) || category.Equals(All, StringComparison.OrdinalIgnoreCase)) throw new IOException("Enter a different category name of up to 160 characters.");
         Select(category);
     }
+    public static bool CanDeleteCategory(string? category) => ValidCategory(category)
+        && !string.Equals(category, All, StringComparison.OrdinalIgnoreCase)
+        && !string.Equals(category, Uncategorized, StringComparison.OrdinalIgnoreCase);
+
+    public void DeleteCategory(string category, IReadOnlyList<PracticeSave> saves)
+    {
+        if (!CanDeleteCategory(category)) throw new IOException("This category cannot be deleted.");
+        var categorized = Categorized(saves);
+        if (!Categories(categorized).Contains(category, StringComparer.OrdinalIgnoreCase))
+            throw new IOException("The category no longer exists.");
+
+        var previousCategory = Category;
+        var previousCategories = _categories.ToArray();
+        var previousAssignments = _assignments;
+        var ids = saves.Select(s => s.Id).ToHashSet();
+        var next = _assignments.Where(p => ids.Contains(p.Key)).ToDictionary(p => p.Key, p => p.Value);
+        foreach (var save in categorized.Where(s => s.Category.Equals(category, StringComparison.OrdinalIgnoreCase)))
+            next[save.Id] = Uncategorized;
+        if (next.Count > 10000) throw new IOException("The library limit has been reached.");
+
+        _assignments = next;
+        _categories.RemoveAll(c => c.Equals(category, StringComparison.OrdinalIgnoreCase));
+        if (Category.Equals(category, StringComparison.OrdinalIgnoreCase)) Category = All;
+        try { Save(); }
+        catch
+        {
+            Category = previousCategory;
+            _categories.Clear();
+            _categories.AddRange(previousCategories);
+            _assignments = previousAssignments;
+            throw;
+        }
+    }
+
     public static bool CanMove(IReadOnlyList<string> visible, ISet<string> selected, int direction) => direction is -1 or 1
         && visible.Where((id, i) => selected.Contains(id) && i + direction >= 0 && i + direction < visible.Count && !selected.Contains(visible[i + direction])).Any();
     public void Move(IReadOnlyList<PracticeSave> all, IReadOnlyList<string> visible, ISet<string> selected, int direction)

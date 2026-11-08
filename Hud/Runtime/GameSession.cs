@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using LabPlus.Game;
 using LabPlus.Hud.Memory;
 using LabPlus.Hud.Overlay;
 namespace LabPlus.Hud.Runtime;
@@ -129,6 +130,8 @@ internal sealed class GameMonitor:IDisposable
     private async Task Run()
     {
         Process? game=null;GameSession? session=null;PerformanceMetrics? notice=null;GameProfile? profile=null;
+        NativeCheckpointDelay? checkpointDelay=null;
+        GameExecutableInfo? executable=null;
         string observedPath="",version="unknown",lastStatus="";
         bool launchedByLab=false,preexisting=false,lastConnected=false,lastPending=false;
         bool? lastGate=null;
@@ -138,10 +141,10 @@ internal sealed class GameMonitor:IDisposable
             while(!_stop.IsCancellationRequested){
                 bool changed=false;
                 try{
-                    long now=Environment.TickCount64;string selectedPath=_store.Snapshot().GamePath;
+                    long now=Environment.TickCount64;var settings=_store.Snapshot();string selectedPath=settings.GamePath;
                     ExpireLaunch(now);
                     if(game is not null&&(!Alive(game)||!selectedPath.Equals(observedPath,StringComparison.OrdinalIgnoreCase))){
-                        CloseAdapter(ref session);CloseAdapter(ref notice);game.Dispose();game=null;profile=null;detectAt=0;attachAt=0;
+                        CloseAdapter(ref checkpointDelay);CloseAdapter(ref session);CloseAdapter(ref notice);game.Dispose();game=null;profile=null;detectAt=0;attachAt=0;
                     }
                     if(!_preview&&game is null&&now>=detectAt){
                         detectAt=now+1000;game=FindGame(selectedPath);
@@ -151,6 +154,9 @@ internal sealed class GameMonitor:IDisposable
                             launchedByLab=GameLauncher.WasLaunchedByLab(game,_store);identityAt=now+1000;
                             try{profile=GameProfile.Resolve(observedPath);version=profile.Name;}
                             catch(Exception e){Log.Warning(e,"Game version detection");}
+                            executable=null;
+                            try{executable=GameExecutableInfo.Read(observedPath);}
+                            catch(Exception e){Log.Warning(e,"Checkpoint delay version detection");}
                         }
                     }
                     Connected=!_preview&&game is not null&&Alive(game);
@@ -161,6 +167,7 @@ internal sealed class GameMonitor:IDisposable
                         }
                         RequiresRestart=!launchedByLab;
                         if(RequiresRestart){
+                            CloseAdapter(ref checkpointDelay);
                             CloseAdapter(ref session);
                             if(lastGate!=false){GameLauncher.WriteLightingControl(_store,false);lastGate=false;}
                             // An externally launched game is observed only; even
@@ -169,6 +176,8 @@ internal sealed class GameMonitor:IDisposable
                             Features=FeatureStatus.Restart;
                         }else{
                             CloseAdapter(ref notice);
+                            checkpointDelay??=NativeCheckpointDelay.Attach(game!,executable);
+                            string delayStatus=checkpointDelay.Update(settings.RemoveCheckpointDelay,now);
                             if(session is null&&profile is not null&&now>=attachAt){
                                 attachAt=now+3000;
                                 try{session=new GameSession(game!,profile);}
@@ -178,7 +187,7 @@ internal sealed class GameMonitor:IDisposable
                                 try{changed=session.Tick(_store);}
                                 catch(Exception e){Log.Warning(e,"Game connection");CloseAdapter(ref session);attachAt=now+1000;}
                             }
-                            Features=session?.Features??FeatureStatus.Pending(_store.Snapshot());
+                            Features=(session?.Features??FeatureStatus.Pending(settings)) with {CheckpointDelay=delayStatus};
                         }
                         Connected=Alive(game!);
                         Status=GameStatus.Format(Connected,version,preexisting,launchedByLab);
@@ -189,7 +198,7 @@ internal sealed class GameMonitor:IDisposable
                     }
                 }catch(Exception e){
                     Log.Warning(e,"Game monitoring");
-                    CloseAdapter(ref session);CloseAdapter(ref notice);game?.Dispose();game=null;profile=null;
+                    CloseAdapter(ref checkpointDelay);CloseAdapter(ref session);CloseAdapter(ref notice);game?.Dispose();game=null;profile=null;
                     Connected=false;RequiresRestart=false;Features=null;Status=GameStatus.NotRunning;detectAt=Environment.TickCount64+1000;
                     try{GameLauncher.WriteLightingControl(_store,false);lastGate=false;}
                     catch(Exception controlError){Log.Warning(controlError,"Lighting control");}
@@ -202,7 +211,7 @@ internal sealed class GameMonitor:IDisposable
                 await Task.Delay(50,_stop.Token);
             }
         }catch(OperationCanceledException){}
-        finally{CloseAdapter(ref session);CloseAdapter(ref notice);game?.Dispose();}
+        finally{CloseAdapter(ref checkpointDelay);CloseAdapter(ref session);CloseAdapter(ref notice);game?.Dispose();}
     }
     public void Dispose()
     {

@@ -145,7 +145,7 @@ internal sealed class PracticeSaveAdvancedForm : LabPlusForm
             if (!IsDisposed && p.Phase == "loading") { _status.Text = "Archive installed; loading checkpoint. Continue in the game when loading reaches 100%."; _details.Text = p.Detail + "\r\n" + plan.Description; }
         });
         if (IsDisposed) return; _status.Text = "Live restore and engine map transition completed. Check the restored checkpoint in game.";
-        _details.Text = $"{result.Detail}\r\nLoaded map: {result.Map}\r\nLoaded checkpoint: {result.Checkpoint}\r\nOriginal four-file checkpoint: {plan.Original}";
+        _details.Text = $"{result.Detail}\r\nLoaded map: {result.Map}\r\nLoaded checkpoint: {result.Checkpoint}\r\nOriginal four-file checkpoint: {(Directory.Exists(plan.Original) ? plan.Original : "The existing checkpoint already matched the archive.")}";
     });
     private Task Recover() => Run(async () =>
     {

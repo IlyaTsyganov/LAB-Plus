@@ -28,6 +28,7 @@ static InvisibleNumbersSnapshot captureInvisibleNumbers(const WallMemory& memory
     SpeedrunTechSnapshot techs;
     if(features&4) techs=captureSpeedrunTechs(memory,base,profile,level,lookup);
     for(auto& row:techs.rows) result.techs.push_back({std::move(row.key),std::move(row.label),std::move(row.state),std::move(row.detail)});
-    if(enemies.state=="loading"||timers.phase=="loading") { result.phase="loading"; result.enemies.clear(); result.barEnemies.clear(); result.timers.clear(); result.techs.clear(); }
+    // Each source discards its own inconsistent reads. The bridge validates
+    // the shared level independently before publishing the other sources.
     return result;
 }

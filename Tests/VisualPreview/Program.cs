@@ -13,7 +13,7 @@ internal static class Program
         Environment.SetEnvironmentVariable("LABPLUS_PREVIEW", "1"); Environment.SetEnvironmentVariable("LABPLUS_DATA_DIRECTORY", data);
         Environment.SetEnvironmentVariable("LABPLUS_STATE_TESTS", null);
         BrowserChecks.Seed(data);
-        new SettingsStore(data).Save(new LabPlusSettings { CollisionViewerEnabled = true, Style = RenderStyle.Outlines, ViewDistanceMeters = 100, ShowInvisibleWalls = false });
+        new SettingsStore(data).Save(new LabPlusSettings { CollisionViewerEnabled = !args.Contains("--saves-only"), Style = RenderStyle.Outlines, ViewDistanceMeters = 100, ShowInvisibleWalls = false });
         Application.SetHighDpiMode(HighDpiMode.PerMonitorV2);
         Application.SetUnhandledExceptionMode(UnhandledExceptionMode.ThrowException);
         WorkspaceWindows.Initialize();
@@ -167,13 +167,21 @@ internal static class Program
         await Script(main, "document.querySelector('[data-screen=Saves]').click()"); await Settle(main);
         async Task Click(LabPlusForm screen, string label) => await Script(screen, $"[...document.querySelectorAll('button')].find(e=>e.textContent.trim()==={JsonSerializer.Serialize(label)}).click()");
         async Task Wait(Func<bool> ready) { for (int i = 0; i < 200 && !ready(); i++) await Task.Delay(50); if (!ready()) throw new Exception("Saves browser workflow timed out"); }
+        string bindToken = Guid.NewGuid().ToString("N");
+        string commandFeedback = Path.Combine(data, $"practice-command-{process}.tsv");
+        main.ReceiveLabCommand(process, [LabPlus.Game.PracticeSaveCommand.Name, bindToken]);
+        if (!File.Exists(commandFeedback) || !File.ReadAllText(commandFeedback).Contains($"\t{bindToken}\taccepted\t"))
+            throw new Exception("Console delivery was not acknowledged before UI dispatch");
+        await Wait(() => File.ReadAllText(commandFeedback).Contains($"\t{bindToken}\terror\tThe request did not come from the selected game session."));
+        if (File.Exists(Path.Combine(data, $"practice-live-{process}.request")))
+            throw new Exception("A command from an unselected process reached the engine bridge");
         string stem = Path.Combine(data, $"practice-live-{process}");
         async Task<string[]> Request(string op)
         {
             await Wait(() => File.Exists(stem + ".request") && File.ReadAllText(stem + ".request").Contains("\t" + op + "\t"));
             return File.ReadAllText(stem + ".request").TrimEnd().Split('\t');
         }
-        void Reply(string token, string phase, string cloud = "account=1, app=0.") => File.WriteAllText(stem + ".tsv", $"#LABPLUS_LIVE_PRACTICE_V2\t{process}\t{token}\t{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}\t{phase}\t{location.Account}\tGAME-AUTOSAVE0\tgame/sp/e1m1_intro/e1m1_intro\tcp_test\tBrowser fixture{(cloud.Length == 0 ? "" : " Steam Cloud flags: " + cloud)}\t1.1\n");
+        void Reply(string token, string phase, string cloud = "account=1, app=0.", string detail = "Browser fixture") => File.WriteAllText(stem + ".tsv", $"#LABPLUS_LIVE_PRACTICE_V2\t{process}\t{token}\t{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}\t{phase}\t{location.Account}\tGAME-AUTOSAVE0\tgame/sp/e1m1_intro/e1m1_intro\tcp_test\t{detail}{(cloud.Length == 0 ? "" : " Steam Cloud flags: " + cloud)}\t1.1\n");
         var status = (Task)typeof(PracticeSaveForm).GetMethod("RefreshRuntime", flags)!.Invoke(form, null)!;
         var request = await Request("status"); Reply(request[2], "ready", "account=1, app=1."); await status; await Settle(main);
         if (Field<UiAction>("_save").Enabled || Field<UiAction>("_load").Enabled || !Field<UiText>("_cloudNotice").Text.Contains("enabled")) throw new Exception("Steam Cloud ON did not block Saves");
@@ -214,13 +222,53 @@ internal static class Program
         request = await Request("status"); Reply(request[2], "ready"); await status; await Settle(main);
         if (!Field<UiAction>("_save").Enabled || Field<UiText>("_sourceNotice").Text.Contains("(?)"))
             throw new Exception("A corrected save folder did not recover readiness and clear its help marker");
+        async Task SetViewer(bool enabled)
+        {
+            await Script(main, $"chrome.webview.postMessage({{kind:'setting',name:'enabled',value:{(enabled ? "true" : "false")}}})");
+            await Settle(main);
+            var store = new SettingsStore(data);
+            if (store.Load().CollisionViewerEnabled != enabled || !File.ReadLines(store.ViewerSettingsPath).Contains(enabled ? "Enabled=1" : "Enabled=0"))
+                throw new Exception("Collision Viewer switch did not reach the native settings");
+        }
+        if (new SettingsStore(data).Load().CollisionViewerEnabled)
+            throw new Exception("The Saves fixture must start with Collision Viewer disabled");
+        await SetViewer(true);
+        await SetViewer(false);
+        if (!Field<UiAction>("_save").Enabled || !Field<UiTable>("_grid").Enabled)
+            throw new Exception("Switching Collision Viewer off blocked Saves in the current slot");
+        await SaveTableChecks.Run(main, vault, data);
+        File.Delete(stem + ".request");
+        var unloaded = form.LoadLastCheckpointFromCommand(process);
+        request = await Request("status");
+        Reply(request[2], "ready");
+        var unloadedResult = await unloaded;
+        if (unloadedResult.Success || !unloadedResult.Message.Contains("has been loaded", StringComparison.OrdinalIgnoreCase)
+            || !File.ReadAllText(stem + ".request").Contains("\tstatus\t"))
+            throw new Exception("The console command selected a created archive before any successful load");
         async Task Row(string name) { await Script(main, $"[...document.querySelectorAll('[data-presentation=saves-table] tbody tr')].find(r=>r.cells[1].textContent.includes({JsonSerializer.Serialize(name)})).cells[1].click()"); await Settle(main); }
         await Row(source.Name); await Click(main, "Load"); request = await Request("prepare"); Reply(request[2], "ready"); request = await Request("restore");
         if (request[6] != "GAME-AUTOSAVE0") throw new Exception("Browser load targeted source slot 3 instead of current slot 1");
         string bundle = Path.Combine(data, "live-practice", "restore-pending", process.ToString(), request[2]);
         if (File.ReadAllLines(Path.Combine(bundle, "plan.tsv"))[0].Split('\t')[5] != source.Id) throw new Exception("Browser staged another checkpoint");
-        Reply(request[2], "loading"); await Wait(() => Field<UiText>("_status").Text.Contains("100%")); Reply(request[2], "reloaded");
+        Reply(request[2], "loading"); await Wait(() => Field<UiText>("_status").Text.Contains("100%"));
+        await SetViewer(true);
+        await SetViewer(false);
+        if (!Field<UiTable>("_grid").Enabled || Field<UiAction>("_load").Enabled
+            || !Field<UiText>("_checkpointNotice").Text.Contains("current load"))
+            throw new Exception("Pending load should keep the list browsable, show the reason, and block a second load");
+        Reply(request[2], "reloaded");
         await Wait(() => Field<UiAction>("_load").Enabled); await Settle(main);
+        await Row("Another checkpoint");
+        File.Delete(stem + ".request");
+        var repeat = form.LoadLastCheckpointFromCommand(process);
+        request = await Request("restore");
+        string repeatedBundle = Path.Combine(data, "live-practice", "restore-pending", process.ToString(), request[2]);
+        if (request[6] != "GAME-AUTOSAVE0" || File.ReadAllLines(Path.Combine(repeatedBundle, "plan.tsv"))[0].Split('\t')[5] != source.Id)
+            throw new Exception("Console repeat used the selected or newest archive instead of the last confirmed load");
+        Reply(request[2], "reloaded", detail: "Engine load verified. No save files were replaced.");
+        if (!(await repeat).Success || Directory.Exists(repeatedBundle))
+            throw new Exception("Cached console repeat did not complete or left unnecessary staging files");
+        await Settle(main);
         await Row("TAG1 checkpoint"); if (Field<UiAction>("_load").Enabled || !Field<UiAction>("_delete").Enabled) throw new Exception("TAG1 on 1.1 can load or cannot be deleted");
         await Row("TAG2 checkpoint"); if (Field<UiAction>("_load").Enabled || !Field<UiAction>("_delete").Enabled) throw new Exception("TAG2 on 1.1 can load or cannot be deleted");
         if (!JsonSerializer.Deserialize<bool>(await Script(main, "document.querySelector('[data-presentation=saves-table] tr.unavailable input').disabled===false"))) throw new Exception("Unavailable DLC row cannot be selected");
@@ -257,15 +305,27 @@ internal static class Program
         await Script(main, "(()=>{const e=document.querySelector('input[placeholder=\"New category\"]');e.value='My route';e.dispatchEvent(new Event('change',{bubbles:true}));})()"); await Settle(main);
         await Click(main, "+"); await Settle(main);
         if (Field<UiTable>("_grid").RowCount != 0 || new LabPlus.Game.PracticeSaveLibrary(data).Category != "My route") throw new Exception("Creating/selecting an empty category failed");
-        File.Delete(stem + ".request"); await Click(main, "Save"); request = await Request("archive");
-        string copy = Path.Combine(data, "live-practice", process.ToString(), request[2], "slot"); Directory.CreateDirectory(copy);
-        foreach (var f in originals) File.WriteAllBytes(Path.Combine(copy, f.Key), f.Value); Reply(request[2], "archived");
-        await Wait(() => vault.List().Any(s => s.Category == "My route") && !Field<bool>("_busy")); await Settle(main);
+        const string createdHeader = "[...document.querySelectorAll('[data-presentation=saves-table] th button')].find(b=>b.textContent.startsWith('Created')).click()";
+        await Script(main, createdHeader); await Settle(main);
+        foreach (string name in new[] { "First chronological checkpoint", "Second chronological checkpoint" })
+        {
+            await Script(main, $"(()=>{{const input=document.querySelector('input[placeholder^=Checkpoint]');input.value={JsonSerializer.Serialize(name)};input.dispatchEvent(new Event('change',{{bubbles:true}}));}})()");
+            await Settle(main);
+            File.Delete(stem + ".request"); await Click(main, "Save"); request = await Request("archive");
+            string copy = Path.Combine(data, "live-practice", process.ToString(), request[2], "slot"); Directory.CreateDirectory(copy);
+            foreach (var f in originals) File.WriteAllBytes(Path.Combine(copy, f.Key), f.Value);
+            Reply(request[2], "archived");
+            await Wait(() => vault.List().Any(s => s.Category == "My route" && s.Name == name) && !Field<bool>("_busy"));
+            await Settle(main);
+        }
+        if (!JsonSerializer.Deserialize<string[]>(await Script(main, list))!.SequenceEqual(new[] { "First chronological checkpoint", "Second chronological checkpoint" }))
+            throw new Exception("A newer capture did not appear at the bottom of the ascending Created sort");
         await Click(main, "Move to…"); await Settle(main);
         await Script(main, "(()=>{const e=document.querySelector('input[placeholder=\"New category\"]');e.value='Moved route';e.dispatchEvent(new Event('change',{bubbles:true}));})()"); await Settle(main);
         await Click(main, "+"); await Settle(main);
         var transferred = new LabPlus.Game.PracticeSaveLibrary(data);
         if (transferred.Category != "Moved route" || Field<UiTable>("_grid").RowCount != 1 || transferred.Categorized(vault.List()).Count(s => s.Category == "Moved route") != 1) throw new Exception("Browser transfer into a new category failed");
+        await SaveCategoryChecks.Run(main, vault, data);
         if (!JsonSerializer.Deserialize<bool>(await Script(main, "(()=>{const b=['Save','Load','Delete'].map(t=>[...document.querySelectorAll('button')].find(e=>e.textContent.trim()===t));const r=b.map(e=>e.getBoundingClientRect());return r.every(e=>Math.abs(e.width-r[0].width)<1&&Math.abs(e.height-r[0].height)<1)})()"))) throw new Exception("Save/Load/Delete rendered sizes differ");
         string audit = await Script(main, "JSON.stringify([...document.querySelectorAll('#labplus-refined *')].filter(e=>e.getClientRects().length&&([...e.childNodes].some(n=>n.nodeType===3&&n.textContent.trim())||e.matches('input'))).map(e=>getComputedStyle(e).fontFamily))");
         if (JsonSerializer.Deserialize<string[]>(JsonSerializer.Deserialize<string>(audit)!)!.Any(f => f is not ("\"LP UI\"" or "\"LP Battle\""))) throw new Exception("Non-asset font in Saves");
@@ -273,7 +333,7 @@ internal static class Program
         if (!JsonSerializer.Deserialize<bool>(await Script(main, "!!document.querySelector('[data-presentation=saves-folder-row] .lr-folder-icon')"))) throw new Exception("Folder icon differs from Viewer");
         await Inspect(main, "saves-library"); await Capture(main, output, "saves-library"); await CheckScale(main, output);
         foreach (var f in originals) if (!File.ReadAllBytes(Path.Combine(location.SlotPath("GAME-AUTOSAVE0"), f.Key)).SequenceEqual(f.Value)) throw new Exception("UI fixtures changed the game slot");
-        Console.WriteLine("PASS: real main Saves browser: live current-slot protocol, slot 3 to 1 staging, DLC restrictions, multi-select, ordered moves, cancel/confirm bulk delete, categories, save, equal button sizes, asset fonts, folder icon, hidden tools and 125/150% scaling.");
+        Console.WriteLine("PASS: Saves with Collision Viewer off and toggled during a pending load; live current-slot protocol, slot 3 to 1 staging, DLC restrictions, multi-select, ordered moves, cancel/confirm bulk delete, categories, save, equal button sizes, asset fonts, folder icon, hidden tools and 125/150% scaling.");
     }
 
     private static async Task Settle(LabPlusForm form)
