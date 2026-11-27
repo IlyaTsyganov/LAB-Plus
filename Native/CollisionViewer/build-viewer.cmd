@@ -63,6 +63,8 @@ cl /nologo /std:c++17 /W4 /O2 /EHsc /MD /I"%VULKAN_HEADERS%" tests\appearance_te
 if errorlevel 1 exit /b %errorlevel%
 cl /nologo /std:c++17 /W4 /O2 /EHsc /MD /I"%VULKAN_HEADERS%" tests\performance_tests.cpp /Fo:build\performance_tests.obj /Fe:bin\PerformanceTests.exe user32.lib /link /INCREMENTAL:NO
 if errorlevel 1 exit /b %errorlevel%
+cl /nologo /std:c++17 /W4 /O2 /EHsc /MD /I"%VULKAN_HEADERS%" tests\projectile_trim_tests.cpp /Fo:build\projectile_trim_tests.obj /Fe:bin\ProjectileTrimTests.exe user32.lib /link /INCREMENTAL:NO
+if errorlevel 1 exit /b %errorlevel%
 cl /nologo /std:c++17 /W4 /O2 /EHsc /MD /I"%VULKAN_HEADERS%" tests\debug_hud_stack_tests.cpp /Fo:build\debug_hud_stack_tests.obj /Fe:bin\DebugHudStackTests.exe user32.lib /link /INCREMENTAL:NO
 if errorlevel 1 exit /b %errorlevel%
 cl /nologo /std:c++17 /W4 /O2 /EHsc /MD /I"%VULKAN_HEADERS%" tests\enemy_telemetry_tests.cpp /Fo:build\enemy_telemetry_tests.obj /Fe:bin\EnemyTelemetryTests.exe user32.lib /link /INCREMENTAL:NO

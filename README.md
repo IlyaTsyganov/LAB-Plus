@@ -68,6 +68,38 @@ Visit the [Wiki](https://github.com/IlyaTsyganov/LAB-Plus/wiki) for detailed ins
 
 Found a bug or have a suggestion? Open an [issue on GitHub](https://github.com/IlyaTsyganov/LAB-Plus/issues).
 
+## Development checks
+
+Every pull request, including a draft and a pull request into a refactoring
+branch, runs **Pull request checks / Windows build and fixtures**. A new commit
+cancels the previous run for that pull request. The workflow builds both native
+libraries, runs fixtures and validates the runtime package. Its GitHub token has
+read-only access; it does not create tags or publish releases.
+
+To reproduce the checks on Windows x64, install the .NET 10 SDK and Visual Studio
+with the Desktop development with C++ workload and Windows SDK. Run these commands
+in PowerShell from the repository root:
+
+```powershell
+cmd /d /c .\Native\CollisionViewer\build-viewer.cmd
+.\Native\Lighting\build.ps1
+.\Native\CollisionViewer\tests\run-fixtures.ps1
+dotnet run --project Tests/Updates/Updates.Tests.csproj --configuration Release
+dotnet run --project Tests/Launcher/LauncherTests.csproj --configuration Release
+dotnet run --project Tests/Hud/Hud.Tests.csproj --configuration Release
+dotnet publish labplus.csproj --configuration Release --self-contained false -p:PlatformTarget=x64 -p:PublishSingleFile=false -p:DebugType=None -p:DebugSymbols=false --output build/pr-checks
+.\package-local.ps1 -Source build/pr-checks
+```
+
+Stop if any command fails. Native test sources use the `*_tests.cpp` suffix;
+automated fixture executables use `*Tests.exe`. The fixture runner checks that all
+test sources are included in the MSVC build and rejects missing or stale binaries.
+Add new suites to both native build scripts.
+
+These fixtures do not require DOOM Eternal. Visual interface, GPU and live-game
+acceptance are separate checks; `build-local.ps1` also runs interface previews.
+The release workflow remains a separate process.
+
 ## Purpose & Disclaimer
 
 LAB Plus is developed exclusively for educational, research and practice purposes, with a particular focus on understanding DOOM Eternal's game mechanics and improving speedrunning knowledge and techniques.
