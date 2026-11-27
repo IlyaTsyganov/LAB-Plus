@@ -18,14 +18,14 @@ static constexpr LabCommandDefinition labCommandDefinitions[]{
     {"labplus_techs","0|1 - speedrun technique states HUD",true},
     {"labplus_recording_start","Start/resume research recording"}, {"labplus_recording_stop","Stop research recording"},
     {"labplus_recording_clear","Start a new research session"}, {"labplus_markers_add","<text> - add a research marker"},
-    {"labplus_trigger_set","<class> 0|1 - one exact trigger class"},
+    {"labplus_trigger_set","<class> <0|1> - show or hide one exact trigger class (0=hide, 1=show)"},
     {"labplus_help","List LAB Plus console variables and action commands",true}, {"labplus_encounters","List active encounters; 0|1 controls their HUD",true},
     {"labplus_viewer","Legacy alias",true}, {"labplus_triggers","Legacy alias",true},
     {"labplus_shots","Legacy alias",true},
     {"labplus_collision","Legacy alias",true}, {"labplus_walls","Legacy alias",true},
     {"labplus_inspector","Legacy alias",true}, {"labplus_disabled","Legacy alias",true},
     {"labplus_history","Legacy alias",true}, {"labplus_fill","Legacy alias",true},
-    {"labplus_distance","[20..200] - viewer draw distance in metres",true}, {"labplus_trigger","<class> 0|1 - show or hide one exact trigger class",true},
+    {"labplus_distance","[20..200] - viewer draw distance in metres",true}, {"labplus_trigger","<class> <0|1> - show or hide one exact trigger class (0=hide, 1=show)",true},
     {"labplus_path","Legacy alias",true}, {"labplus_record","Legacy alias",true},
     {"labplus_player","Player collider alias",true}, {"labplus_attempts","Attempt overlay alias",true},
     {"labplus_surface","Support plane HUD alias",true},
@@ -182,11 +182,29 @@ static void printLabCommandList(const MeathookHudApi& api,bool settingsAvailable
     for(const auto& definition:labCommandDefinitions) if(!definition.legacy&&(!nativeCvars||!findLabCvarDefinition(definition.name)))
         api.consolePrint("%s : %s\n",definition.name,definition.usage);
 }
+static bool printLabCommandUsage(const MeathookHudApi& api,const std::string& name) {
+    if(const auto* setting=findLabCvarDefinition(name)) {
+        api.consolePrint("%s : %s [%d..%d]\n",setting->name,setting->description,setting->minimum,setting->maximum);
+        return true;
+    }
+    for(const auto& definition:labCommandDefinitions) if(name==definition.name) {
+        api.consolePrint("%s : %s\n",definition.name,definition.usage); return true;
+    }
+    return false;
+}
+static bool validateLabConsoleInput(const MeathookHudApi& api,const std::vector<std::string>& args) {
+    if(validLabArguments(args)) return true;
+    // Missing/invalid parameters on known commands are help requests, not
+    // executable actions. Keep this before transport or argument normalization.
+    if(args.empty()||!printLabCommandUsage(api,args[0]))
+        api.consolePrint("%s","labplus_: unknown command. Use labplus_commands_list.\n");
+    return false;
+}
 static bool printLabSettingQuery(const MeathookHudApi& api,const std::vector<std::string>& args,const std::wstring& ini) {
     if(args.size()!=1) return false;
     const auto* definition=findLabCvarDefinition(args[0]); if(!definition) return false;
-    api.consolePrint("%s is %d (%d..%d; saved LAB Plus setting)\n",definition->name,
-        savedLabCvarValue(*definition,ini),definition->minimum,definition->maximum);
+    api.consolePrint("%s is %d (%d..%d; saved LAB Plus setting)\n%s\n",definition->name,
+        savedLabCvarValue(*definition,ini),definition->minimum,definition->maximum,definition->description);
     return true;
 }
 
@@ -262,7 +280,7 @@ class LabConsole {
             if(value.find('\t')!=std::string::npos||value.find('\n')!=std::string::npos) return;
             args.push_back(std::move(value));
         }
-        if(!validLabArguments(args)) { self->api->consolePrint("%s","labplus_: invalid arguments. Use labplus_commands_list.\n"); return; }
+        if(!validateLabConsoleInput(*self->api,args)) return;
         if(printLabSettingQuery(*self->api,args,(researchDirectory()/L"viewer.ini").wstring())) return;
         args=normalizeLabArguments(args);
         if(args[0]=="labplus_load_last_save") {

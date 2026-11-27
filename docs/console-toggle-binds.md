@@ -14,6 +14,13 @@ with 44 distinct names, on all 22 audited retail profiles.
 completion offers only `0` and `1`; `toggle` is a separate command before the
 cvar name, rather than a value after it.
 
+Commands that require parameters show their own description and syntax when
+called without them. For example, `labplus_trigger_set` prints
+`<class> <0|1>` and explains that 0 hides the exact trigger class and 1 shows it;
+it changes no settings until both parameters are supplied. Invalid parameters
+also show command-specific help. Zero-argument actions such as
+`labplus_recording_stop` continue to execute normally.
+
 | Setting | Preferred cvar | Short alias |
 | --- | --- | --- |
 | Viewer master switch | `labplus_viewer_show` | `labplus_viewer` |

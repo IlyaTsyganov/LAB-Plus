@@ -40,7 +40,8 @@
     "listCommand": "labplus_commands_list",
     "removedAlias": "labplus_command_list",
     "behavior": "Each cvar has a functional description shared by native engine registration, fallback registration and the list. List entries describe meaning and range without appended toggle examples. Native binary cvars receive a persistent valid-value array containing only 0 and 1; toggle is a separate engine command before the cvar name.",
-    "validation": "Native backend constructor calls are executed against an ABI capture fixture for every cvar and alias; description, bounds, flags and completion argument placement are verified. Native/fallback registration and list tests reject the removed alias and postfix toggle suggestions. All 44 binary round trips, Launcher handler tests and 392 HUD checks pass."
+    "validation": "Native backend constructor calls are executed against an ABI capture fixture for every cvar and alias; description, bounds, flags and completion argument placement are verified. Native/fallback registration and list tests reject the removed alias and postfix toggle suggestions. All 44 binary round trips, Launcher handler tests and 392 HUD checks pass.",
+    "argumentHelp": "Known commands with missing or invalid parameters print their own description and syntax before executable dispatch. Tests cover bare labplus_trigger_set, incomplete/invalid/extra arguments, every other registered command requiring parameters, and preservation of valid zero-argument actions. Bare setting queries include the setting description."
   },
   "remainingGaps": [
     {

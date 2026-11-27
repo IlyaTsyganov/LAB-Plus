@@ -167,6 +167,40 @@ static void checkEveryBinaryCvar(const MeathookHudApi& api,const std::wstring& i
     }
     expect(checked==44,"all 25 binary settings and 19 short aliases are covered");
 }
+static void checkCommandArgumentHelp(const MeathookHudApi& api) {
+    unsigned executableRequests=0;
+    auto dispatch=[&](const std::vector<std::string>& args) {
+        if(validateLabConsoleInput(api,args)) ++executableRequests;
+    };
+    for(const auto& args:std::vector<std::vector<std::string>>{
+        {"labplus_trigger_set"},{"labplus_trigger_set","idTrigger"},{"labplus_trigger_set","idTrigger","2"},
+        {"labplus_trigger_set","idTrigger;quit","0"},{"labplus_trigger_set","idTrigger","0","extra"},
+        {"labplus_trigger"}}) {
+        consoleOutput.clear(); dispatch(args);
+        expect(consoleOutput.find(args[0]+" : ")!=std::string::npos&&consoleOutput.find("<class> <0|1>")!=std::string::npos&&
+            consoleOutput.find("0=hide, 1=show")!=std::string::npos&&consoleOutput.find("invalid arguments")==std::string::npos,
+            "missing/invalid trigger arguments show the exact command description and parameter syntax");
+    }
+    expect(executableRequests==0,"argument help never reaches executable dispatch");
+    for(const auto& definition:labCommandDefinitions) {
+        std::vector<std::string> args{definition.name};
+        if(validLabArguments(args)) continue;
+        consoleOutput.clear(); dispatch(args);
+        expect(consoleOutput.find(std::string(definition.name)+" : ")!=std::string::npos,
+            "every registered command requiring arguments explains them when called without parameters");
+    }
+    expect(executableRequests==0,"all missing-argument requests remain read-only");
+    consoleOutput.clear(); dispatch({"labplus_markers_add"});
+    expect(consoleOutput.find("<text>")!=std::string::npos,"marker commands explain their required text");
+    for(const auto& args:std::vector<std::vector<std::string>>{
+        {"labplus_trigger_set","idTrigger","0"},{"labplus_trigger_set","idTrigger","1"},
+        {"labplus_recording_start"},{"labplus_recording_stop"},{"labplus_commands_list"}}) {
+        consoleOutput.clear(); auto before=executableRequests; dispatch(args);
+        expect(executableRequests==before+1&&consoleOutput.empty(),"valid parameterized commands and zero-argument actions still execute normally");
+    }
+    consoleOutput.clear(); dispatch({"labplus_command_list"});
+    expect(consoleOutput.find("unknown command")!=std::string::npos,"removed names are not revived by argument help");
+}
 int main() {
     MeathookHudApi api{}; api.consolePrint=print; api.executeCommand=execute;
     checkNativeCvarDescriptionsAndCompletion();
@@ -178,6 +212,7 @@ int main() {
     auto hudIni=(temporary/L"hud"/L"console.ini").wstring();
     expect(WritePrivateProfileStringW(L"Viewer",L"VerticalShowSign",L"0",hudIni.c_str())!=0,"isolated HUD console setting");
     checkSettingsCommands(api,ini);
+    checkCommandArgumentHelp(api);
     checkEveryBinaryCvar(api,ini);
     EngineFixture engine; LabCvarBridge bridge; std::vector<std::vector<std::string>> requests;
     expect(bridge.initializeBackend(api,engine.backend(),ini,[&](const auto& request) { requests.push_back(request); return true; }),"native creation registers all owned variables");
