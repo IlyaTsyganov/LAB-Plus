@@ -1,11 +1,18 @@
-# LAB Plus 1.1
+# LAB Plus 1.1.1
 
-- **Finisher Visualizer.** Preview Glory Kill and Chainsaw animations. See where to stand and, for some Glory Kills, which body part to aim at. The preview updates as you move around the enemy.
-- **Projectile Collision.** Choose **SHOTCLIP only**, **Trim overlap**, or **All clips** from the dropdown beneath the toggle. **All clips** includes static surfaces that block both shots and the player. When **World Collision** is also visible, shared surfaces get a fine dashed projectile outline.
-- **Practice Saves.** Resize the checkpoint list, sort by name, campaign, or creation date, and delete custom categories while keeping their checkpoints in **Uncategorized**. LAB Plus remembers the list height and sort order. The action buttons are now above the list, and the mouse wheel scrolls the page unless you hold **Shift** to scroll the list.
-- **Checkpoint loading.** `labplus_load_last_save` now reloads the last successfully loaded archive for the current Steam account, game patch, and campaign. Repeat loads start faster, and the command handles key bindings more reliably. You can load an archive as soon as you enter a campaign slot, even if you haven't reached a new checkpoint in that session.
-- **Enemy HP bars.** Adjusted bar placement and added a Glory Kill stagger marker and HP value where the threshold is available.
-- **Speedrun and movement HUDs.** **Multi Heat Blast** counts blasts from the latest activation and keeps the result visible across weapon swaps until another activation or checkpoint reload. The Speedrun tech HUD also detects inverse BATS with the Plasma Rifle. Movement Lab can show player coordinates and view angles in-game.
-- **Game options.** **Remove checkpoint and mission reset delay** bypasses the pause-menu timers for **Load Checkpoint** and **Reset Mission** on supported game patches from 2.0 onward.
-- **OBS Game Capture.** LAB Plus draws its overlays before OBS captures the frame when the OBS Vulkan layer is enabled and Vulkan Loader 1.3.295 or newer is available. Keep your existing OBS source and fullscreen mode, then relaunch DOOM Eternal through LAB Plus.
-- **Steam startup.** LAB Plus starts Steam when needed before launching DOOM Eternal, including separate installations.
+- Fixed LAB Plus console settings that appeared in help but were not registered on older DOOM Eternal patches, including 1.1. Native cvar support now covers all 22 supported retail builds.
+- All 25 binary settings support the game's standard toggle command, including visibility, filled/outline mode, research recording and the binary speedometer settings. For example:
+
+  ```text
+  bind x "toggle labplus_viewer_show"
+  ```
+
+- Added preferred `_show` names for the enemy HUD, enemy HP bars, player position, player angles, timers and technique HUD. Their previous names remain synchronized, toggleable aliases.
+- Renamed the speedometer settings to `labplus_speedometer_landing_show`, `labplus_speedometer_vertical_show` and `labplus_speedometer_sign_vertical`. Update binds that use the previous speedometer names.
+- Console queries show current and factory-default values on one line, followed by the setting description. Saved preferences no longer replace the factory default. Binary value completion offers `0` and `1`.
+- Commands requiring arguments now show their description and usage when called without them. `labplus_trigger_set <class>` queries that class's current/default visibility without changing it.
+- Use `labplus_commands_list` for the command list. The redundant `labplus_command_list` alias was removed.
+
+See the [Console Commands wiki](https://github.com/IlyaTsyganov/LAB-Plus/wiki/Console-Commands) for the full list, aliases and examples.
+
+Extract the entire Windows x64 archive and run `LABPlus.exe`. Restart DOOM Eternal through the updated LAB Plus to load the new console integration. Requires .NET 10 Desktop Runtime x64 and Microsoft Edge WebView2 Runtime.

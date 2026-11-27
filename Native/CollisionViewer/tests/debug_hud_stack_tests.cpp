@@ -15,7 +15,7 @@ static void add(unsigned x,unsigned y,unsigned,float scale,const char* format,..
 }
 static void remove(unsigned x,unsigned y) { drawn.erase({x,y});operations.push_back('r'); }
 static void execute(const char* command) { expect(strcmp(command,"com_debugHUD 1")==0,"only native HUD visibility is requested");++visibility; }
-static void print(const char* format,...) { char text[1024];va_list args;va_start(args,format);vsprintf_s(text,format,args);va_end(args);console=text; }
+static void print(const char* format,...) { char text[1024];va_list args;va_start(args,format);vsprintf_s(text,format,args);va_end(args);console+=text; }
 static void registerFrame(void (*callback)(void*),void* user) { ++registrations;engineCallback=callback;engineUser=user; }
 static bool debugVisible=true;
 static bool visibilityProbe(const MeathookHudApi*) { return debugVisible; }
@@ -153,6 +153,8 @@ int main() {
         WritePrivateProfileStringW(L"Viewer",L"DebugHudScale",L"1.5",ini.c_str());Sleep(260);updateViewerSettings();
         DeleteFileW(ini.c_str());RemoveDirectoryW(directory);
     }
-    expect(printDebugHudScaleQuery(api,{"labplus_debughud_scale"})&&console=="labplus_debughud_scale is 1.5 (0.5..3)\n"&&debugHudScale.load()==1.5f,"native no-argument query prints the current invariant fractional scale without changing it");
+    console.clear();
+    expect(printDebugHudScaleQuery(api,{"labplus_debughud_scale"})&&console=="\"labplus_debughud_scale\" is:\"1.5\"^7 default:\"1\"\n^7Debug HUD text scale (0.5..3).\n"&&debugHudScale.load()==1.5f,
+        "native no-argument query prints current/default on the first line and description on the second without changing the invariant fractional scale");
     puts("PASS: all eight visibility combinations in both callback registration orders; compact dynamic rows, stale/menu removal, coordinate cleanup and scaling at0.5/1/1.5/3; scale command validation/query.");
 }
