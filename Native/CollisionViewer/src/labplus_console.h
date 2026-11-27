@@ -1,4 +1,5 @@
 #pragma once
+#include "labplus_cvar_definitions.h"
 #include <bcrypt.h>
 #pragma comment(lib,"bcrypt.lib")
 static void printActiveEncounters(const MeathookHudApi& api);
@@ -19,7 +20,9 @@ static constexpr LabCommandDefinition labCommandDefinitions[]{
     {"labplus_recording_clear","Start a new research session"}, {"labplus_markers_add","<text> - add a research marker"},
     {"labplus_trigger_set","<class> 0|1 - one exact trigger class"},
     {"labplus_help","Legacy alias",true}, {"labplus_encounters","Legacy list / 0|1 HUD alias",true},
+    {"labplus_command_list","Alias for labplus_commands_list",true},
     {"labplus_viewer","Legacy alias",true}, {"labplus_triggers","Legacy alias",true},
+    {"labplus_shots","Legacy alias",true},
     {"labplus_collision","Legacy alias",true}, {"labplus_walls","Legacy alias",true},
     {"labplus_inspector","Legacy alias",true}, {"labplus_disabled","Legacy alias",true},
     {"labplus_history","Legacy alias",true}, {"labplus_fill","Legacy alias",true},
@@ -32,7 +35,11 @@ static constexpr LabCommandDefinition labCommandDefinitions[]{
 static std::vector<std::string> normalizeLabArguments(const std::vector<std::string>& args) {
     if(args.empty()) return {};
     const auto& name=args[0];
+    if(const auto* definition=findLabCvarDefinition(name)) {
+        auto result=args; result[0]=definition->request; return result;
+    }
     for(const auto& alias:{std::pair<const char*,const char*>{"labplus_commands_list","labplus_help"},
+        {"labplus_command_list","labplus_help"},
         {"labplus_encounters_list","labplus_encounters"},{"labplus_recording_clear","labplus_clear"}})
         if(name==alias.first) return args.size()==1?std::vector<std::string>{alias.second}:std::vector<std::string>{};
     if(name=="labplus_recording_start"||name=="labplus_recording_stop") return args.size()==1?
@@ -43,6 +50,14 @@ static std::vector<std::string> normalizeLabArguments(const std::vector<std::str
     return args;
 }
 static bool validLabArguments(const std::vector<std::string>& input) {
+    if(!input.empty()) if(const auto* definition=findLabCvarDefinition(input[0])) {
+        if(input.size()==1) return true; // Query the saved setting on command-only profiles.
+        if(input.size()!=2) return false;
+        if(definition->maximum==1) return input[1]=="0"||input[1]=="1";
+        const auto& text=input[1];
+        if(text.empty()||text.size()>3||!std::all_of(text.begin(),text.end(),[](char c) { return c>='0'&&c<='9'; })) return false;
+        int value=atoi(text.c_str()); return value>=definition->minimum&&value<=definition->maximum;
+    }
     auto args=normalizeLabArguments(input);
     if(args.empty()) return false;
     const std::string& command=args[0];
@@ -132,6 +147,38 @@ static LabCommandSystem resolveLabCommandSystem(const WallMemory& memory,uintptr
 }
 #include "labplus_cvars.h"
 
+// Use the same names for engine completion and execution. Unsupported cvar
+// constructors never run: those profiles expose ordinary settings commands.
+template<class Visit> static void visitLabConsoleCommands(bool settingsAsCommands,Visit visit) {
+    for(const auto& definition:labCommandDefinitions) visit(definition.name,definition.usage);
+    if(settingsAsCommands) for(const auto& definition:labCvarDefinitions)
+        visit(definition.name,definition.maximum==1?"[0|1] - query or set LAB Plus setting":"[20..200] - query or set viewer distance");
+}
+static bool registerLabConsoleCommands(bool settingsAsCommands,
+    const std::function<bool(const char*)>& exists,const std::function<void(const char*,const char*)>& add) {
+    bool conflict=false;
+    visitLabConsoleCommands(settingsAsCommands,[&](const char* name,const char*) { if(exists(name)) conflict=true; });
+    if(conflict) return false;
+    visitLabConsoleCommands(settingsAsCommands,add);
+    bool registered=true;
+    visitLabConsoleCommands(settingsAsCommands,[&](const char* name,const char*) { if(!exists(name)) registered=false; });
+    return registered;
+}
+static void printLabCommandList(const MeathookHudApi& api,bool settingsAvailable) {
+    if(settingsAvailable) for(const auto& definition:labCvarDefinitions)
+        api.consolePrint("%s : %d..%d\n",definition.name,definition.minimum,definition.maximum);
+    else api.consolePrint("%s","labplus_: state settings are not registered; see the LAB Plus log.\n");
+    for(const auto& definition:labCommandDefinitions) if(!definition.legacy)
+        api.consolePrint("%s : %s\n",definition.name,definition.usage);
+}
+static bool printLabSettingQuery(const MeathookHudApi& api,const std::vector<std::string>& args,const std::wstring& ini) {
+    if(args.size()!=1) return false;
+    const auto* definition=findLabCvarDefinition(args[0]); if(!definition) return false;
+    api.consolePrint("%s is %d (%d..%d; saved LAB Plus setting)\n",definition->name,
+        savedLabCvarValue(*definition,ini),definition->minimum,definition->maximum);
+    return true;
+}
+
 class LabConsole {
     const MeathookHudApi* api=nullptr;
     bool callbackRegistered=false,commandsRegistered=false,registrationBlocked=false,reportedUnavailable=false;
@@ -139,6 +186,7 @@ class LabConsole {
     ULONGLONG cvarsRetryAt=0;
     LabCommandSystem commandSystem;
     LabCvarBridge cvars;
+    bool settingsAsCommands=false;
     std::mutex saveMutex;
     std::string saveToken;
     ULONGLONG saveStarted=0,saveReplyPoll=0;
@@ -204,6 +252,7 @@ class LabConsole {
             args.push_back(std::move(value));
         }
         if(!validLabArguments(args)) { self->api->consolePrint("%s","labplus_: invalid arguments. Use labplus_commands_list.\n"); return; }
+        if(self->settingsAsCommands&&printLabSettingQuery(*self->api,args,(researchDirectory()/L"viewer.ini").wstring())) return;
         args=normalizeLabArguments(args);
         if(args[0]=="labplus_load_last_save") {
             self->api->consolePrint("labplus_load_last_save: %s\n",self->beginSaveCommand());
@@ -211,8 +260,7 @@ class LabConsole {
         else if(printDebugHudScaleQuery(*self->api,args)) {}
         else if(args[0]=="labplus_encounters"&&args.size()==1) { printActiveEncounters(*self->api); }
         else if(args[0]=="labplus_help") {
-            for(const auto& definition:labCvarDefinitions) self->api->consolePrint("%s : %d..%d\n",definition.name,definition.minimum,definition.maximum);
-            for(const auto& definition:labCommandDefinitions) if(!definition.legacy) self->api->consolePrint("%s : %s\n",definition.name,definition.usage);
+            printLabCommandList(*self->api,self->settingsAsCommands||self->cvars.ready());
         } else self->api->consolePrint("%s",sendLabRequest(args)?"labplus_: request sent to LAB Plus.\n":"labplus_: LAB Plus is unavailable or busy; retry.\n");
     }
     void frame() {
@@ -221,7 +269,7 @@ class LabConsole {
         if(!saveReply.empty()) api->consolePrint("labplus_load_last_save: %s\n",saveReply.c_str());
         const auto* profile=currentGameProfile(); if(!profile) return;
         if(commandsRegistered) {
-            if(available&&!cvars.ready()&&!cvars.blocked()&&GetTickCount64()>=cvarsRetryAt) {
+            if(!settingsAsCommands&&available&&!cvars.ready()&&!cvars.blocked()&&GetTickCount64()>=cvarsRetryAt) {
                 cvarsRetryAt=GetTickCount64()+2000;
                 cvars.initialize(*api,commandSystem,reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr)),*profile);
             }
@@ -235,13 +283,18 @@ class LabConsole {
         }
         using Exists=bool (*)(void*,const char*,bool);
         using Add=void (*)(void*,const char*,void (*)(void*),const char*,uintptr_t,unsigned);
-        for(const auto& definition:labCommandDefinitions)
-            if(reinterpret_cast<Exists>(system.exists)(reinterpret_cast<void*>(system.object),definition.name,false)) {
-                note("labplus_ registration withheld: command name is already owned by another module."); registrationBlocked=true; return;
-            }
+        const auto base=reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr));
+        auto cvarSystem=resolveLabCvarSystem(WallMemory{},system,base,*profile);
+        settingsAsCommands=!resolveLabCvarFactory(WallMemory{},cvarSystem,base,*profile);
         instance()=this;
-        for(const auto& definition:labCommandDefinitions)
-            reinterpret_cast<Add>(system.add)(reinterpret_cast<void*>(system.object),definition.name,command,definition.usage,0,0);
+        if(!registerLabConsoleCommands(settingsAsCommands,[&](const char* name) {
+                return reinterpret_cast<Exists>(system.exists)(reinterpret_cast<void*>(system.object),name,false);
+            },[&](const char* name,const char* usage) {
+                reinterpret_cast<Add>(system.add)(reinterpret_cast<void*>(system.object),name,command,usage,0,0);
+            })) {
+            note("labplus_ registration blocked: command name conflict or engine registration failed."); registrationBlocked=true; return;
+        }
+        if(settingsAsCommands) note("labplus_ state settings registered as commands; native cvar creation ABI is unavailable for this game image.");
         commandSystem=system;
         commandsRegistered=true; note("labplus_ commands registered on the game thread; execution requires the running LAB Plus companion.");
     }

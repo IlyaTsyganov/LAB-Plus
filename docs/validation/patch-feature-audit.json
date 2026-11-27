@@ -1,0 +1,81 @@
+{
+  "date": "2026-11-27",
+  "baseCommit": "e482166",
+  "scope": "Static audit of production version gates and registries for the 22 native retail profiles; fixtures are not live gameplay verification.",
+  "fixed": {
+    "feature": "Canonical labplus_ console settings",
+    "problem": "Help advertised 15 settings on every patch, but native cvar creation was enabled only on 6.66 Rev 3.",
+    "behavior": "Keep native cvars when their ABI validates. Otherwise register the same canonical names as commands, query saved viewer.ini values and send validated changes through existing companion handlers.",
+    "sources": [
+      "Native/CollisionViewer/src/labplus_console.h",
+      "Native/CollisionViewer/src/labplus_cvar_definitions.h",
+      "Native/CollisionViewer/src/labplus_cvars.h"
+    ]
+  },
+  "remainingGaps": [
+    {
+      "feature": "Managed HUD session",
+      "patches": ["6.66 Rev 1", "6.66 Rev 1.1"],
+      "finding": "Both native retail identities exist, but Assets/game-profiles.json has no matching HUD profiles. GameProfile.Resolve requires an MD5 match, and GameMonitor only creates GameSession when that succeeds.",
+      "effect": "No managed speedometers, performance/cheat HUD, low-health tint adapter or Modbot adapter through this path. This does not remove support from the separate native collision/Meathook layer.",
+      "sources": ["Assets/game-profiles.json", "Hud/Memory/GameReader.cs", "Hud/Runtime/GameSession.cs", "Native/CollisionViewer/src/native_profile.h"]
+    },
+    {
+      "feature": "Speedometer player/velocity input",
+      "patches": ["6.0", "6.1"],
+      "finding": "HUD profiles have Velocity=0 and no NativePlayer adapter. GameReader.Player then uses the legacy chain from image+0 instead of a configured player source.",
+      "effect": "The normal managed speedometer path has no valid configured player/velocity source. Other independently resolved adapters are not disabled by this finding.",
+      "sources": ["Assets/game-profiles.json", "Hud/Memory/GameReader.cs", "Hud/Runtime/GameSession.cs"]
+    },
+    {
+      "feature": "GPU driver string telemetry",
+      "patches": ["6.66"],
+      "finding": "GPUVendor=0 makes GameReader.DriverName return an empty string. This is a metadata gap, not a GPU restriction on the collision viewer.",
+      "sources": ["Assets/game-profiles.json", "Hud/Memory/GameReader.cs"]
+    }
+  ],
+  "intentionalVersionDifferences": [
+    {
+      "feature": "NVIDIA lighting correction",
+      "availability": "1.0, 1.1 and 2.0, NVIDIA only",
+      "finding": "Both the launch policy and native layer explicitly restrict this correction to the affected early builds.",
+      "sources": ["Game/GameExecutableInfo.cs", "Game/LightingFixPolicy.cs", "Native/CollisionViewer/src/lighting_fix.h", "Hud/Runtime/FeatureStatus.cs"]
+    },
+    {
+      "feature": "Remove checkpoint delay",
+      "availability": "Branch patch from 2.0 onward; additional pause-menu cooldown cvar from 5.0 onward",
+      "finding": "1.0/1.1 explicitly report that this delay does not exist. These absent patch sites do not mean the feature was accidentally omitted.",
+      "sources": ["Game/GameExecutableInfo.cs", "Hud/Runtime/NativeCheckpointDelay.cs"]
+    },
+    {
+      "feature": "Live save campaign slots and archive compatibility",
+      "availability": "Main campaign on all 22 profiles; TAG1 from 3.0; TAG2 from 5.0",
+      "finding": "Archive loading requires the same game patch and compatible campaign. The 3/6/9 slot counts follow the available campaigns.",
+      "sources": ["Game/PracticeSaveSource.cs", "Native/CollisionViewer/src/practice_profile.h"]
+    },
+    {
+      "feature": "Native cvar objects rather than command fallback",
+      "availability": "6.66 Rev 3 with validated constructor/register/set signatures",
+      "finding": "This implementation difference remains guarded; it no longer prevents using the canonical setting names on other supported patches.",
+      "sources": ["Native/CollisionViewer/src/labplus_cvars.h", "Native/CollisionViewer/src/labplus_console.h"]
+    }
+  ],
+  "notCurrentlyPatchExclusive": [
+    {
+      "features": ["Game clocks and powerup timers", "Stagger countdown", "Sync release events and player lock timers"],
+      "finding": "The explicit 1.0/1.1/5.1 branches are followed by the shared observationCodeProfile table, which covers all 22 native identities.",
+      "sources": ["Native/CollisionViewer/src/observation_code_profiles.h", "Native/CollisionViewer/src/game_timers.h", "Native/CollisionViewer/src/enemy_telemetry.h", "Native/CollisionViewer/src/sync_animation_timers.h"]
+    },
+    {
+      "features": ["BATS weapon switch observation", "Finisher Visualizer", "Live checkpoint adapters"],
+      "finding": "The current configuredBatsCode, syncPatchFor and practiceProfile registries cover all 22 native profiles. Historical notes describing smaller patch sets do not represent current registration coverage.",
+      "sources": ["Native/CollisionViewer/src/speedrun_techs.h", "Native/CollisionViewer/src/sync_patch_layout.h", "Native/CollisionViewer/src/sync_patch_ports.h", "Native/CollisionViewer/src/practice_profile.h"]
+    },
+    {
+      "features": ["Low-health tint", "Modbot input protection", "Performance metrics", "Protected cvar and player cheat monitoring"],
+      "finding": "These adapters resolve metadata or instruction patterns instead of selecting an exclusive patch list. They still depend on the managed HUD profile gaps above and on successful runtime layout validation. Modbot protection additionally requires an internal FPS limit below 1000.",
+      "sources": ["Hud/Overlay/NativeGameLayout.cs", "Hud/Runtime/GameSession.cs", "Hud/Runtime/FeatureStatus.cs"]
+    }
+  ],
+  "loadingRequirements": "Console registration still requires a recognized game profile, a loaded compatible XINPUT1_3.dll exporting mh_api_get, the native LAB Plus layer, a game-frame callback and a running companion. Unknown command-system thunks/RTTI remain rejected. These are loading/ABI conditions, not additional patch allowlists."
+}

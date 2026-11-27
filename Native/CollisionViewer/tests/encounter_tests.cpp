@@ -76,7 +76,9 @@ int main() {
     expect(validLabArguments({"labplus_encounters_list"})&&!validLabArguments({"labplus_encounters_list","1"}),"list action accepts no state-changing arguments");
     expect(normalizeLabArguments({"labplus_recording_start"})==std::vector<std::string>{"labplus_record","1"}&&
            normalizeLabArguments({"labplus_recording_stop"})==std::vector<std::string>{"labplus_record","0"},"recording actions keep their explicit start/stop names");
-    expect(!validLabArguments({"labplus_encounters_show","1"}),"native engine cvars are not registered as duplicate commands");
+    expect(validLabArguments({"labplus_encounters_show","1"})&&
+           normalizeLabArguments({"labplus_encounters_show","1"})==std::vector<std::string>{"labplus_encounters","1"},
+           "canonical encounter setting is also accepted by the command fallback");
     MeathookHudApi api{}; api.executeCommand=hudExecute; api.addText=hudAdd; api.removeText=hudRemove;
     ActiveEncounterHud hud(&api); ActiveEncounterSnapshot snapshot; snapshot.phase="live"; snapshot.captured=1000;
     ActiveEncounterRow row; row.known=true; row.think=1; row.id=1930; row.name="starting_platform_encounter_manager_1"; row.label="UAC Atlantica / Combat 1 Landing Pad 1";

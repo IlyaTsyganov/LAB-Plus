@@ -170,6 +170,23 @@ string? inheritedSteamAppId = Environment.GetEnvironmentVariable("SteamAppId");
 try
 {
     MotionChecks.Run(temporary);
+    var commandStore = new SettingsStore(Path.Combine(temporary, "canonical-commands"));
+    var commandDefinitions = Regex.Matches(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "labplus_cvar_definitions.h")),
+        "\\{\"([^\"]+)\",L\"([^\"]+)\",\"([^\"]+)\",(\\d+),(\\d+),(\\d+)\\}");
+    Check(commandDefinitions.Count == 15, "Canonical native setting catalogue fixture is missing or incomplete");
+    foreach (Match definition in commandDefinitions)
+    {
+        foreach (string value in new[] { definition.Groups[5].Value, definition.Groups[6].Value })
+        {
+            var commandSettings = commandStore.Load();
+            Check(LabCommands.Apply(commandSettings, [definition.Groups[3].Value, value], 1234, 100),
+                "Canonical command transport rejected: " + definition.Groups[1].Value);
+            commandStore.Save(commandSettings);
+            Check(File.ReadAllLines(commandStore.ViewerSettingsPath).Contains(definition.Groups[2].Value + "=" + value),
+                "Canonical command did not update its persisted viewer setting: " + definition.Groups[1].Value);
+        }
+    }
+    Console.WriteLine("PASS: all 15 canonical console settings reach the companion handlers and persist to the matching viewer.ini keys at both range boundaries.");
     var store = new SettingsStore(Path.Combine(temporary, "settings"));
     Directory.CreateDirectory(store.SettingsDirectory);
     File.WriteAllText(store.SettingsPath, "{\"ShowTriggers\":true}");
