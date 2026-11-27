@@ -85,7 +85,7 @@ static LabCvarBackend nativeLabCvarBackend(const LabCvarSystem& system,const Lab
 class LabCvarBridge {
     struct Tracked { const LabCvarDefinition* definition=nullptr; uintptr_t variable=0; int engine=0,saved=0,pending=0; bool awaiting=false; ULONGLONG sent=0; };
     std::vector<Tracked> variables;
-    std::array<OwnedLabCvar,std::size(labCvarDefinitions)> owned;
+    std::vector<OwnedLabCvar> owned;
     LabCvarBackend backend;
     std::function<bool(const std::vector<std::string>&)> request;
     std::wstring settings;
@@ -133,11 +133,12 @@ public:
         // Verify the value-object ABI against an existing engine cvar before
         // creating any owned variables. No raw game-memory writes are used.
         if(!readLabCvarValue(WallMemory{},backend.find("com_debugHUD"),"com_debugHUD",known,knownText)) return false;
-        for(const auto& definition:labCvarDefinitions) if(backend.find(definition.name)) {
+        for(const auto& definition:nativeLabCvarDefinitions()) if(backend.find(definition.name)) {
             block(api,"labplus_: a cvar name is already owned by another module; console settings disabled."); return false;
         }
+        owned.resize(nativeLabCvarDefinitions().size());
         size_t index=0;
-        for(const auto& definition:labCvarDefinitions) {
+        for(const auto& definition:nativeLabCvarDefinitions()) {
             int value=saved(definition); auto& storage=owned[index++]; sprintf_s(storage.initial,"%d",value);
             backend.create(storage,definition);
             uintptr_t variable=backend.find(definition.name);
@@ -164,6 +165,13 @@ public:
                 if(available&&engine>=definition.minimum&&engine<=definition.maximum&&request({definition.request,std::to_string(engine)})) {
                     variable.engine=engine; variable.pending=engine; variable.awaiting=true; variable.sent=now;
                     if(text!=std::to_string(engine)&&!set(api,variable,engine)) return;
+                    // Mirror the accepted value immediately, before the next
+                    // poll or INI acknowledgement. Otherwise a toggle through
+                    // the other name can read a stale value or echo a request.
+                    for(auto& alias:variables) if(&alias!=&variable&&!strcmp(alias.definition->request,definition.request)) {
+                        if(!set(api,alias,engine)) return;
+                        alias.engine=engine; alias.pending=engine; alias.awaiting=true; alias.sent=now;
+                    }
                 } else {
                     if(!set(api,variable,stored)) return; variable.engine=stored; variable.awaiting=false;
                     api.consolePrint("%s","labplus_: open LAB Plus and use a value within the documented range.\n");

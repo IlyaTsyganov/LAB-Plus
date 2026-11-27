@@ -29,8 +29,22 @@ static constexpr LabCvarDefinition labCvarDefinitions[]{
     {"labplus_speedometer_showvertical",L"VerticalEnabled","labplus_speedometer_showvertical",1,0,1,L"hud/console.ini"},
     {"labplus_speedometer_verticalsign",L"VerticalShowSign","labplus_speedometer_verticalsign",1,0,1,L"hud/console.ini"}
 };
+static const std::vector<LabCvarDefinition>& nativeLabCvarDefinitions() {
+    static const auto definitions=[] {
+        std::vector<LabCvarDefinition> result(std::begin(labCvarDefinitions),std::end(labCvarDefinitions));
+        for(auto definition:labCvarDefinitions) {
+            // Preserve short setting names as real cvars too, so existing
+            // "toggle labplus_viewer" binds work. The encounter alias also
+            // lists entities without arguments and must remain a command.
+            if(definition.maximum!=1||!strcmp(definition.name,definition.request)||!strcmp(definition.request,"labplus_encounters")) continue;
+            definition.name=definition.request; result.push_back(definition);
+        }
+        return result;
+    }();
+    return definitions;
+}
 static const LabCvarDefinition* findLabCvarDefinition(const std::string& name) {
-    for(const auto& definition:labCvarDefinitions) if(name==definition.name) return &definition;
+    for(const auto& definition:nativeLabCvarDefinitions()) if(name==definition.name) return &definition;
     return nullptr;
 }
 static int savedLabCvarValue(const LabCvarDefinition& definition,const std::wstring& settings) {

@@ -5,12 +5,20 @@
   "fixed": {
     "feature": "Canonical labplus_ console settings",
     "problem": "Help advertised 15 settings on every patch, but native cvar creation was enabled only on 6.66 Rev 3.",
-    "behavior": "Create all 25 binary settings (plus viewer distance) as native cvars on individually audited game images, including HUD settings through their own persisted console snapshot. Retain canonical commands and explicit toggle arguments as a guarded fallback on images without an audited creation ABI. There is no labplus_toggle wrapper.",
+    "behavior": "Create all 25 binary settings (plus viewer distance) as native cvars on individually audited game images, including HUD settings through their own persisted console snapshot. Short binary setting names such as labplus_viewer are synchronized native cvar aliases; labplus_encounters retains its list command. Retain canonical commands and explicit toggle arguments as a guarded fallback on images without an audited creation ABI. There is no labplus_toggle wrapper.",
     "sources": [
       "Native/CollisionViewer/src/labplus_console.h",
       "Native/CollisionViewer/src/labplus_cvar_definitions.h",
       "Native/CollisionViewer/src/labplus_cvars.h"
     ]
+  },
+  "liveVerification": {
+    "date": "2026-11-27",
+    "patch": "1.1",
+    "layerSha256": "749D1084406A4A93D726390A481110CA33850255CD10FD9394D5FAB363AF3392",
+    "bind": "bind x \"toggle labplus_viewer\"",
+    "result": "User confirmed toggling works in both directions after restart with the rebuilt module. The game log independently recorded Enabled transitions 1 -> 0 -> 1 -> 0 -> 1. The original cvar-not-found error was reproduced before the alias fix.",
+    "limit": "Live gameplay verification covers 1.1; the other supported patches use the individually audited native ABI profiles and automated resolver/registration tests. They were not all launched for this check."
   },
   "remainingGaps": [
     {
@@ -163,7 +171,7 @@
       "launcherSuite": "passed",
       "updateChecks": 33,
       "retailProductionResolverProbes": 22,
-      "gameplayVerification": "not performed"
+      "gameplayVerification": "1.1: native toggle bind using the short labplus_viewer cvar confirmed in both directions; see liveVerification"
     },
     "loadingBehavior": "Audited profiles wait while the engine cvar system is not initialized, then register native cvars once it is ready. A transient missing object cannot permanently latch the command fallback. Unknown profiles or rejected function signatures retain the guarded fallback."
   }

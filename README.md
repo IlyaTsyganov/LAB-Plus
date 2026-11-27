@@ -32,8 +32,10 @@ bind r "toggle labplus_record"
 
 All 25 existing binary controls are exposed, including Filled/Outlines mode,
 research recording and the four binary speedometer controls. Use the preferred
-names printed by `labplus_commands_list`; `labplus_viewer` remains a legacy
-command alias, while its cvar is `labplus_viewer_show`.
+names printed by `labplus_commands_list`. Short binary setting names such as
+`labplus_viewer` are synchronized cvar aliases, so `bind x "toggle labplus_viewer"`
+also works. `labplus_encounters` retains its encounter-list command behavior;
+use `labplus_encounters_show` to toggle that HUD.
 
 Native cvar creation is audited for all 22 supported retail builds, including
 1.1. A guarded command fallback remains for unavailable or modified ABIs; it

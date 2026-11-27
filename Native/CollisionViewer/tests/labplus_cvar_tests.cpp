@@ -71,7 +71,8 @@ static void checkSettingsCommands(const MeathookHudApi& api,const std::wstring& 
     expect(!printLabSettingQuery(api,{"labplus_viewer_show","1"},ini)&&commands==0,"set requests are not swallowed by the query handler");
     registered.clear();
     expect(registerLabConsoleCommands(false,exists,add),"audited cvar backend keeps action commands separate");
-    for(const auto& definition:labCvarDefinitions) expect(!registered.count(definition.name),"native cvars never get duplicate command registrations");
+    for(const auto& definition:nativeLabCvarDefinitions()) expect(!registered.count(definition.name),"canonical and short native cvars never get duplicate command registrations");
+    expect(findLabCvarDefinition("labplus_viewer")&&registered.count("labplus_encounters"),"viewer supports engine toggle while the encounter-list command retains its meaning");
     consoleOutput.clear(); printLabCommandList(api,false,true);
     for(const auto& definition:labCvarDefinitions) expect(consoleOutput.find(std::string(definition.name)+" : ")==std::string::npos,"unregistered native cvars are not advertised during loading or after failure");
     registered.clear(); registered.insert("labplus_viewer_show"); auto before=registered.size();
@@ -96,13 +97,13 @@ int main() {
     checkSettingsCommands(api,ini);
     EngineFixture engine; LabCvarBridge bridge; std::vector<std::vector<std::string>> requests;
     expect(bridge.initializeBackend(api,engine.backend(),ini,[&](const auto& request) { requests.push_back(request); return true; }),"native creation registers all owned variables");
-    expect(engine.creates==std::size(labCvarDefinitions)&&engine.number("labplus_path_show")==1&&engine.number("labplus_viewer_distance")==75&&
+    expect(engine.creates==nativeLabCvarDefinitions().size()&&engine.number("labplus_path_show")==1&&engine.number("labplus_viewer_distance")==75&&
         engine.number("labplus_player_show")==0&&engine.number("labplus_attempts_show")==1&&
         engine.number("labplus_speedometer_verticalsign")==0&&commands==0,"initialization uses main and HUD saved values and sends no console commands");
     for(ULONGLONG time=100;time<1000;time+=100) bridge.poll(api,true,time);
     expect(engine.writes==0&&requests.empty(),"unchanged settings cause no writes or console spam");
     setSaved(L"ShowResearchPath",L"0"); bridge.poll(api,true,1000);
-    expect(engine.number("labplus_path_show")==0&&engine.writes==1&&requests.empty(),"UI changes update native cvars quietly");
+    expect(engine.number("labplus_path_show")==0&&engine.number("labplus_path")==0&&engine.writes==2&&requests.empty(),"UI changes update canonical and short native cvars quietly");
     engine.change("labplus_path_show",1); bridge.poll(api,true,1100);
     expect(requests.size()==1&&requests.back()==std::vector<std::string>{"labplus_path","1"},"console cvar changes reach the injected companion transport");
     setSaved(L"ShowResearchPath",L"1"); bridge.poll(api,true,1200); unsigned acknowledged=engine.writes;
@@ -119,6 +120,22 @@ int main() {
     for(ULONGLONG time=6700;time<10000;time+=100) bridge.poll(api,true,time);
     expect(engine.writes==failedWrites&&diagnostics==failedDiagnostics&&commands==0,"failed updates are not retried on every poll");
 
+    EngineFixture aliases; LabCvarBridge aliasBridge; std::vector<std::vector<std::string>> aliasRequests;
+    expect(aliasBridge.initializeBackend(api,aliases.backend(),ini,[&](const auto& request) { aliasRequests.push_back(request); return true; }),"short names register as native cvars");
+    aliases.change("labplus_viewer",1); aliasBridge.poll(api,true,100);
+    expect(aliasRequests==std::vector<std::vector<std::string>>{{"labplus_viewer","1"}}&&
+        aliases.number("labplus_viewer_show")==1&&aliases.number("labplus_viewer")==1,"toggle through the short name dispatches once and updates the canonical cvar");
+    aliasBridge.poll(api,true,200);
+    expect(aliasRequests.size()==1,"mirroring does not echo another companion request before acknowledgement");
+    aliases.change("labplus_viewer_show",0); aliasBridge.poll(api,true,300);
+    expect(aliasRequests.size()==2&&aliasRequests.back()==std::vector<std::string>{"labplus_viewer","0"}&&aliases.number("labplus_viewer")==0,
+        "alternating toggle names before acknowledgement reads the mirrored value");
+    setSaved(L"Enabled",L"1"); aliasBridge.poll(api,true,400);
+    expect(aliases.number("labplus_viewer")==1&&aliases.number("labplus_viewer_show")==1&&aliasRequests.size()==2,"UI changes synchronize both cvar names without requests");
+    aliases.change("labplus_viewer",0); aliasBridge.poll(api,true,500); aliasBridge.poll(api,true,2600);
+    expect(aliases.number("labplus_viewer")==1&&aliases.number("labplus_viewer_show")==1,"unacknowledged alias changes restore both values");
+    setSaved(L"Enabled",L"0");
+
     EngineFixture rejected; rejected.registerWorks=false; LabCvarBridge failed;
     auto ignore=[](const auto&) { return false; };
     expect(!failed.initializeBackend(api,rejected.backend(),ini,ignore)&&failed.blocked()&&rejected.creates==1,"unregistered variables stop initialization immediately");
@@ -127,6 +144,8 @@ int main() {
     expect(rejected.creates==1&&diagnostics==initialDiagnostics&&commands==0,"registration failure produces one diagnostic and no retry storm");
     EngineFixture foreign; foreign.names["labplus_path_show"]=foreign.names["com_debugHUD"]; LabCvarBridge collision;
     expect(!collision.initializeBackend(api,foreign.backend(),ini,ignore)&&collision.blocked()&&foreign.creates==0,"foreign names are detected before creating or changing any cvar");
+    EngineFixture foreignAlias; foreignAlias.names["labplus_viewer"]=foreignAlias.names["com_debugHUD"]; LabCvarBridge aliasCollision;
+    expect(!aliasCollision.initializeBackend(api,foreignAlias.backend(),ini,ignore)&&aliasCollision.blocked()&&foreignAlias.creates==0,"short-name conflicts are checked before creating canonical cvars");
 
     auto* block=static_cast<unsigned char*>(VirtualAlloc(nullptr,0x744d000,MEM_RESERVE|MEM_COMMIT,PAGE_READWRITE)); expect(block!=nullptr,"ABI fixture allocation");
     uintptr_t base=reinterpret_cast<uintptr_t>(block); LabCvarSystem system{base+0x800,base+0x178e160};
