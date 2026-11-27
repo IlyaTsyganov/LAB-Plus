@@ -86,6 +86,7 @@ cmd /d /c .\Native\CollisionViewer\build-viewer.cmd
 .\Native\CollisionViewer\tests\run-fixtures.ps1
 dotnet run --project Tests/Updates/Updates.Tests.csproj --configuration Release
 dotnet run --project Tests/Launcher/LauncherTests.csproj --configuration Release
+dotnet run --project Tests/ScreenState/ScreenState.Tests.csproj --configuration Release
 dotnet run --project Tests/Hud/Hud.Tests.csproj --configuration Release
 dotnet publish labplus.csproj --configuration Release --self-contained false -p:PlatformTarget=x64 -p:PublishSingleFile=false -p:DebugType=None -p:DebugSymbols=false --output build/pr-checks
 .\package-local.ps1 -Source build/pr-checks
@@ -95,6 +96,10 @@ Stop if any command fails. Native test sources use the `*_tests.cpp` suffix;
 automated fixture executables use `*Tests.exe`. The fixture runner checks that all
 test sources are included in the MSVC build and rejects missing or stale binaries.
 Add new suites to both native build scripts.
+
+The screen state fixtures check that removed controls and tree nodes can be
+collected, stale input is ignored, and hidden panels, inactive tabs and collapsed
+branches keep their state. They run without opening a browser or a game.
 
 These fixtures do not require DOOM Eternal. Visual interface, GPU and live-game
 acceptance are separate checks; `build-local.ps1` also runs interface previews.

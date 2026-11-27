@@ -3,3 +3,4 @@
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("InspectorPreview")]
 
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("LabPlus.Hud.Tests")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("LabPlus.ScreenState.Tests")]
