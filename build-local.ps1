@@ -23,6 +23,8 @@ try {
         if ($LASTEXITCODE -ne 0) { throw 'Update checks failed.' }
         & $dotnet run --project '.\Tests\Launcher\LauncherTests.csproj' -c Release
         if ($LASTEXITCODE -ne 0) { throw 'Launcher checks failed.' }
+        & $dotnet run --project '.\Tests\ScreenState\ScreenState.Tests.csproj' -c Release
+        if ($LASTEXITCODE -ne 0) { throw 'Screen state checks failed.' }
         New-Item -ItemType Directory -Path '.\build\screenshots' -Force | Out-Null
         & $dotnet run --project '.\Tests\InspectorPreview\InspectorPreview.csproj' -c Release -- (Join-Path $PSScriptRoot 'build\screenshots\application.png')
         if ($LASTEXITCODE -ne 0) { throw 'Interface checks failed.' }

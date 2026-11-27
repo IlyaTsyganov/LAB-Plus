@@ -1,6 +1,5 @@
 using System.Drawing.Imaging;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 using System.Text.Json;
 
 namespace LabPlus;
@@ -10,7 +9,7 @@ namespace LabPlus;
 internal sealed class ScreenStateAdapter : IDisposable
 {
     private readonly LabPlusForm _form;
-    internal readonly UiNode[] Roots;
+    internal IEnumerable<UiNode> Roots => _form.Controls;
     private readonly Dictionary<string, UiNode> _controls = [];
     private readonly Dictionary<UiNode, string> _ids = [];
     private readonly Dictionary<string, UiTreeNode> _nodes = [];
@@ -19,12 +18,59 @@ internal sealed class ScreenStateAdapter : IDisposable
     private readonly Dictionary<UiNode, (bool Dirty, string Image)> _pictures = [];
     private int _sequence;
     private bool _disposed;
-    internal ScreenStateAdapter(LabPlusForm form) { _form = form; Roots = form.Controls.Cast<UiNode>().ToArray(); }
+    internal ScreenStateAdapter(LabPlusForm form) { _form = form; }
     private string Id(UiNode control)
     { if (_ids.TryGetValue(control, out string? id)) return id; id = "c" + ++_sequence; _ids.Add(control, id); _controls.Add(id, control); return id; }
     private string Id(UiTreeNode node)
     { if (_nodeIds.TryGetValue(node, out string? id)) return id; id = "n" + ++_sequence; _nodeIds.Add(node, id); _nodes.Add(id, node); return id; }
-    internal object[] Snapshot(IEnumerable<UiNode> roots) => roots.Where(c => !c.IsDisposed && c.Visible && (c is not UiText || !string.IsNullOrWhiteSpace(c.Text))).Select(Capture).ToArray();
+    internal object[] Snapshot(IEnumerable<UiNode> roots)
+    {
+        if (_disposed) return [];
+        var attached = PruneDetachedState();
+        return CaptureVisible(roots.Where(attached.Contains));
+    }
+
+    private object[] CaptureVisible(IEnumerable<UiNode> roots) => roots
+        .Where(c => !c.IsDisposed && c.Visible && (c is not UiText || !string.IsNullOrWhiteSpace(c.Text)))
+        .Select(Capture).ToArray();
+
+    private HashSet<UiNode> PruneDetachedState()
+    {
+        // The full screen owns lifetime. A partial snapshot, hidden panel,
+        // inactive tab or collapsed tree branch must retain its existing state.
+        var controls = new HashSet<UiNode>();
+        var nodes = new HashSet<UiTreeNode>();
+        CollectAttachedState(_form, controls, nodes);
+
+        foreach (var control in _ids.Keys.Where(control => !controls.Contains(control)).ToArray())
+        {
+            _controls.Remove(_ids[control]);
+            _ids.Remove(control);
+            _limits.Remove(control);
+            if (_pictures.Remove(control)) control.Invalidated -= InvalidatePicture;
+        }
+        foreach (var node in _nodeIds.Keys.Where(node => !nodes.Contains(node)).ToArray())
+        {
+            _nodes.Remove(_nodeIds[node]);
+            _nodeIds.Remove(node);
+        }
+        return controls;
+    }
+
+    private static void CollectAttachedState(UiNode control, HashSet<UiNode> controls, HashSet<UiTreeNode> nodes)
+    {
+        if (control.IsDisposed || !controls.Add(control)) return;
+        foreach (var child in control.Controls) CollectAttachedState(child, controls, nodes);
+        if (control is UiTabs tabs)
+            foreach (var page in tabs.TabPages) CollectAttachedState(page, controls, nodes);
+        if (control is UiTree tree) CollectTreeNodes(tree.Nodes, nodes);
+    }
+
+    private static void CollectTreeNodes(UiTreeNodes children, HashSet<UiTreeNode> nodes)
+    {
+        foreach (var node in children)
+            if (nodes.Add(node)) CollectTreeNodes(node.Nodes, nodes);
+    }
 
     private Dictionary<string, object?> Capture(UiNode control)
     {
@@ -68,14 +114,14 @@ internal sealed class ScreenStateAdapter : IDisposable
                 node["kind"] = "tree"; node["checks"] = tree.CheckBoxes; node["nodes"] = CaptureTree(tree.Nodes); break;
             case UiTabs tabs:
                 node["kind"] = "tabs"; node["items"] = tabs.TabPages.Cast<UiTab>().Select(p => p.Text).ToArray(); node["selected"] = tabs.SelectedIndex;
-                node["children"] = tabs.SelectedTab is null ? [] : Snapshot(tabs.SelectedTab.Controls.Cast<UiNode>()); break;
+                node["children"] = tabs.SelectedTab is null ? [] : CaptureVisible(tabs.SelectedTab.Controls.Cast<UiNode>()); break;
             case UiSplit split:
                 node["kind"] = "split"; node["vertical"] = split.Orientation == Orientation.Vertical;
                 node["ratio"] = Math.Clamp(split.SplitterDistance / (double)Math.Max(1, split.Orientation == Orientation.Vertical ? split.Width : split.Height), .18, .82);
                 node["children"] = new[] { Capture(split.Panel1), Capture(split.Panel2) }; break;
             case UiToolbar flow:
                 node["kind"] = flow.FlowDirection is FlowDirection.TopDown or FlowDirection.BottomUp ? "column" : "toolbar";
-                node["children"] = Snapshot(flow.Controls.Cast<UiNode>()); break;
+                node["children"] = CaptureVisible(flow.Controls.Cast<UiNode>()); break;
             case UiGrid table:
                 node["kind"] = table.ColumnCount <= 1 ? "column" : "grid";
                 var widths = new List<string>();
@@ -89,17 +135,17 @@ internal sealed class ScreenStateAdapter : IDisposable
                 { var child = Capture(c); child["row"] = table.GetRow(c) + 1; child["column"] = table.GetColumn(c) + 1; child["span"] = table.GetColumnSpan(c); return child; }).ToArray();
                 break;
             case UiGroup group:
-                node["kind"] = "group"; node["children"] = Snapshot(group.Controls.Cast<UiNode>()); break;
+                node["kind"] = "group"; node["children"] = CaptureVisible(group.Controls.Cast<UiNode>()); break;
             case MotionPlot or EntityGraphCanvas or PlaneProjection:
                 if(control is PlaneProjection)control.Width=340;
                 int cap = (int)((control is PlaneProjection ? 280 : 300) * scale);
                 control.MaximumSize = new Size(0, cap);
                 if (control.Height > cap) control.Height = cap;
-                node["kind"] = "canvas"; node["image"] = Picture(control); node["actions"]=Snapshot(control.Controls); break;
+                node["kind"] = "canvas"; node["image"] = Picture(control); node["actions"]=CaptureVisible(control.Controls); break;
             case UiStack panel:
-                node["kind"] = "column"; node["children"] = Snapshot(panel.Controls.Cast<UiNode>()); break;
+                node["kind"] = "column"; node["children"] = CaptureVisible(panel.Controls.Cast<UiNode>()); break;
             default:
-                node["children"] = Snapshot(control.Controls.Cast<UiNode>()); break;
+                node["children"] = CaptureVisible(control.Controls.Cast<UiNode>()); break;
         }
         return node;
     }
@@ -138,7 +184,7 @@ internal sealed class ScreenStateAdapter : IDisposable
         if (!_pictures.TryGetValue(control, out var entry))
         {
             _pictures[control] = (true, "");
-            control.Invalidated += (_, _) => { if (!_disposed && _pictures.TryGetValue(control, out var current)) _pictures[control] = (true, current.Image); };
+            control.Invalidated += InvalidatePicture;
             entry = (true, "");
         }
         if (!entry.Dirty) return entry.Image;
@@ -150,8 +196,16 @@ internal sealed class ScreenStateAdapter : IDisposable
         _pictures[control] = (false, data); return data;
     }
 
+    private void InvalidatePicture(object? sender, EventArgs e)
+    {
+        if (!_disposed && sender is UiNode control && _pictures.TryGetValue(control, out var picture))
+            _pictures[control] = (true, picture.Image);
+    }
+
     internal void Dispatch(JsonElement message)
     {
+        if (_disposed) return;
+        PruneDetachedState();
         string id = message.GetProperty("id").GetString() ?? "";
         string action = message.GetProperty("action").GetString() ?? "";
         if (_nodes.TryGetValue(id, out var treeNode))
@@ -231,12 +285,15 @@ internal sealed class ScreenStateAdapter : IDisposable
     }
     internal void Key(JsonElement message)
     {
+        if (_disposed) return;
+        PruneDetachedState();
         string? key = message.GetProperty("key").GetString();
         bool ctrl = message.TryGetProperty("ctrl", out var flag) && flag.GetBoolean();
         Keys code = key == "Enter" ? Keys.Enter : key == "Escape" ? Keys.Escape : ctrl && key is "s" or "S" ? Keys.S | Keys.Control : Keys.None;
         if (code == Keys.None) return;
         string id = message.GetProperty("id").GetString() ?? "";
         _controls.TryGetValue(id, out var control);
+        if (id.Length > 0 && control is null) return;
         var form = control?.FindForm() ?? _form;
         if (code == Keys.Escape) { form.CancelButton?.PerformClick(); return; }
         if (form is WorkspaceMessageForm && code == Keys.Enter) { form.AcceptButton?.PerformClick(); return; }
@@ -244,5 +301,16 @@ internal sealed class ScreenStateAdapter : IDisposable
         if (control is { Enabled: true }) typeof(UiNode).GetMethod("OnKeyDown", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(control, [args]);
         if (!args.Handled) typeof(UiNode).GetMethod("OnKeyDown", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(form, [args]);
     }
-    public void Dispose() { _disposed = true; _controls.Clear(); _nodes.Clear(); _ids.Clear(); _nodeIds.Clear(); _pictures.Clear(); }
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+        foreach (var control in _pictures.Keys) control.Invalidated -= InvalidatePicture;
+        _pictures.Clear();
+        _limits.Clear();
+        _controls.Clear();
+        _ids.Clear();
+        _nodes.Clear();
+        _nodeIds.Clear();
+    }
 }

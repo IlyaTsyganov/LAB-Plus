@@ -60,6 +60,11 @@ jobs:
           & dotnet run --project 'Tests/Launcher/LauncherTests.csproj' --configuration Release
           if ($LASTEXITCODE -ne 0) { throw 'Launcher fixtures failed.' }
 
+      - name: Run screen state fixtures
+        run: |
+          & dotnet run --project 'Tests/ScreenState/ScreenState.Tests.csproj' --configuration Release
+          if ($LASTEXITCODE -ne 0) { throw 'Screen state fixtures failed.' }
+
       - name: Run HUD fixtures
         run: |
           & dotnet run --project 'Tests/Hud/Hud.Tests.csproj' --configuration Release
@@ -76,7 +81,7 @@ jobs:
       - name: Summarize checks
         run: |
           @'
-          Passed: native fixture coverage, native suites, update fixtures, launcher fixtures, HUD fixtures and runtime packaging.
+          Passed: native fixture coverage, native suites, update fixtures, launcher fixtures, screen state fixtures, HUD fixtures and runtime packaging.
 
           These checks use fixtures without a DOOM Eternal installation. Live game, visual UI and GPU acceptance remain separate checks.
           '@ >> $env:GITHUB_STEP_SUMMARY
