@@ -1,4 +1,3 @@
-using System.Security.Cryptography;
 using System.Text.Json;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
@@ -22,19 +21,20 @@ public sealed class VulkanLayerRegistration
     private const string ImplicitLayersKey = @"Software\Khronos\Vulkan\ImplicitLayers";
 
     private readonly SettingsStore _settingsStore;
+    private readonly RuntimeLibraryIdentity _libraryIdentity;
 
-    public VulkanLayerRegistration(SettingsStore settingsStore) => _settingsStore = settingsStore;
+    public VulkanLayerRegistration(SettingsStore settingsStore)
+        : this(settingsStore, new RuntimeLibraryIdentity(Path.Combine(AppContext.BaseDirectory,
+            "Native", "CollisionViewer", "bin", "labplus-layer.dll"))) { }
+
+    internal VulkanLayerRegistration(SettingsStore settingsStore, RuntimeLibraryIdentity libraryIdentity)
+    {
+        _settingsStore = settingsStore;
+        _libraryIdentity = libraryIdentity;
+    }
 
     public string RuntimeDirectory => Path.Combine(_settingsStore.SettingsDirectory, "viewer-runtime");
-    public string ExpectedRuntimeLibraryName
-    {
-        get
-        {
-            string dllPath = Path.Combine(AppContext.BaseDirectory, "Native", "CollisionViewer", "bin", "labplus-layer.dll");
-            byte[] hash = SHA256.HashData(File.ReadAllBytes(dllPath));
-            return $"labplus-layer-{Convert.ToHexString(hash)[..16].ToLowerInvariant()}.dll";
-        }
-    }
+    public string ExpectedRuntimeLibraryName => _libraryIdentity.GetName();
     private string LayerManifestPath => Path.Combine(RuntimeDirectory, "labplus-layer.json");
     private string OverrideManifestPath => Path.Combine(RuntimeDirectory, "labplus-override.json");
 
@@ -134,18 +134,21 @@ public sealed class VulkanLayerRegistration
 
     internal void PrepareRuntime(bool beforeObs = false)
     {
-        string dllPath = Path.Combine(AppContext.BaseDirectory, "Native", "CollisionViewer", "bin", "labplus-layer.dll");
+        string dllPath = _libraryIdentity.SourcePath;
         if (!File.Exists(dllPath))
             throw new FileNotFoundException("Collision Viewer has not been built yet. Build Native\\CollisionViewer\\build-viewer.cmd.", dllPath);
 
+        // Recheck the content for launch, even if size/timestamps were preserved.
+        // Keep this handle open so hashing and copying refer to the same bytes.
+        using var source = File.OpenRead(dllPath);
+        string runtimeDllName = _libraryIdentity.GetName(forceRefresh: true);
         Directory.CreateDirectory(RuntimeDirectory);
-        string runtimeDllName = ExpectedRuntimeLibraryName;
         string destinationDll = Path.Combine(RuntimeDirectory, runtimeDllName);
         // Keep each built layer version side by side. Windows cannot replace a
         // DLL while a game process has it loaded; the manifest can safely move
         // to the next version without touching the running game's module.
         if (!File.Exists(destinationDll))
-            File.Copy(dllPath, destinationDll, overwrite: false);
+            File.Copy(source.Name, destinationDll, overwrite: false);
         WriteManifest(LayerManifestPath, $@".\{runtimeDllName}", false);
         if (beforeObs)
         {

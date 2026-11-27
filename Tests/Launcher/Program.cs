@@ -429,6 +429,7 @@ try
     }
     Console.WriteLine("PASS: per-class visibility persistence/backward compatibility and all 22 selected game versions; mapped fingerprints, malformed/changed EXEs, lighting policy, Steam restart prevention and child-only launch environment. No game was launched.");
     LifecycleChecks.Run();
+    RuntimeLibraryChecks.Run(temporary);
     InvisibleNumbersChecks.Run(temporary);
     AppearanceChecks.Run(temporary);
     LevelStateChecks.Run(temporary);

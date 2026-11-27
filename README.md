@@ -101,6 +101,11 @@ The screen state fixtures check that removed controls and tree nodes can be
 collected, stale input is ignored, and hidden panels, inactive tabs and collapsed
 branches keep their state. They run without opening a browser or a game.
 
+Launcher fixtures also check DLL identity caching. Status polling reuses the
+cached name while size, write time and creation time are unchanged. Launch
+preparation always re-hashes a read-locked source before copying its versioned
+runtime DLL, including replacements that preserve those metadata values.
+
 These fixtures do not require DOOM Eternal. Visual interface, GPU and live-game
 acceptance are separate checks; `build-local.ps1` also runs interface previews.
 The release workflow remains a separate process.
