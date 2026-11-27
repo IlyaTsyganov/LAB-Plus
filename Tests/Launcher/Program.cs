@@ -173,7 +173,7 @@ try
     var commandStore = new SettingsStore(Path.Combine(temporary, "canonical-commands"));
     var commandDefinitions = Regex.Matches(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "labplus_cvar_definitions.h")),
         "\\{\"([^\"]+)\",L\"([^\"]+)\",\"([^\"]+)\",(\\d+),(\\d+),(\\d+)\\}");
-    Check(commandDefinitions.Count == 15, "Canonical native setting catalogue fixture is missing or incomplete");
+    Check(commandDefinitions.Count == 22, "Canonical native setting catalogue fixture is missing or incomplete");
     foreach (Match definition in commandDefinitions)
     {
         foreach (string value in new[] { definition.Groups[5].Value, definition.Groups[6].Value })
@@ -185,8 +185,37 @@ try
             Check(File.ReadAllLines(commandStore.ViewerSettingsPath).Contains(definition.Groups[2].Value + "=" + value),
                 "Canonical command did not update its persisted viewer setting: " + definition.Groups[1].Value);
         }
+        var toggleSettings = commandStore.Load();
+        if (definition.Groups[6].Value == "1")
+        {
+            foreach (string expected in new[] { "0", "1" })
+            {
+                Check(LabCommands.Apply(toggleSettings, [definition.Groups[3].Value, "toggle"], 1234, 100),
+                    "Binary setting rejected toggle: " + definition.Groups[1].Value);
+                commandStore.Save(toggleSettings);
+                Check(File.ReadAllLines(commandStore.ViewerSettingsPath).Contains(definition.Groups[2].Value + "=" + expected),
+                    "Consecutive toggles did not invert and restore the live setting: " + definition.Groups[1].Value);
+            }
+        }
+        else Check(!LabCommands.Apply(toggleSettings, [definition.Groups[3].Value, "toggle"], 1234, 100), "Nonbinary setting accepted toggle");
     }
-    Console.WriteLine("PASS: all 15 canonical console settings reach the companion handlers and persist to the matching viewer.ini keys at both range boundaries.");
+    foreach (var (command, read) in new (string, Func<LabPlusSettings, bool>)[] {
+        ("labplus_enemies", s => s.ShowEnemyHealthHud), ("labplus_enemy_hp_bars", s => s.ShowEnemyHealthBars),
+        ("labplus_position", s => s.ShowPlayerPositionHud), ("labplus_angles", s => s.ShowPlayerAnglesHud),
+        ("labplus_timers", s => s.ShowGameTimersHud), ("labplus_techs", s => s.ShowSpeedrunTechsHud), ("labplus_record", s => s.RecordResearch) })
+    {
+        var binarySettings = new LabPlusSettings();
+        Check(LabCommands.Apply(binarySettings, [command, "toggle"], 1234, 100) && read(binarySettings)
+            && LabCommands.Apply(binarySettings, [command, "toggle"], 1234, 101) && !read(binarySettings), "Binary action toggle did not round-trip: " + command);
+    }
+    var triggerToggleSettings = new LabPlusSettings();
+    Check(LabCommands.Apply(triggerToggleSettings, ["labplus_trigger", "idTrigger", "toggle"], 1234, 100)
+        && !triggerToggleSettings.IsTriggerClassVisible("idTrigger") && triggerToggleSettings.IsTriggerClassVisible("idEncounterTrigger_Commit")
+        && LabCommands.Apply(triggerToggleSettings, ["labplus_trigger", "idTrigger", "toggle"], 1234, 101)
+        && triggerToggleSettings.IsTriggerClassVisible("idTrigger"), "Trigger class toggle did not preserve other classes");
+    Check(!LabCommands.Apply(triggerToggleSettings, ["labplus_debughud_scale", "toggle"], 1234, 100)
+        && !LabCommands.Apply(triggerToggleSettings, ["quit", "toggle"], 1234, 100), "Nonbinary or unknown action accepted toggle");
+    Console.WriteLine("PASS: all 22 main console settings persist at range boundaries; all 21 binary companion controls and individual trigger classes toggle both ways, including fill mode and recording.");
     var store = new SettingsStore(Path.Combine(temporary, "settings"));
     Directory.CreateDirectory(store.SettingsDirectory);
     File.WriteAllText(store.SettingsPath, "{\"ShowTriggers\":true}");

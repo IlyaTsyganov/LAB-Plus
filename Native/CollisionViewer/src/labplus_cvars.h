@@ -23,36 +23,24 @@ static bool readLabCvarValue(const WallMemory& memory,uintptr_t variable,const c
        !memory.get(data+8,value)||!memory.get(data,string)) return false;
     text=readEntityText(memory,string,64); return !text.empty();
 }
-// Audited against the user's 6.66 Rev 3 image, 2026-10-27. Other profiles
-// withhold creation until their constructor/register/set ABI is audited.
+// Select only the constructor/register/set ABI audited for this exact image.
+#include "labplus_cvar_profiles.h"
 struct LabCvarFactory { uintptr_t construct=0,registerVariable=0,setString=0; explicit operator bool() const { return construct&&registerVariable&&setString; } };
-static constexpr unsigned char labCvarConstructorPrefix[]{
-    0x48,0x89,0x5c,0x24,0x08,0x48,0x89,0x6c,0x24,0x10,0x48,0x89,0x74,0x24,0x18,0x57,
-    0x48,0x83,0xec,0x20,0x48,0x8d,0x41,0x08,0x33,0xed,0x48,0x89,0x01,0x41,0x8b,0xd9
-};
-static constexpr unsigned char labCvarRegisterPrefix[]{
-    0x48,0x89,0x5c,0x24,0x08,0x48,0x89,0x6c,0x24,0x18,0x48,0x89,0x54,0x24,0x10,0x56,
-    0x57,0x41,0x56,0x48,0x83,0xec,0x20,0x48,0x8b,0x02,0x33,0xed,0x4c,0x8b,0x71,0x08
-};
-static constexpr unsigned char labCvarSetPrefix[]{
-    0x40,0x53,0x48,0x83,0xec,0x20,0x48,0x8b,0x01,0x49,0x8b,0xd8,0xff,0x50,0x20,0x48,
-    0x85,0xc0
-};
 static LabCvarFactory resolveLabCvarFactory(const WallMemory& memory,const LabCvarSystem& system,uintptr_t base,const GameProfile& profile) {
-    if(profile.timestamp!=0x669f0dcf||profile.imageSize!=0x744d000||!system) return {};
-    uintptr_t vtable=0; LabCvarFactory result{base+0x371100,0,0};
+    const auto* abi=labCvarAbiProfile(profile); if(!abi||!system) return {};
+    uintptr_t vtable=0; LabCvarFactory result{base+abi->construct,0,0};
     if(!memory.get(system.object,vtable)||!memory.get(vtable+0x108,result.registerVariable)||!memory.get(vtable+0x38,result.setString)||
-       result.registerVariable!=base+0x178f470||result.setString!=base+0x178f8e0) return {};
+       result.registerVariable!=base+abi->registerVariable||result.setString!=base+abi->setString) return {};
     auto matches=[&](uintptr_t address,const unsigned char* expected,size_t size) {
-        unsigned char code[32]{}; MEMORY_BASIC_INFORMATION info{};
+        unsigned char code[64]{}; MEMORY_BASIC_INFORMATION info{};
         SIZE_T queried=memory.remote?VirtualQueryEx(memory.remote,reinterpret_cast<void*>(address),&info,sizeof(info)):VirtualQuery(reinterpret_cast<void*>(address),&info,sizeof(info));
         return queried&&info.State==MEM_COMMIT&&!(info.Protect&PAGE_GUARD)&&
             (info.Protect&(PAGE_EXECUTE|PAGE_EXECUTE_READ|PAGE_EXECUTE_READWRITE|PAGE_EXECUTE_WRITECOPY))&&
             memory.read(address,code,size)&&memcmp(code,expected,size)==0;
     };
-    if(!matches(result.construct,labCvarConstructorPrefix,sizeof(labCvarConstructorPrefix))||
-       !matches(result.registerVariable,labCvarRegisterPrefix,sizeof(labCvarRegisterPrefix))||
-       !matches(result.setString,labCvarSetPrefix,sizeof(labCvarSetPrefix))) return {};
+    if(!matches(result.construct,abi->constructorPrefix,sizeof(abi->constructorPrefix))||
+       !matches(result.registerVariable,abi->registerPrefix,sizeof(abi->registerPrefix))||
+       !matches(result.setString,abi->setPrefix,sizeof(abi->setPrefix))) return {};
     return result;
 }
 struct OwnedLabCvar {

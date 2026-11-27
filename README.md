@@ -19,6 +19,28 @@ Everything in one customizable interface.
 
 LAB Plus supports multiple versions of DOOM Eternal. Feature availability may vary depending on the game version.
 
+### Console toggle binds
+
+Binary settings use the engine's normal cvar toggle syntax:
+
+```text
+bind x "toggle labplus_viewer_show"
+bind f "toggle labplus_viewer_fill"
+bind v "toggle labplus_speedometer_verticalsign"
+bind r "toggle labplus_record"
+```
+
+All 25 existing binary controls are exposed, including Filled/Outlines mode,
+research recording and the four binary speedometer controls. Use the preferred
+names printed by `labplus_commands_list`; `labplus_viewer` remains a legacy
+command alias, while its cvar is `labplus_viewer_show`.
+
+Native cvar creation is currently audited for 16 retail builds, including 1.1.
+Versions 2.0, 2.1, 4.0, 4.1, 5.0 and 6.0 retain the guarded command fallback
+pending EXE verification. That fallback accepts `labplus_viewer_show toggle`
+instead of `toggle labplus_viewer_show`. The list prints the syntax available
+in the current process. See [the cvar ABI audit](docs/validation/cvar-factory-profiles.json).
+
 ## Download & Installation
 
 1. Download the latest Windows release from the [Releases page](https://github.com/IlyaTsyganov/LAB-Plus/releases/latest).

@@ -17,6 +17,7 @@ internal static class Program
     }
     private static void Settings()
     {
+        BooleanToggleChecks.Run(Check);
         string folder=Path.GetFullPath(Path.Combine(Environment.GetEnvironmentVariable("LAB_TEST_DATA_ROOT")??Path.Combine(Path.GetTempPath(),"lab-tests"),"settings-"+Guid.NewGuid().ToString("N")));var store=new SettingsStore(folder);
         var initial=store.Snapshot();Check(!initial.SpeedometersEnabled&&initial.Current.Enabled&&initial.Landing.Enabled&&initial.Vertical.Enabled&&initial.VerticalShowSign&&initial.Current.Size==3&&initial.Landing.Size==3&&initial.Vertical.Size==3&&initial.TintOpacity==100,"First-run defaults match release 1.0");
         Check(LabSettings.CreateDefaults(p=>p==LabSettings.DefaultGamePath).GamePath==LabSettings.DefaultGamePath&&LabSettings.CreateDefaults(_=>false).GamePath=="","Steam executable is selected only when the exact default file exists");

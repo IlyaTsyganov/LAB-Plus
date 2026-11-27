@@ -46,7 +46,7 @@ static void checkSettingsCommands(const MeathookHudApi& api,const std::wstring& 
     };
     expect(registerLabConsoleCommands(true,exists,add),"settings commands register when native cvar creation is unavailable");
     for(const auto& definition:labCvarDefinitions) {
-        expect(registered.count(definition.name)==1,"each advertised setting is registered for engine completion");
+        expect(registered.count(definition.name)==size_t(!definition.source),"main fallback settings register once; the managed HUD retains its own commands");
         expect(validLabArguments({definition.name}),"each setting supports a value query");
         for(int value:{definition.minimum,definition.maximum}) {
             std::vector<std::string> input{definition.name,std::to_string(value)};
@@ -72,12 +72,17 @@ static void checkSettingsCommands(const MeathookHudApi& api,const std::wstring& 
     registered.clear();
     expect(registerLabConsoleCommands(false,exists,add),"audited cvar backend keeps action commands separate");
     for(const auto& definition:labCvarDefinitions) expect(!registered.count(definition.name),"native cvars never get duplicate command registrations");
-    consoleOutput.clear(); printLabCommandList(api,false);
-    for(const auto& definition:labCvarDefinitions) expect(consoleOutput.find(definition.name)==std::string::npos,"unregistered native cvars are not advertised during loading or after failure");
+    consoleOutput.clear(); printLabCommandList(api,false,true);
+    for(const auto& definition:labCvarDefinitions) expect(consoleOutput.find(std::string(definition.name)+" : ")==std::string::npos,"unregistered native cvars are not advertised during loading or after failure");
     registered.clear(); registered.insert("labplus_viewer_show"); auto before=registered.size();
     expect(!registerLabConsoleCommands(true,exists,add)&&registered.size()==before,"name conflicts prevent all registration before any writes");
     registered.clear();
     expect(!registerLabConsoleCommands(true,exists,[](const char*,const char*) {}),"failed engine registration is detected");
+    for(const auto& definition:labCvarDefinitions) if(definition.maximum==1) {
+        expect(validLabArguments({definition.name,"toggle"})&&validLabArguments({definition.request,"toggle"}),"binary command fallback and aliases accept toggle");
+    }
+    expect(!validLabArguments({"labplus_viewer_distance","toggle"})&&!validLabArguments({"labplus_debughud_scale","toggle"})&&
+        !validLabArguments({"labplus_toggle","labplus_viewer_show"}),"numeric ranges and the rejected generic wrapper are not toggle commands");
 }
 int main() {
     MeathookHudApi api{}; api.consolePrint=print; api.executeCommand=execute;
@@ -85,11 +90,15 @@ int main() {
     std::filesystem::create_directories(temporary); auto ini=(temporary/L"viewer.ini").wstring();
     auto setSaved=[&](const wchar_t* key,const wchar_t* value) { expect(WritePrivateProfileStringW(L"Viewer",key,value,ini.c_str())!=0,"isolated saved setting"); };
     setSaved(L"ShowResearchPath",L"1"); setSaved(L"Distance",L"75");
+    std::filesystem::create_directories(temporary/L"hud");
+    auto hudIni=(temporary/L"hud"/L"console.ini").wstring();
+    expect(WritePrivateProfileStringW(L"Viewer",L"VerticalShowSign",L"0",hudIni.c_str())!=0,"isolated HUD console setting");
     checkSettingsCommands(api,ini);
     EngineFixture engine; LabCvarBridge bridge; std::vector<std::vector<std::string>> requests;
     expect(bridge.initializeBackend(api,engine.backend(),ini,[&](const auto& request) { requests.push_back(request); return true; }),"native creation registers all owned variables");
     expect(engine.creates==std::size(labCvarDefinitions)&&engine.number("labplus_path_show")==1&&engine.number("labplus_viewer_distance")==75&&
-        engine.number("labplus_player_show")==0&&engine.number("labplus_attempts_show")==1&&commands==0,"initialization uses saved values and sends no console commands");
+        engine.number("labplus_player_show")==0&&engine.number("labplus_attempts_show")==1&&
+        engine.number("labplus_speedometer_verticalsign")==0&&commands==0,"initialization uses main and HUD saved values and sends no console commands");
     for(ULONGLONG time=100;time<1000;time+=100) bridge.poll(api,true,time);
     expect(engine.writes==0&&requests.empty(),"unchanged settings cause no writes or console spam");
     setSaved(L"ShowResearchPath",L"0"); bridge.poll(api,true,1000);
@@ -122,13 +131,14 @@ int main() {
     auto* block=static_cast<unsigned char*>(VirtualAlloc(nullptr,0x744d000,MEM_RESERVE|MEM_COMMIT,PAGE_READWRITE)); expect(block!=nullptr,"ABI fixture allocation");
     uintptr_t base=reinterpret_cast<uintptr_t>(block); LabCvarSystem system{base+0x800,base+0x178e160};
     put(block,0x800,base+0x1000); put(block,0x1108,base+0x178f470); put(block,0x1038,base+0x178f8e0);
-    memcpy(block+0x371100,labCvarConstructorPrefix,sizeof(labCvarConstructorPrefix));
-    memcpy(block+0x178f470,labCvarRegisterPrefix,sizeof(labCvarRegisterPrefix));
-    memcpy(block+0x178f8e0,labCvarSetPrefix,sizeof(labCvarSetPrefix));
+    const auto* baselineAbi=labCvarAbiProfile(kProfile6663);
+    memcpy(block+0x371100,baselineAbi->constructorPrefix,sizeof(baselineAbi->constructorPrefix));
+    memcpy(block+0x178f470,baselineAbi->registerPrefix,sizeof(baselineAbi->registerPrefix));
+    memcpy(block+0x178f8e0,baselineAbi->setPrefix,sizeof(baselineAbi->setPrefix));
     DWORD old=0; VirtualProtect(block+0x371000,4096,PAGE_EXECUTE_READWRITE,&old); VirtualProtect(block+0x178f000,4096,PAGE_EXECUTE_READWRITE,&old);
     GameProfile profile=*kGameProfiles[20]; profile.timestamp=0x669f0dcf; profile.imageSize=0x744d000;
     expect(bool(resolveLabCvarFactory(WallMemory{},system,base,profile)),"audited constructor, register and setter code resolves");
-    expect(!resolveLabCvarFactory(WallMemory{},system,base,kProfile11),"game 1.1 selects settings commands without calling a foreign constructor");
+    expect(!resolveLabCvarFactory(WallMemory{},system,base,kProfile11),"game 1.1 rejects the foreign 6.66 method addresses");
     for(const auto* selected:kGameProfiles) {
         const bool native=bool(resolveLabCvarFactory(WallMemory{},system,base,*selected));
         expect(native==(selected->timestamp==profile.timestamp&&selected->imageSize==profile.imageSize),"every supported patch selects only its audited native ABI");
@@ -136,14 +146,27 @@ int main() {
         expect(registerLabConsoleCommands(!native,[&](const char* name) { return names.count(name)!=0; },
             [&](const char* name,const char*) { names.insert(name); }),"command registration succeeds for every supported patch");
         for(const auto& definition:labCvarDefinitions)
-            expect(names.count(definition.name)==size_t(!native),"all canonical names are commands on fallback profiles and cvars only on the audited profile");
+            expect(names.count(definition.name)==size_t(!native&&!definition.source),"main fallbacks register once while native cvars and managed HUD settings avoid duplicate commands");
     }
     block[0x371100]^=1; expect(!resolveLabCvarFactory(WallMemory{},system,base,profile),"changed constructor fails closed"); block[0x371100]^=1;
     block[0x178f8e0]^=1; expect(!resolveLabCvarFactory(WallMemory{},system,base,profile),"changed setter fails closed"); block[0x178f8e0]^=1;
     put(block,0x1108,base+0x178f480); expect(!resolveLabCvarFactory(WallMemory{},system,base,profile),"foreign registration method is rejected"); put(block,0x1108,base+0x178f470);
     VirtualProtect(block+0x371000,4096,PAGE_READWRITE,&old); expect(!resolveLabCvarFactory(WallMemory{},system,base,profile),"nonexecutable constructor is rejected");
     for(const auto* other:kGameProfiles) if(other->timestamp!=profile.timestamp)
-        expect(!resolveLabCvarFactory(WallMemory{},system,base,*other),"unaudited versions never call a guessed constructor");
+        expect(!resolveLabCvarFactory(WallMemory{},system,base,*other),"other patch identities reject this fixture's foreign method addresses");
+    for(const auto* selected:kGameProfiles) if(const auto* abi=labCvarAbiProfile(*selected)) {
+        for(uintptr_t address:{base+abi->construct,base+abi->registerVariable,base+abi->setString})
+            VirtualProtect(reinterpret_cast<void*>(address&~uintptr_t(4095)),4096,PAGE_EXECUTE_READWRITE,&old);
+        memcpy(block+abi->construct,abi->constructorPrefix,sizeof(abi->constructorPrefix));
+        memcpy(block+abi->registerVariable,abi->registerPrefix,sizeof(abi->registerPrefix));
+        memcpy(block+abi->setString,abi->setPrefix,sizeof(abi->setPrefix));
+        put(block,0x1108,base+abi->registerVariable); put(block,0x1038,base+abi->setString);
+        expect(bool(resolveLabCvarFactory(WallMemory{},system,base,*selected)),"each audited patch resolves its own native cvar ABI");
+        block[abi->construct]^=1;
+        expect(!resolveLabCvarFactory(WallMemory{},system,base,*selected),"a changed constructor is rejected on every audited patch");
+        block[abi->construct]^=1; put(block,0x1108,base+abi->registerVariable+1);
+        expect(!resolveLabCvarFactory(WallMemory{},system,base,*selected),"a replaced registration method is rejected on every audited patch");
+    }
     VirtualFree(block,0,MEM_RELEASE); std::filesystem::remove_all(temporary);
     puts("PASS: canonical settings command registration/completion, help, queries, bounds, companion dispatch, conflicts and failures; native cvar creation/sync and guarded ABI selection on all game profiles. No engine commands executed.");
 }

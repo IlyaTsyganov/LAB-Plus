@@ -33,19 +33,27 @@ internal sealed class SettingsStore
     private LabSettings _value=new();
     internal string DirectoryPath {get;}
     internal string FilePath=>Path.Combine(DirectoryPath,"settings.json");
+    internal string ConsoleSettingsPath=>Path.Combine(DirectoryPath,"console.ini");
     internal SettingsStore(string? directory=null)
     {
         directory??=Environment.GetEnvironmentVariable("LABPLUS_HUD_DATA_DIRECTORY");
         if(directory is not null&&!Path.IsPathFullyQualified(directory))throw new ArgumentException("LABPLUS_HUD_DATA_DIRECTORY must be an absolute path.");
         DirectoryPath=directory??Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"labplus/hud");
         Directory.CreateDirectory(DirectoryPath);
-        if(!File.Exists(FilePath)){_value=LabSettings.CreateDefaults();return;}
+        if(!File.Exists(FilePath)){_value=LabSettings.CreateDefaults();WriteConsoleSettings(_value);return;}
         if(File.Exists(FilePath))try{var loaded=JsonSerializer.Deserialize<LabSettings>(File.ReadAllText(FilePath),Json)??new();Normalize(loaded);_value=loaded;}catch(Exception ex)when(ex is JsonException or IOException or ArgumentException){Log.Warning(ex,"Could not read saved preferences; original file retained");}
+        WriteConsoleSettings(_value);
+    }
+    private void WriteConsoleSettings(LabSettings value)
+    {
+        string temporary=ConsoleSettingsPath+".tmp";
+        File.WriteAllText(temporary,$"[Viewer]\nSpeedometersEnabled={(value.SpeedometersEnabled?1:0)}\nLandingEnabled={(value.Landing.Enabled?1:0)}\nVerticalEnabled={(value.Vertical.Enabled?1:0)}\nVerticalShowSign={(value.VerticalShowSign?1:0)}\n");
+        File.Move(temporary,ConsoleSettingsPath,true);
     }
     internal LabSettings Snapshot(){lock(_gate)return Clone(_value);}
     internal bool Update(Func<LabSettings,bool> change)
     {
-        lock(_gate){var next=Clone(_value);if(!change(next))return false;Normalize(next);var temp=FilePath+".tmp";File.WriteAllText(temp,JsonSerializer.Serialize(next,Json));File.Move(temp,FilePath,true);_value=next;return true;}
+        lock(_gate){var next=Clone(_value);if(!change(next))return false;Normalize(next);var temp=FilePath+".tmp";File.WriteAllText(temp,JsonSerializer.Serialize(next,Json));File.Move(temp,FilePath,true);WriteConsoleSettings(next);_value=next;return true;}
     }
     internal bool Apply(string key,JsonElement value)=>Update(s=>
     {

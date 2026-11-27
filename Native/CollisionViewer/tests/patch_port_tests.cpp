@@ -7,7 +7,8 @@ template<class T> static void portPut(uintptr_t at,T value) { memcpy(reinterpret
 #include "praetor_port_audit.h"
 int wmain(int argc,wchar_t** argv) {
     const bool finisherOnly=argc==4&&std::wstring(argv[3])==L"--finisher-only";
-    if(argc!=3&&!finisherOnly) { puts("Usage: PatchPortTests retail-exe metadata-rvas.tsv [--finisher-only]");return 2; }
+    const bool cvarsOnly=argc==4&&std::wstring(argv[3])==L"--cvars-only";
+    if(argc!=3&&!finisherOnly&&!cvarsOnly) { puts("Usage: PatchPortTests retail-exe metadata-rvas.tsv [--finisher-only] OR retail-exe cvar-vtable-rva --cvars-only");return 2; }
     unsigned char* image=nullptr;
     try {
         std::ifstream input(std::filesystem::path(argv[1]),std::ios::binary);
@@ -40,6 +41,21 @@ int wmain(int argc,wchar_t** argv) {
             pos+=block->SizeOfBlock;
         }
         WallMemory memory{};const auto* profile=detectGameProfile(memory,base);requirePort(profile,"Profile identity failed");
+        if(cvarsOnly) {
+            const auto* abi=labCvarAbiProfile(*profile);requirePort(abi!=nullptr,"No audited native cvar profile");
+            const auto table=base+std::stoull(argv[2],nullptr,0);
+            uintptr_t object=table,find=0;requirePort(memory.get(table+32,find),"Missing cvar find method");
+            DWORD old=0;
+            for(uintptr_t method:{base+abi->construct,base+abi->registerVariable,base+abi->setString,find})
+                requirePort(VirtualProtect(reinterpret_cast<void*>(method&~uintptr_t(4095)),4096,PAGE_EXECUTE_READWRITE,&old)!=0,"Cannot mark private code fixture pages");
+            const auto slot=base+profile->imageSize-256;portPut(slot-8,reinterpret_cast<uintptr_t>(&object));
+            LabCommandSystem command{};command.slot=slot;
+            auto system=resolveLabCvarSystem(memory,command,base,*profile);requirePort(bool(system),"Retail cvar RTTI/find ABI failed");
+            requirePort(bool(resolveLabCvarFactory(memory,system,base,*profile)),"Retail constructor/register/set signatures failed");
+            image[abi->construct]^=1;requirePort(!resolveLabCvarFactory(memory,system,base,*profile),"Changed retail constructor accepted");image[abi->construct]^=1;
+            printf("PASS %s: native cvar RTTI, find, constructor, registration, setter and corruption guards; EXE mapped as data only.\n",profile->name);
+            VirtualFree(image,0,MEM_RELEASE);return 0;
+        }
         std::ifstream metadata{std::filesystem::path(argv[2])};std::string line;
         std::unordered_map<std::string,uintptr_t> addresses;
         while(std::getline(metadata,line)) {auto tab=line.find('\t');if(tab!=std::string::npos)addresses[line.substr(0,tab)]=base+std::stoull(line.substr(tab+1),nullptr,0);}
