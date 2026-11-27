@@ -297,7 +297,9 @@ class LabConsole {
         using Add=void (*)(void*,const char*,void (*)(void*),const char*,uintptr_t,unsigned);
         const auto base=reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr));
         auto cvarSystem=resolveLabCvarSystem(WallMemory{},system,base,*profile);
-        settingsAsCommands=!resolveLabCvarFactory(WallMemory{},cvarSystem,base,*profile);
+        auto mode=labCvarMode(*profile,cvarSystem,resolveLabCvarFactory(WallMemory{},cvarSystem,base,*profile));
+        if(mode==LabCvarMode::Waiting) return;
+        settingsAsCommands=mode==LabCvarMode::Commands;
         instance()=this;
         if(!registerLabConsoleCommands(settingsAsCommands,[&](const char* name) {
                 return reinterpret_cast<Exists>(system.exists)(reinterpret_cast<void*>(system.object),name,false);

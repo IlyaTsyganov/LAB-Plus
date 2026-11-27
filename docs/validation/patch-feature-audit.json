@@ -86,8 +86,8 @@
     },
     {
       "feature": "Native cvar objects rather than command fallback",
-      "availability": "16 individually audited retail images; six profiles still require their EXEs for creation-ABI verification",
-      "finding": "Native cvars support the game engine toggle command. Command fallbacks accept <name> toggle, but do not satisfy toggle <name>. This distinction remains explicit until the remaining six ABIs are verified.",
+      "availability": "All 22 supported retail images, with individually verified constructor/register/set ABIs",
+      "finding": "All supported retail profiles now expose the standard engine toggle syntax for binary settings. The command fallback remains only for unavailable or modified ABIs; it does not claim to implement toggle <name>.",
       "sources": [
         "Native/CollisionViewer/src/labplus_cvars.h",
         "Native/CollisionViewer/src/labplus_console.h"
@@ -140,16 +140,9 @@
   ],
   "loadingRequirements": "Console registration still requires a recognized game profile, a loaded compatible XINPUT1_3.dll exporting mh_api_get, the native LAB Plus layer, a game-frame callback and a running companion. Unknown command-system thunks/RTTI remain rejected. These are loading/ABI conditions, not additional patch allowlists.",
   "cvarFactoryAudit": {
-    "auditedRetailImages": 16,
+    "auditedRetailImages": 22,
     "profiles": "docs/validation/cvar-factory-profiles.json",
-    "pendingRetailImages": [
-      "2.0",
-      "2.1",
-      "4.0",
-      "4.1",
-      "5.0",
-      "6.0"
-    ],
+    "pendingRetailImages": [],
     "nativeToggleSyntax": "bind x \"toggle labplus_viewer_show\"",
     "scope": "Each available EXE was read as data. Constructor parameter/data layouts, cvar RTTI/vtable methods and exact constructor/register/set prefixes were inspected. Runtime checks remain mandatory. Live game validation is separate.",
     "verifiedInEveryAvailableImage": {
@@ -169,8 +162,9 @@
       "hudChecks": 388,
       "launcherSuite": "passed",
       "updateChecks": 33,
-      "retailProductionResolverProbes": 16,
+      "retailProductionResolverProbes": 22,
       "gameplayVerification": "not performed"
-    }
+    },
+    "loadingBehavior": "Audited profiles wait while the engine cvar system is not initialized, then register native cvars once it is ready. A transient missing object cannot permanently latch the command fallback. Unknown profiles or rejected function signatures retain the guarded fallback."
   }
 }

@@ -35,11 +35,11 @@ research recording and the four binary speedometer controls. Use the preferred
 names printed by `labplus_commands_list`; `labplus_viewer` remains a legacy
 command alias, while its cvar is `labplus_viewer_show`.
 
-Native cvar creation is currently audited for 16 retail builds, including 1.1.
-Versions 2.0, 2.1, 4.0, 4.1, 5.0 and 6.0 retain the guarded command fallback
-pending EXE verification. That fallback accepts `labplus_viewer_show toggle`
-instead of `toggle labplus_viewer_show`. The list prints the syntax available
-in the current process. See [the cvar ABI audit](docs/validation/cvar-factory-profiles.json).
+Native cvar creation is audited for all 22 supported retail builds, including
+1.1. A guarded command fallback remains for unavailable or modified ABIs; it
+accepts `labplus_viewer_show toggle` instead of `toggle labplus_viewer_show`.
+The list prints the syntax available in the current process.
+See [the cvar ABI audit](docs/validation/cvar-factory-profiles.json).
 
 ## Download & Installation
 

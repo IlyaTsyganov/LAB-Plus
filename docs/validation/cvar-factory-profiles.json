@@ -302,5 +302,119 @@
       "CVAR_INTEGER": 2,
       "CVAR_NOCHEAT": 16
     }
+  },
+  {
+    "name": "2.0",
+    "timestamp": 1592459879,
+    "imageSize": 490299392,
+    "construct": 3408704,
+    "vtable": 40176016,
+    "register": 4323232,
+    "setter": 4324304,
+    "constructorPrefix": "48895c241048896c2418564883ec20488d410833ed488901498bf040382d06aeab03488bd948895028741e488b01488d0d9b8a2e0248894838488b0348896850",
+    "registerPrefix": "48895c240848896c24184889542410565741564883ec20488b02488bf9488b5908488bf2488b4828e873fbf9ff4c8b4708448bf044237364498b50484885d274",
+    "setPrefix": "40534883ec20488b01498bd8ff50204885c0741341b001488bd3488bc84883c4205be9990ef2ff4883c4205bc3cccccc",
+    "cvarDataSize": 104,
+    "cvarGlobalDelta": -8,
+    "flags": {
+      "CVAR_BOOL": 1,
+      "CVAR_INTEGER": 2,
+      "CVAR_NOCHEAT": 16
+    }
+  },
+  {
+    "name": "2.1",
+    "timestamp": 1595948377,
+    "imageSize": 505344000,
+    "construct": 3411440,
+    "vtable": 40180304,
+    "register": 4324832,
+    "setter": 4325904,
+    "constructorPrefix": "48895c241048896c2418564883ec20488d410833ed488901498bf040382dd6d3ab03488bd948895028741e488b01488d0dab902e0248894838488b0348896850",
+    "registerPrefix": "48895c240848896c24184889542410565741564883ec20488b02488bf9488b5908488bf2488b4828e813faf9ff4c8b4708448bf044237364498b50484885d274",
+    "setPrefix": "40534883ec20488b01498bd8ff50204885c0741341b001488bd3488bc84883c4205be91913f2ff4883c4205bc3cccccc",
+    "cvarDataSize": 104,
+    "cvarGlobalDelta": -8,
+    "flags": {
+      "CVAR_BOOL": 1,
+      "CVAR_INTEGER": 2,
+      "CVAR_NOCHEAT": 16
+    }
+  },
+  {
+    "name": "4.0",
+    "timestamp": 1605799681,
+    "imageSize": 478056448,
+    "construct": 3487920,
+    "vtable": 41185440,
+    "register": 4405216,
+    "setter": 4406288,
+    "constructorPrefix": "48895c241048896c2418564883ec20488d410833ed488901498bf040382d36a0bf03488bd948895028741e488b01488d0d7bb83c0248894838488b0348896850",
+    "registerPrefix": "48895c240848896c24184889542410565741564883ec20488b02488bf9488b5908488bf2488b4828e873faf9ff4c8b4708448bf044237364498b50484885d274",
+    "setPrefix": "40534883ec20488b01498bd8ff50204885c0741341b001488bd3488bc84883c4205be9c903f2ff4883c4205bc3cccccc",
+    "cvarDataSize": 104,
+    "cvarGlobalDelta": -8,
+    "flags": {
+      "CVAR_BOOL": 1,
+      "CVAR_INTEGER": 2,
+      "CVAR_NOCHEAT": 16
+    }
+  },
+  {
+    "name": "4.1",
+    "timestamp": 1607064212,
+    "imageSize": 472821760,
+    "construct": 3488592,
+    "vtable": 41185440,
+    "register": 4406432,
+    "setter": 4407504,
+    "constructorPrefix": "48895c241048896c2418564883ec20488d410833ed488901498bf040382d969dbf03488bd948895028741e488b01488d0ddbb53c0248894838488b0348896850",
+    "registerPrefix": "48895c240848896c24184889542410565741564883ec20488b02488bf9488b5908488bf2488b4828e853faf9ff4c8b4708448bf044237364498b50484885d274",
+    "setPrefix": "40534883ec20488b01498bd8ff50204885c0741341b001488bd3488bc84883c4205be9b901f2ff4883c4205bc3cccccc",
+    "cvarDataSize": 104,
+    "cvarGlobalDelta": -8,
+    "flags": {
+      "CVAR_BOOL": 1,
+      "CVAR_INTEGER": 2,
+      "CVAR_NOCHEAT": 16
+    }
+  },
+  {
+    "name": "5.0",
+    "timestamp": 1614321395,
+    "imageSize": 475787264,
+    "construct": 3523568,
+    "vtable": 41979104,
+    "register": 4440448,
+    "setter": 4441520,
+    "constructorPrefix": "48895c241048896c2418564883ec20488d410833ed488901498bf040382d8698d203488bd948895028741e488b01488d0dbb48480248894838488b0348896850",
+    "registerPrefix": "48895c240848896c24184889542410565741564883ec20488b02488bf9488b5908488bf2488b4828e8a3f9f9ff4c8b4708448bf044237364498b50484885d274",
+    "setPrefix": "40534883ec20488b01498bd8ff50204885c0741341b001488bd3488bc84883c4205be98905f2ff4883c4205bc3cccccc",
+    "cvarDataSize": 104,
+    "cvarGlobalDelta": -8,
+    "flags": {
+      "CVAR_BOOL": 1,
+      "CVAR_INTEGER": 2,
+      "CVAR_NOCHEAT": 16
+    }
+  },
+  {
+    "name": "6.0",
+    "timestamp": 1623821782,
+    "imageSize": 481435648,
+    "construct": 3534656,
+    "vtable": 43389424,
+    "register": 4510528,
+    "setter": 4511664,
+    "constructorPrefix": "48895c240848896c24104889742418574883ec20488d410833ed488901418bd940382df1f4ee03498bf048895028488bf9741e488b01488d0d63885d02488948",
+    "registerPrefix": "48895c240848896c24184889542410565741564883ec20488b0233ed4c8b7108488bf2488bf94d8bc6488b58280fb60384c0741f0fb6c8e834e2f9ff6bed1f48",
+    "setPrefix": "40534883ec20488b01498bd8ff50204885c0741341b001488bd3488bc84883c4205be9891df1ff4883c4205bc3cccccc",
+    "cvarDataSize": 104,
+    "cvarGlobalDelta": -8,
+    "flags": {
+      "CVAR_BOOL": 1,
+      "CVAR_INTEGER": 2,
+      "CVAR_NOCHEAT": 16
+    }
   }
 ]

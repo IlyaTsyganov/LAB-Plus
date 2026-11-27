@@ -26,6 +26,14 @@ static bool readLabCvarValue(const WallMemory& memory,uintptr_t variable,const c
 // Select only the constructor/register/set ABI audited for this exact image.
 #include "labplus_cvar_profiles.h"
 struct LabCvarFactory { uintptr_t construct=0,registerVariable=0,setString=0; explicit operator bool() const { return construct&&registerVariable&&setString; } };
+enum class LabCvarMode { Waiting,Native,Commands };
+static LabCvarMode labCvarMode(const GameProfile& profile,const LabCvarSystem& system,const LabCvarFactory& factory) {
+    if(!labCvarAbiProfile(profile)) return LabCvarMode::Commands;
+    // A temporarily missing engine object must not permanently select commands
+    // on an audited patch before native registration has a chance to run.
+    if(!system) return LabCvarMode::Waiting;
+    return factory?LabCvarMode::Native:LabCvarMode::Commands;
+}
 static LabCvarFactory resolveLabCvarFactory(const WallMemory& memory,const LabCvarSystem& system,uintptr_t base,const GameProfile& profile) {
     const auto* abi=labCvarAbiProfile(profile); if(!abi||!system) return {};
     uintptr_t vtable=0; LabCvarFactory result{base+abi->construct,0,0};

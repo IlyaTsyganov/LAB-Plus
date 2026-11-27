@@ -154,17 +154,33 @@ int main() {
     VirtualProtect(block+0x371000,4096,PAGE_READWRITE,&old); expect(!resolveLabCvarFactory(WallMemory{},system,base,profile),"nonexecutable constructor is rejected");
     for(const auto* other:kGameProfiles) if(other->timestamp!=profile.timestamp)
         expect(!resolveLabCvarFactory(WallMemory{},system,base,*other),"other patch identities reject this fixture's foreign method addresses");
-    for(const auto* selected:kGameProfiles) if(const auto* abi=labCvarAbiProfile(*selected)) {
+    expect(std::size(labCvarAbiProfiles)==std::size(kGameProfiles),"native cvar creation covers every supported retail profile");
+    for(const auto* selected:kGameProfiles) {
+        const auto* abi=labCvarAbiProfile(*selected);
+        expect(abi!=nullptr,"no supported patch may silently lose native cvars and engine toggle support");
+        expect(labCvarMode(*selected,{}, {})==LabCvarMode::Waiting,"early loading must wait rather than latch a command fallback on an audited patch");
         for(uintptr_t address:{base+abi->construct,base+abi->registerVariable,base+abi->setString})
             VirtualProtect(reinterpret_cast<void*>(address&~uintptr_t(4095)),4096,PAGE_EXECUTE_READWRITE,&old);
         memcpy(block+abi->construct,abi->constructorPrefix,sizeof(abi->constructorPrefix));
         memcpy(block+abi->registerVariable,abi->registerPrefix,sizeof(abi->registerPrefix));
         memcpy(block+abi->setString,abi->setPrefix,sizeof(abi->setPrefix));
         put(block,0x1108,base+abi->registerVariable); put(block,0x1038,base+abi->setString);
-        expect(bool(resolveLabCvarFactory(WallMemory{},system,base,*selected)),"each audited patch resolves its own native cvar ABI");
+        auto factory=resolveLabCvarFactory(WallMemory{},system,base,*selected);
+        expect(bool(factory)&&labCvarMode(*selected,system,factory)==LabCvarMode::Native,"each audited patch transitions from waiting to native cvars when the engine is ready");
         block[abi->construct]^=1;
         expect(!resolveLabCvarFactory(WallMemory{},system,base,*selected),"a changed constructor is rejected on every audited patch");
-        block[abi->construct]^=1; put(block,0x1108,base+abi->registerVariable+1);
+        block[abi->construct]^=1;
+        block[abi->registerVariable+24]^=1;
+        expect(!resolveLabCvarFactory(WallMemory{},system,base,*selected),"changed registration code is rejected on every patch");
+        block[abi->registerVariable+24]^=1;
+        block[abi->setString+8]^=1;
+        expect(!resolveLabCvarFactory(WallMemory{},system,base,*selected),"changed setter code is rejected on every patch");
+        block[abi->setString+8]^=1;
+        GameProfile unknown=*selected;unknown.timestamp^=1;
+        expect(!resolveLabCvarFactory(WallMemory{},system,base,unknown),"unknown executable identities cannot borrow a nearby patch ABI");
+        expect(labCvarMode(unknown,{}, {})==LabCvarMode::Commands&&labCvarMode(*selected,system,{})==LabCvarMode::Commands,
+            "unknown identities and rejected code retain the guarded command fallback");
+        put(block,0x1108,base+abi->registerVariable+1);
         expect(!resolveLabCvarFactory(WallMemory{},system,base,*selected),"a replaced registration method is rejected on every audited patch");
     }
     VirtualFree(block,0,MEM_RELEASE); std::filesystem::remove_all(temporary);
