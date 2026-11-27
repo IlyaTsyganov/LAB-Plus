@@ -58,6 +58,18 @@ struct OwnedLabCvar {
     alignas(8) unsigned char object[120]{};
     char initial[16]{}; // resetString must live as long as the registered cvar.
 };
+static bool completeOwnedLabCvarMetadata(OwnedLabCvar& owned,const LabCvarDefinition& definition) {
+    uintptr_t data=0; memcpy(&data,owned.object,sizeof(data));
+    // Retail constructors can strip descriptions and valid-value strings from
+    // late registrations. Restore those two public idCVarData fields only in
+    // our own inline dataStorage; never follow a foreign/shared data pointer.
+    if(data!=reinterpret_cast<uintptr_t>(owned.object)+8) return false;
+    const char* description=definition.description;
+    const char* const* values=labCvarValueCompletions(definition);
+    memcpy(owned.object+8+56,&description,sizeof(description));
+    memcpy(owned.object+8+80,&values,sizeof(values));
+    return true;
+}
 struct LabCvarBackend {
     std::function<uintptr_t(const char*)> find;
     std::function<void(OwnedLabCvar&,const LabCvarDefinition&)> create;
@@ -139,12 +151,23 @@ public:
         owned.resize(nativeLabCvarDefinitions().size());
         size_t index=0;
         for(const auto& definition:nativeLabCvarDefinitions()) {
-            int value=saved(definition); auto& storage=owned[index++]; sprintf_s(storage.initial,"%d",value);
+            int value=saved(definition); auto& storage=owned[index++]; sprintf_s(storage.initial,"%d",definition.initial);
             backend.create(storage,definition);
+            if(!completeOwnedLabCvarMetadata(storage,definition)) {
+                block(api,"labplus_: cvar storage is not owned by LAB Plus; console settings disabled."); return false;
+            }
             uintptr_t variable=backend.find(definition.name);
             int actual=0; std::string actualText;
-            if(variable!=reinterpret_cast<uintptr_t>(storage.object)||!readLabCvarValue(WallMemory{},variable,definition.name,actual,actualText)||actual!=value||actualText!=std::to_string(value)) {
+            if(variable!=reinterpret_cast<uintptr_t>(storage.object)||!readLabCvarValue(WallMemory{},variable,definition.name,actual,actualText)||actual!=definition.initial||actualText!=std::to_string(definition.initial)) {
                 block(api,"labplus_: native cvar registration failed; console settings disabled. No registration retries in this game process."); return false;
+            }
+            // Keep the engine reset/default string at the factory default;
+            // restore the user's saved current value through the normal setter.
+            if(value!=definition.initial) {
+                auto text=std::to_string(value); backend.write(definition.name,text.c_str());
+                if(!readLabCvarValue(WallMemory{},variable,definition.name,actual,actualText)||actual!=value||actualText!=text) {
+                    block(api,"labplus_: could not restore the saved cvar value; console settings disabled."); return false;
+                }
             }
             variables.push_back({&definition,variable,value,value,0,false,0});
         }

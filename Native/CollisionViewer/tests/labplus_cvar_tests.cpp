@@ -38,10 +38,21 @@ static void checkNativeCvarDescriptionsAndCompletion() {
                 "native binary cvar value completion offers exactly 0 and 1, never postfix toggle");
         } else expect(!constructorCall.completions&&(constructorCall.flags&3)==2,"numeric range cvars do not get binary value completion");
     }
+    OwnedLabCvar owned; uintptr_t data=reinterpret_cast<uintptr_t>(owned.object)+8; put(owned.object,0,data);
+    memset(owned.object+8,0x5a,104); unsigned char before[120]{}; memcpy(before,owned.object,sizeof(before));
+    const auto& definition=labCvarDefinitions[0];
+    expect(completeOwnedLabCvarMetadata(owned,definition),"retail-stripped metadata is restored in module-owned inline storage");
+    for(size_t i=0;i<sizeof(before);++i) if(!(i>=8+56&&i<8+64)&&!(i>=8+80&&i<8+88))
+        expect(before[i]==owned.object[i],"metadata restoration leaves values, flags, names, bounds and reset strings untouched");
+    uintptr_t description=0,values=0; memcpy(&description,owned.object+8+56,8); memcpy(&values,owned.object+8+80,8);
+    expect(description==reinterpret_cast<uintptr_t>(definition.description)&&values==reinterpret_cast<uintptr_t>(labCvarValueCompletions(definition)),"owned description and completion pointers retain stable storage");
+    OwnedLabCvar foreign; put(foreign.object,0,data); unsigned char foreignBefore[120]{}; memcpy(foreignBefore,foreign.object,sizeof(foreignBefore));
+    expect(!completeOwnedLabCvarMetadata(foreign,definition)&&!memcmp(foreign.object,foreignBefore,sizeof(foreignBefore)),"foreign data pointers are rejected without writing either object");
 }
 struct EngineFixture {
     std::unordered_map<std::string,uintptr_t> names;
     std::unordered_map<std::string,std::string> values;
+    std::unordered_map<std::string,int> defaults;
     OwnedLabCvar debug;
     unsigned creates=0,writes=0;
     bool registerWorks=true,writeWorks=true;
@@ -62,7 +73,7 @@ struct EngineFixture {
                 ++creates; if(!registerWorks) return;
                 auto variable=reinterpret_cast<uintptr_t>(storage.object);
                 put(storage.object,0,variable+8); put(storage.object,8+40,reinterpret_cast<uintptr_t>(definition.name));
-                names[definition.name]=variable; change(definition.name,atoi(storage.initial));
+                names[definition.name]=variable; defaults[definition.name]=atoi(storage.initial); change(definition.name,atoi(storage.initial));
             },
             [this](const char* name,const char* value) { ++writes; if(writeWorks) change(name,atoi(value),value); }
         };
@@ -98,8 +109,9 @@ static void checkSettingsCommands(const MeathookHudApi& api,const std::wstring& 
     std::istringstream help(consoleOutput); std::string line;
     while(std::getline(help,line)) expect(registered.count(line.substr(0,line.find(' ')))==1,"every help entry has an engine registration");
     consoleOutput.clear();
-    expect(printLabSettingQuery(api,{"labplus_viewer_distance"},ini)&&consoleOutput.find("labplus_viewer_distance is 75")!=std::string::npos,
-        "query reads the persisted setting without sending a request");
+    expect(printLabSettingQuery(api,{"labplus_viewer_distance"},ini)&&consoleOutput==
+        "\"labplus_viewer_distance\" is:\"75\"^7 default:\"40\"\n^7Maximum viewer draw distance in metres.\n",
+        "query uses the exact engine two-line format with distinct current and factory defaults");
     expect(!printLabSettingQuery(api,{"labplus_viewer_show","1"},ini)&&commands==0,"set requests are not swallowed by the query handler");
     registered.clear();
     expect(registerLabConsoleCommands(false,exists,add),"audited cvar backend keeps action commands separate");
@@ -162,7 +174,8 @@ static void checkEveryBinaryCvar(const MeathookHudApi& api,const std::wstring& i
             bridge.poll(api,true,now); now+=100;
             expect(bridge.ready()&&requests.size()==requestCount+1&&engine.number(definition.name)==value,"acknowledgement preserves the toggled cvar without a repeat request");
         }
-        for(const auto& other:nativeLabCvarDefinitions()) expect(engine.number(other.name)==before.at(other.name),"two toggles restore the complete original catalogue");
+        for(const auto& other:nativeLabCvarDefinitions()) expect(engine.number(other.name)==before.at(other.name)&&engine.defaults.at(other.name)==other.initial,
+            "two toggles restore the complete current catalogue without changing any factory default");
         printf("PASS: binary cvar round trip and alias isolation: %s\n",definition.name); ++checked;
     }
     expect(checked==44,"all 25 binary settings and 19 short aliases are covered");
@@ -173,7 +186,7 @@ static void checkCommandArgumentHelp(const MeathookHudApi& api) {
         if(validateLabConsoleInput(api,args)) ++executableRequests;
     };
     for(const auto& args:std::vector<std::vector<std::string>>{
-        {"labplus_trigger_set"},{"labplus_trigger_set","idTrigger"},{"labplus_trigger_set","idTrigger","2"},
+        {"labplus_trigger_set"},{"labplus_trigger_set","idTrigger","2"},
         {"labplus_trigger_set","idTrigger;quit","0"},{"labplus_trigger_set","idTrigger","0","extra"},
         {"labplus_trigger"}}) {
         consoleOutput.clear(); dispatch(args);
@@ -201,6 +214,19 @@ static void checkCommandArgumentHelp(const MeathookHudApi& api) {
     consoleOutput.clear(); dispatch({"labplus_command_list"});
     expect(consoleOutput.find("unknown command")!=std::string::npos,"removed names are not revived by argument help");
 }
+static void checkTriggerValueQueries(const MeathookHudApi& api,const std::wstring& ini) {
+    expect(WritePrivateProfileStringW(L"TriggerClasses",L"idTrigger",L"0",ini.c_str())!=0,"isolated hidden trigger class");
+    consoleOutput.clear();
+    expect(validLabArguments({"labplus_trigger_set","idTrigger"})&&printLabTriggerQuery(api,{"labplus_trigger_set","idTrigger"},ini)&&consoleOutput==
+        "\"labplus_trigger_set idTrigger\" is:\"0\"^7 default:\"1\"\n^7Show or hide this exact trigger class (0=hide, 1=show).\n",
+        "class-only trigger query shows the current value and default using the engine format");
+    expect(readHiddenTriggerClasses(ini).count("idTrigger")==1,"trigger query does not change visibility");
+    expect(WritePrivateProfileStringW(L"TriggerClasses",L"idTrigger",nullptr,ini.c_str())!=0,"remove isolated class override");
+    consoleOutput.clear(); expect(printLabTriggerQuery(api,{"labplus_trigger","idTrigger"},ini)&&consoleOutput.find("is:\"1\"^7 default:\"1\"")!=std::string::npos,
+        "unconfigured classes report the visible default through the legacy query too");
+    expect(!printLabTriggerQuery(api,{"labplus_trigger_set","idTrigger","0"},ini)&&!printLabTriggerQuery(api,{"labplus_trigger_set","idTrigger;quit"},ini),
+        "value writes and invalid classes are not swallowed by the query handler");
+}
 int main() {
     MeathookHudApi api{}; api.consolePrint=print; api.executeCommand=execute;
     checkNativeCvarDescriptionsAndCompletion();
@@ -213,16 +239,21 @@ int main() {
     expect(WritePrivateProfileStringW(L"Viewer",L"VerticalShowSign",L"0",hudIni.c_str())!=0,"isolated HUD console setting");
     checkSettingsCommands(api,ini);
     checkCommandArgumentHelp(api);
+    checkTriggerValueQueries(api,ini);
     checkEveryBinaryCvar(api,ini);
     EngineFixture engine; LabCvarBridge bridge; std::vector<std::vector<std::string>> requests;
     expect(bridge.initializeBackend(api,engine.backend(),ini,[&](const auto& request) { requests.push_back(request); return true; }),"native creation registers all owned variables");
     expect(engine.creates==nativeLabCvarDefinitions().size()&&engine.number("labplus_path_show")==1&&engine.number("labplus_viewer_distance")==75&&
         engine.number("labplus_player_show")==0&&engine.number("labplus_attempts_show")==1&&
         engine.number("labplus_speedometer_sign_vertical")==0&&commands==0,"initialization uses main and HUD saved values and sends no console commands");
+    expect(engine.defaults.at("labplus_viewer_distance")==40&&engine.defaults.at("labplus_speedometer_sign_vertical")==1,
+        "native reset/default strings retain factory values while saved current values are restored");
+    unsigned initializationWrites=engine.writes;
     for(ULONGLONG time=100;time<1000;time+=100) bridge.poll(api,true,time);
-    expect(engine.writes==0&&requests.empty(),"unchanged settings cause no writes or console spam");
+    expect(engine.writes==initializationWrites&&requests.empty(),"unchanged settings cause no writes or console spam");
     setSaved(L"ShowResearchPath",L"0"); bridge.poll(api,true,1000);
-    expect(engine.number("labplus_path_show")==0&&engine.number("labplus_path")==0&&engine.writes==2&&requests.empty(),"UI changes update canonical and short native cvars quietly");
+    expect(engine.number("labplus_path_show")==0&&engine.number("labplus_path")==0&&engine.writes==initializationWrites+2&&requests.empty()&&
+        engine.defaults.at("labplus_path_show")==1&&engine.defaults.at("labplus_path")==1,"UI changes update canonical and short current values without changing either default");
     engine.change("labplus_path_show",1); bridge.poll(api,true,1100);
     expect(requests.size()==1&&requests.back()==std::vector<std::string>{"labplus_path","1"},"console cvar changes reach the injected companion transport");
     setSaved(L"ShowResearchPath",L"1"); bridge.poll(api,true,1200); unsigned acknowledged=engine.writes;
@@ -261,6 +292,9 @@ int main() {
     auto initialDiagnostics=diagnostics;
     for(unsigned attempt=0;attempt<50;++attempt) failed.initializeBackend(api,rejected.backend(),ini,ignore);
     expect(rejected.creates==1&&diagnostics==initialDiagnostics&&commands==0,"registration failure produces one diagnostic and no retry storm");
+    EngineFixture restoreFailure; restoreFailure.writeWorks=false; LabCvarBridge restoreBlocked;
+    expect(!restoreBlocked.initializeBackend(api,restoreFailure.backend(),ini,ignore)&&restoreBlocked.blocked()&&!restoreBlocked.ready(),
+        "failed restoration of a saved current value stops initialization without misreporting the factory default as current");
     EngineFixture foreign; foreign.names["labplus_path_show"]=foreign.names["com_debugHUD"]; LabCvarBridge collision;
     expect(!collision.initializeBackend(api,foreign.backend(),ini,ignore)&&collision.blocked()&&foreign.creates==0,"foreign names are detected before creating or changing any cvar");
     EngineFixture foreignAlias; foreignAlias.names["labplus_viewer"]=foreignAlias.names["com_debugHUD"]; LabCvarBridge aliasCollision;

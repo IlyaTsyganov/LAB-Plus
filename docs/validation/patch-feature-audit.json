@@ -43,6 +43,20 @@
     "validation": "Native backend constructor calls are executed against an ABI capture fixture for every cvar and alias; description, bounds, flags and completion argument placement are verified. Native/fallback registration and list tests reject the removed alias and postfix toggle suggestions. All 44 binary round trips, Launcher handler tests and 392 HUD checks pass.",
     "argumentHelp": "Known commands with missing or invalid parameters print their own description and syntax before executable dispatch. Tests cover bare labplus_trigger_set, incomplete/invalid/extra arguments, every other registered command requiring parameters, and preservation of valid zero-argument actions. Bare setting queries include the setting description."
   },
+  "latestQueryValidation": {
+    "date": "2026-11-27",
+    "retailImages": 22,
+    "compatibilityReport": "docs/validation/cvar-query-compatibility.json",
+    "productionResolverProbes": "22/22 passed against the actual EXEs mapped as data, including modified-constructor rejection; no game code executed.",
+    "sharedBehavior": "Current/default query formatting, command help, factory-default preservation and owned-description/completion restoration are common code after per-image ABI selection. There is no patch-specific restriction on these changes.",
+    "format": "The exact engine formats are a quoted name/current/default line followed by the description line; their format strings are present in all 22 audited EXEs.",
+    "metadata": "All images reflect the same 104-byte cvarData layout: resetString=48, description=56, valueStrings=80. Metadata restoration writes only those description/completion fields in module-owned inline storage, rejects foreign/shared data pointers and preserves defaults, values, names, flags and bounds.",
+    "unitValidation": "All 44 binary names round-trip without changing factory defaults; stripped metadata restoration and foreign-storage rejection pass; known-command argument help and class-only read-only queries pass. Launcher handlers pass and HUD reports 404 checks.",
+    "livePatch": "1.1",
+    "liveLayerSha256": "B97475742C1CA0C64E01D27FF4AF64409131B37097A318305DF3CF37275E7C1D",
+    "liveRegistry": "45/45 current native names passed types, current values, factory defaults, descriptions and completion validation. Viewer current=1 and factory default=0 were independently read from the engine registry.",
+    "limit": "The other 21 retail builds were audited as EXE data and with resolver/unit probes; they were not all launched for gameplay verification. Existing unrelated HUD/profile feature gaps below are unchanged."
+  },
   "remainingGaps": [
     {
       "feature": "Managed HUD session",

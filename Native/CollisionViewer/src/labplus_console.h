@@ -72,7 +72,7 @@ static bool validLabArguments(const std::vector<std::string>& input) {
     if(command=="labplus_help"||command=="labplus_clear"||command=="labplus_load_last_save") return args.size()==1;
     if(command=="labplus_encounters") return args.size()==1||(args.size()==2&&labBooleanValue(args[1]));
     if(command=="labplus_mark") return args.size()>1;
-    if(command=="labplus_trigger") return args.size()==3&&validTriggerClassName(args[1])&&labBooleanValue(args[2]);
+    if(command=="labplus_trigger") return (args.size()==2||args.size()==3)&&validTriggerClassName(args[1])&&(args.size()==2||labBooleanValue(args[2]));
     if(args.size()!=2) return false;
     if(command=="labplus_distance") {
         if(args[1].empty()||args[1].size()>3||!std::all_of(args[1].begin(),args[1].end(),[](char c) { return c>='0'&&c<='9'; })) return false;
@@ -80,11 +80,17 @@ static bool validLabArguments(const std::vector<std::string>& input) {
     }
     return labBooleanRequest(command)&&labBooleanValue(args[1]);
 }
+static void printLabValueInfo(const MeathookHudApi& api,const std::string& name,const std::string& value,
+    const std::string& defaultValue,const char* description) {
+    // Match idCVarSystemLocal's own two-line query format, including color reset.
+    api.consolePrint("\"%s\" is:\"%s\"^7 default:\"%s\"\n",name.c_str(),value.c_str(),defaultValue.c_str());
+    api.consolePrint("^7%s\n",description);
+}
 static bool printDebugHudScaleQuery(const MeathookHudApi& api,const std::vector<std::string>& args) {
     if(args.size()!=1||args[0]!="labplus_debughud_scale") return false;
     std::ostringstream text; text.imbue(std::locale::classic());
-    text<<"labplus_debughud_scale is "<<debugHudScale.load()<<" (0.5..3)\n";
-    api.consolePrint("%s",text.str().c_str()); return true;
+    text<<debugHudScale.load();
+    printLabValueInfo(api,args[0],text.str(),"1","Debug HUD text scale (0.5..3)."); return true;
 }
 static bool writeLabRequest(const std::vector<std::string>& args,DWORD* openError) {
     if(openError) *openError=ERROR_SUCCESS;
@@ -203,8 +209,13 @@ static bool validateLabConsoleInput(const MeathookHudApi& api,const std::vector<
 static bool printLabSettingQuery(const MeathookHudApi& api,const std::vector<std::string>& args,const std::wstring& ini) {
     if(args.size()!=1) return false;
     const auto* definition=findLabCvarDefinition(args[0]); if(!definition) return false;
-    api.consolePrint("%s is %d (%d..%d; saved LAB Plus setting)\n%s\n",definition->name,
-        savedLabCvarValue(*definition,ini),definition->minimum,definition->maximum,definition->description);
+    printLabValueInfo(api,definition->name,std::to_string(savedLabCvarValue(*definition,ini)),std::to_string(definition->initial),definition->description);
+    return true;
+}
+static bool printLabTriggerQuery(const MeathookHudApi& api,const std::vector<std::string>& args,const std::wstring& ini) {
+    if(args.size()!=2||(args[0]!="labplus_trigger_set"&&args[0]!="labplus_trigger")||!validTriggerClassName(args[1])) return false;
+    int value=readHiddenTriggerClasses(ini).count(args[1])?0:1;
+    printLabValueInfo(api,args[0]+" "+args[1],std::to_string(value),"1","Show or hide this exact trigger class (0=hide, 1=show).");
     return true;
 }
 
@@ -282,6 +293,7 @@ class LabConsole {
         }
         if(!validateLabConsoleInput(*self->api,args)) return;
         if(printLabSettingQuery(*self->api,args,(researchDirectory()/L"viewer.ini").wstring())) return;
+        if(printLabTriggerQuery(*self->api,args,(researchDirectory()/L"viewer.ini").wstring())) return;
         args=normalizeLabArguments(args);
         if(args[0]=="labplus_load_last_save") {
             self->api->consolePrint("labplus_load_last_save: %s\n",self->beginSaveCommand());

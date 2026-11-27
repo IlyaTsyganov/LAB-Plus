@@ -1,10 +1,21 @@
 using System.Text.Json;
 using LabPlus.Hud.Runtime;
+using LabPlus.Hud.Overlay;
 
 internal static class BooleanToggleChecks
 {
     internal static void Run(Action<bool, string> check)
     {
+        var custom=new LabSettings{TintOpacity=37.5,VerticalShowSign=false}; custom.Current.X=999;
+        foreach(int command in Enumerable.Range(0,NativeSpeedometerCode.Commands.Length)) {
+            string text=ConsoleControls.Help(custom,command); var lines=text.TrimEnd('\n').Split('\n');
+            check(lines.Length==2&&lines[0].StartsWith("\""+NativeSpeedometerCode.Commands[command]+"\" is:\"")&&
+                lines[0].Contains("\"^7 default:\"")&&lines[0].EndsWith("\"")&&lines[1].StartsWith("^7"),
+                "All HUD queries use the exact two-line engine layout: "+command);
+        }
+        check(ConsoleControls.Help(custom,4).StartsWith("\"labplus_lowhptintopacity\" is:\"37.5\"^7 default:\"100\"\n"),"Current opacity and factory default share the first line");
+        check(ConsoleControls.Help(custom,8).StartsWith("\"labplus_speedometer_sign_vertical\" is:\"0\"^7 default:\"1\"\n"),"Changed sign preference does not become the default");
+        check(ConsoleControls.Help(custom,1).Contains("is:\"current=999")&&ConsoleControls.Help(custom,1).Contains("default:\"current=160"),"Per-meter coordinates keep independent current and default values");
         foreach (var (command, read) in new (int, Func<LabSettings, bool>)[] {
             (0, s => s.SpeedometersEnabled), (5, s => s.Landing.Enabled),
             (7, s => s.Vertical.Enabled), (8, s => s.VerticalShowSign) })

@@ -55,19 +55,29 @@ int wmain(int argc,wchar_t** argv) {
             auto text=readEntityText(memory,name,128);
             if(text.rfind("labplus_",0)==0&&!registered.emplace(text,variable).second) throw std::runtime_error("Duplicate LAB Plus cvar name");
         }
-        printf("Profile: %s\nname\tvalue\tflags\tminimum\tmaximum\n",profile->name);
+        printf("Profile: %s\nname\tvalue\tdefault\tflags\tminimum\tmaximum\tdescription\n",profile->name);
         unsigned checked=0;
-        for(const auto& definition:nativeLabCvarDefinitions()) if(definition.minimum==0&&definition.maximum==1) {
+        for(const auto& definition:nativeLabCvarDefinitions()) {
             auto found=registered.find(definition.name);
             if(found==registered.end()) throw std::runtime_error(std::string("Missing native cvar: ")+definition.name);
-            int value=0; std::string text; uintptr_t data=0; unsigned flags=0; float minimum=0,maximum=0;
+            int value=0; std::string text; uintptr_t data=0,reset=0,description=0; unsigned flags=0; float minimum=0,maximum=0;
             if(!readLabCvarValue(memory,found->second,definition.name,value,text)||!memory.get(found->second,data)||
                !memory.get(data+64,flags)||!memory.get(data+68,minimum)||!memory.get(data+72,maximum)||
-               (flags&3)!=1||!(flags&16)||minimum!=0||maximum!=1||(value!=0&&value!=1))
-                throw std::runtime_error(std::string("Invalid boolean cvar metadata: ")+definition.name);
-            printf("%s\t%d\t0x%x\t%.0f\t%.0f\n",definition.name,value,flags,minimum,maximum); ++checked;
+               (flags&3)!=(definition.maximum==1?1u:2u)||!(flags&16)||minimum!=definition.minimum||maximum!=definition.maximum||value<definition.minimum||value>definition.maximum||
+               !memory.get(data+48,reset)||readEntityText(memory,reset,64)!=std::to_string(definition.initial)||!memory.get(data+56,description))
+                throw std::runtime_error(std::string("Invalid cvar type, bounds, current value or factory default: ")+definition.name);
+            auto help=readEntityText(memory,description,512);
+            if(help!=definition.description) throw std::runtime_error(std::string("Missing or changed native cvar description: ")+definition.name);
+            uintptr_t completions=0; if(!memory.get(data+80,completions)) throw std::runtime_error("Unreadable completion metadata");
+            if(definition.maximum==1) {
+                uintptr_t zero=0,one=0,end=0;
+                if(!completions||!memory.get(completions,zero)||!memory.get(completions+8,one)||!memory.get(completions+16,end)||end||
+                   readEntityText(memory,zero,16)!="0"||readEntityText(memory,one,16)!="1")
+                    throw std::runtime_error(std::string("Invalid native boolean completion values: ")+definition.name);
+            } else if(completions) throw std::runtime_error("Unexpected enum completion on a numeric range cvar");
+            printf("%s\t%d\t%d\t0x%x\t%.0f\t%.0f\t%s\n",definition.name,value,definition.initial,flags,minimum,maximum,help.c_str()); ++checked;
         }
-        printf("PASS: %u native boolean cvar names exist in the live engine registry with BOOL/NOCHEAT flags, 0..1 bounds and binary values. No commands executed or settings changed.\n",checked);
+        printf("PASS: %u native cvar names exist with validated types, bounds, current values and independent factory defaults. No commands executed or settings changed.\n",checked);
     } catch(const std::exception& error) { fprintf(stderr,"FAIL: %s\n",error.what()); result=1; }
     CloseHandle(process); return result;
 }

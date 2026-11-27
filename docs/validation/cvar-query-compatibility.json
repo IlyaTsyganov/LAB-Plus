@@ -1,0 +1,189 @@
+{
+  "scope": "All retail EXEs inspected as data; no executable code loaded or called and no game files modified. This is not gameplay verification.",
+  "auditedImages": 22,
+  "cvarDataSize": 104,
+  "cvarGlobalDelta": -8,
+  "fields": {
+    "valueString": [
+      0,
+      8
+    ],
+    "valueInteger": [
+      8,
+      4
+    ],
+    "name": [
+      40,
+      8
+    ],
+    "resetString": [
+      48,
+      8
+    ],
+    "description": [
+      56,
+      8
+    ],
+    "flags": [
+      64,
+      4
+    ],
+    "valueMin": [
+      68,
+      4
+    ],
+    "valueMax": [
+      72,
+      4
+    ],
+    "valueStrings": [
+      80,
+      8
+    ],
+    "valueCompletion": [
+      88,
+      8
+    ]
+  },
+  "flags": {
+    "CVAR_BOOL": 1,
+    "CVAR_INTEGER": 2,
+    "CVAR_NOCHEAT": 16
+  },
+  "valueFormat": "\"%s\" is:\"%s\"^7 default:\"%s\"\n",
+  "descriptionFormat": "^7%s\n",
+  "profiles": [
+    {
+      "name": "6.66 Rev 3.2",
+      "timestamp": 1786485644,
+      "imageSize": 121835520,
+      "passed": true
+    },
+    {
+      "name": "1.0 (Release)",
+      "timestamp": 1585004849,
+      "imageSize": 510681088,
+      "passed": true
+    },
+    {
+      "name": "1.1",
+      "timestamp": 1590157002,
+      "imageSize": 492113920,
+      "passed": true
+    },
+    {
+      "name": "3.0",
+      "timestamp": 1602250202,
+      "imageSize": 475557888,
+      "passed": true
+    },
+    {
+      "name": "3.1",
+      "timestamp": 1603322153,
+      "imageSize": 504107008,
+      "passed": true
+    },
+    {
+      "name": "5.1",
+      "timestamp": 1618897328,
+      "imageSize": 459132928,
+      "passed": true
+    },
+    {
+      "name": "6.66 Rev 2.2",
+      "timestamp": 1691126427,
+      "imageSize": 121769984,
+      "passed": true
+    },
+    {
+      "name": "6.66 Rev 3",
+      "timestamp": 1721699791,
+      "imageSize": 121950208,
+      "passed": true
+    },
+    {
+      "name": "6.1",
+      "timestamp": 1625290034,
+      "imageSize": 465915904,
+      "passed": true
+    },
+    {
+      "name": "6.2",
+      "timestamp": 1626499887,
+      "imageSize": 464543744,
+      "passed": true
+    },
+    {
+      "name": "6.3",
+      "timestamp": 1628886709,
+      "imageSize": 483786752,
+      "passed": true
+    },
+    {
+      "name": "6.4",
+      "timestamp": 1629498486,
+      "imageSize": 494395392,
+      "passed": true
+    },
+    {
+      "name": "6.66",
+      "timestamp": 1634282627,
+      "imageSize": 508350464,
+      "passed": true
+    },
+    {
+      "name": "6.66 Rev 1",
+      "timestamp": 1636695041,
+      "imageSize": 478367744,
+      "passed": true
+    },
+    {
+      "name": "6.66 Rev 1.1",
+      "timestamp": 1641508942,
+      "imageSize": 475570176,
+      "passed": true
+    },
+    {
+      "name": "6.66 Rev 2",
+      "timestamp": 1649828172,
+      "imageSize": 510251008,
+      "passed": true
+    },
+    {
+      "name": "2.0",
+      "timestamp": 1592459879,
+      "imageSize": 490299392,
+      "passed": true
+    },
+    {
+      "name": "2.1",
+      "timestamp": 1595948377,
+      "imageSize": 505344000,
+      "passed": true
+    },
+    {
+      "name": "4.0",
+      "timestamp": 1605799681,
+      "imageSize": 478056448,
+      "passed": true
+    },
+    {
+      "name": "4.1",
+      "timestamp": 1607064212,
+      "imageSize": 472821760,
+      "passed": true
+    },
+    {
+      "name": "5.0",
+      "timestamp": 1614321395,
+      "imageSize": 475787264,
+      "passed": true
+    },
+    {
+      "name": "6.0",
+      "timestamp": 1623821782,
+      "imageSize": 481435648,
+      "passed": true
+    }
+  ]
+}
