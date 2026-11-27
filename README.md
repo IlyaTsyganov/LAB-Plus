@@ -26,7 +26,7 @@ Binary settings use the engine's normal cvar toggle syntax:
 ```text
 bind x "toggle labplus_viewer_show"
 bind f "toggle labplus_viewer_fill"
-bind v "toggle labplus_speedometer_verticalsign"
+bind v "toggle labplus_speedometer_sign_vertical"
 bind r "toggle labplus_record"
 ```
 

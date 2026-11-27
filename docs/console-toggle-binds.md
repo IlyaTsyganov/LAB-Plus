@@ -8,7 +8,7 @@ bind x "toggle labplus_viewer"
 
 The preferred names match `labplus_commands_list`. Each short name below is a
 synchronized native cvar alias and also works with `toggle`. These are 25 settings
-with 38 distinct names, on all 22 audited retail profiles.
+with 44 distinct names, on all 22 audited retail profiles.
 
 | Setting | Preferred cvar | Short alias |
 | --- | --- | --- |
@@ -26,17 +26,17 @@ with 38 distinct names, on all 22 audited retail profiles.
 | Attempt motion paths | `labplus_attempts_show` | `labplus_attempts` |
 | Active encounters HUD | `labplus_encounters_show` | — |
 | Filled/outline rendering | `labplus_viewer_fill` | `labplus_fill` |
-| Enemy health HUD | `labplus_enemies` | — |
-| Enemy health bars | `labplus_enemy_hp_bars` | — |
-| Player coordinates | `labplus_position` | — |
-| Player angles | `labplus_angles` | — |
-| Game timers | `labplus_timers` | — |
-| Speedrun technique HUD | `labplus_techs` | — |
+| Enemy health HUD | `labplus_enemies_show` | `labplus_enemies` |
+| Enemy health bars | `labplus_enemy_hp_bars_show` | `labplus_enemy_hp_bars` |
+| Player coordinates | `labplus_position_show` | `labplus_position` |
+| Player angles | `labplus_angles_show` | `labplus_angles` |
+| Game timers | `labplus_timers_show` | `labplus_timers` |
+| Speedrun technique HUD | `labplus_techs_show` | `labplus_techs` |
 | Research recording | `labplus_record` | — |
 | Speedometers master switch | `labplus_speedometer_show` | — |
-| Landing speed | `labplus_speedometer_showlanding` | — |
-| Vertical speed | `labplus_speedometer_showvertical` | — |
-| Signed vertical speed | `labplus_speedometer_verticalsign` | — |
+| Landing speed | `labplus_speedometer_landing_show` | — |
+| Vertical speed | `labplus_speedometer_vertical_show` | — |
+| Signed vertical speed | `labplus_speedometer_sign_vertical` | — |
 
 `labplus_encounters` is an encounter-list command. Use
 `toggle labplus_encounters_show` for its visibility setting. Numeric settings such
@@ -46,7 +46,7 @@ commands, rather than independent cvars.
 
 ## Verification
 
-- `LabCvarTests.exe` changes each of the 38 binary native names in both directions,
+- `LabCvarTests.exe` changes each of the 44 binary native names in both directions,
   verifies one numeric companion request per change, acknowledgement and saved
   state, alias synchronization, preservation of every unrelated setting and full
   restoration after the second change. This tests the bridge using a fixture;
@@ -57,7 +57,19 @@ commands, rather than independent cvars.
   executing commands, writing memory or changing settings. On 2026-11-27 all 38
   names were found in the running 1.1 game with BOOL/NOCHEAT flags, 0..1 bounds
   and binary values. The probe validates the production ABI before reading the
-  registry and fails if any name is missing or has the wrong type.
+  registry and fails if any name is missing or has the wrong type. That live
+  snapshot predates the six additional `_show` names and the three speedometer
+  renames; the updated 44-name catalogue is covered by the round-trip tests.
 - The physical `bind x "toggle labplus_viewer"` round trip was confirmed in
   gameplay on 1.1. Individual physical binds for the other names and gameplay on
   the other 21 patches have not been exercised in this check.
+
+## Recording actions
+
+`labplus_recording_start` starts/resumes recording and `labplus_recording_stop`
+stops it. `labplus_record` is the binary cvar: `1` starts, `0` stops, and
+`bind x "toggle labplus_record"` switches between them.
+
+After updating an already running game, restart it through the updated LAB Plus
+build to load the renamed cvars and speedometer commands. Old registered command
+name buffers are not renamed in place when reconnecting.

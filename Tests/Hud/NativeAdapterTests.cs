@@ -21,7 +21,13 @@ internal static class NativeAdapterTests
         Print print=(_,_,format,values)=>{check(Marshal.PtrToStringAnsi(format)=="%s","Console uses fixed format string");messages.Add(Marshal.PtrToStringAnsi(Marshal.ReadIntPtr(values))!);};
         long Ptr(Delegate d)=>Marshal.GetFunctionPointerForDelegate(d).ToInt64();
         try{
-            byte[] data=NativeSpeedometer.CreateState();BitConverter.GetBytes(2).CopyTo(data,0);BitConverter.GetBytes(2).CopyTo(data,LowHealthTintCode.LeaseOffset);
+            byte[] data=NativeSpeedometer.CreateState();
+            check(NativeSpeedometerCode.CommandNamesMatch(data,9)&&NativeSpeedometerCode.CommandNamesMatch(data,8),"Current command names support reconnect and legacy callback migration");
+            foreach(var pair in new[]{(5,"labplus_speedometer_showlanding"),(7,"labplus_speedometer_showvertical"),(8,"labplus_speedometer_verticalsign")}) {
+                var old=(byte[])data.Clone();var name=Encoding.ASCII.GetBytes(pair.Item2+"\0");name.CopyTo(old,NativeSpeedometerCode.NamesOffset+pair.Item1*0x100);
+                var before=(byte[])old.Clone();check(!NativeSpeedometerCode.CommandNamesMatch(old,9)&&old.SequenceEqual(before),"Renamed retained command requires restart without changing its registered name: "+pair.Item2);
+            }
+            BitConverter.GetBytes(2).CopyTo(data,0);BitConverter.GetBytes(2).CopyTo(data,LowHealthTintCode.LeaseOffset);
             var meters=new[]{new SpeedometerReading(true,160,860,12.5f,Scale:1,TextColor:Color.Red),new SpeedometerReading(true,720,860,34.5f,Scale:2,TextColor:Color.Lime),new SpeedometerReading(true,1280,860,-56.5f,Scale:3,TextColor:Color.Blue,ShowSign:true)};
             var records=NativeSpeedometer.CreateReadings(meters[0],meters[1],meters[2],10);for(int i=0;i<3;i++)records.AsSpan(i*64,64).CopyTo(data.AsSpan(NativeSpeedometerCode.ReadingOffsets[i],64));NativeSpeedometer.CreateColors(meters[0],meters[1],meters[2]).CopyTo(data,384);p.WriteBytes(state,data);
             p.WriteBytes(memory,NativeSpeedometerCode.Render(memory.ToInt64(),state.ToInt64(),Ptr(original),Ptr(draw),Ptr(width),Ptr(height),123,Ptr(add),Ptr(print)));
@@ -29,7 +35,7 @@ internal static class NativeAdapterTests
             p.VirtualProtect(memory,8192,MemPageProtect.PAGE_EXECUTE_READ);var render=Marshal.GetDelegateForFunctionPointer<Hud>(memory);render((IntPtr)1,(IntPtr)2);
             check(originalCalls==1&&draws.Count==3,"Executed renderer draws three meters and preserves HUD");check(draws.Select(x=>x.Text).SequenceEqual(new[]{"12.50","34.50","-56.50"}),"Renderer receives numeric values only");check(draws.Select(x=>x.Scale).SequenceEqual(new[]{.5f,1f,1.5f}),"Executed draw ABI preserves three independent scales");check(draws[0].X==160&&draws[1].X==720&&draws[2].X==1280,"Three independent positions reach renderer");check(draws[0].R==1&&draws[1].R==0&&draws[2].R==0,"Three color records remain separate");check(commands.Count==9&&commands.Select(x=>x.Name).SequenceEqual(NativeSpeedometerCode.Commands)&&commands.All(x=>x.Flags==2),"Nine lab commands registered without cheats");
             render((IntPtr)1,(IntPtr)2);check(commands.Count==9,"Commands register once");render((IntPtr)1,(IntPtr)2);check(draws.Count==6&&originalCalls==3,"Expired heartbeat stops drawing and preserves HUD");
-            commands.Clear();Marshal.WriteInt32(state,4,3);render((IntPtr)1,(IntPtr)2);check(commands.Count==1&&commands[0].Name=="labplus_speedometer_verticalsign"&&Marshal.ReadInt32(state,4)==9,"Legacy HUD migration registers only the new sign command");render((IntPtr)1,(IntPtr)2);check(commands.Count==1,"Migrated commands register once");
+            commands.Clear();Marshal.WriteInt32(state,4,3);render((IntPtr)1,(IntPtr)2);check(commands.Count==1&&commands[0].Name=="labplus_speedometer_sign_vertical"&&Marshal.ReadInt32(state,4)==9,"Legacy HUD migration registers only the new sign command");render((IntPtr)1,(IntPtr)2);check(commands.Count==1,"Migrated commands register once");
             // Restore registration for testing each native callback.
             commands.Clear();Marshal.WriteInt32(state,4,0);render((IntPtr)1,(IntPtr)2);
             for(int index=0;index<NativeSpeedometerCode.Commands.Length;index++){

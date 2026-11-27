@@ -17,17 +17,17 @@ static constexpr LabCvarDefinition labCvarDefinitions[]{
     {"labplus_encounters_show",L"ShowActiveEncountersHud","labplus_encounters",0,0,1},
     {"labplus_viewer_distance",L"Distance","labplus_distance",40,20,200},
     {"labplus_viewer_fill",L"CollisionMode","labplus_fill",1,0,1},
-    {"labplus_enemies",L"ShowEnemyHealthHud","labplus_enemies",0,0,1},
-    {"labplus_enemy_hp_bars",L"ShowEnemyHealthBars","labplus_enemy_hp_bars",0,0,1},
-    {"labplus_position",L"ShowPlayerPositionHud","labplus_position",0,0,1},
-    {"labplus_angles",L"ShowPlayerAnglesHud","labplus_angles",0,0,1},
-    {"labplus_timers",L"ShowGameTimersHud","labplus_timers",0,0,1},
-    {"labplus_techs",L"ShowSpeedrunTechsHud","labplus_techs",0,0,1},
+    {"labplus_enemies_show",L"ShowEnemyHealthHud","labplus_enemies",0,0,1},
+    {"labplus_enemy_hp_bars_show",L"ShowEnemyHealthBars","labplus_enemy_hp_bars",0,0,1},
+    {"labplus_position_show",L"ShowPlayerPositionHud","labplus_position",0,0,1},
+    {"labplus_angles_show",L"ShowPlayerAnglesHud","labplus_angles",0,0,1},
+    {"labplus_timers_show",L"ShowGameTimersHud","labplus_timers",0,0,1},
+    {"labplus_techs_show",L"ShowSpeedrunTechsHud","labplus_techs",0,0,1},
     {"labplus_record",L"RecordResearch","labplus_record",0,0,1},
     {"labplus_speedometer_show",L"SpeedometersEnabled","labplus_speedometer_show",0,0,1,L"hud/console.ini"},
-    {"labplus_speedometer_showlanding",L"LandingEnabled","labplus_speedometer_showlanding",1,0,1,L"hud/console.ini"},
-    {"labplus_speedometer_showvertical",L"VerticalEnabled","labplus_speedometer_showvertical",1,0,1,L"hud/console.ini"},
-    {"labplus_speedometer_verticalsign",L"VerticalShowSign","labplus_speedometer_verticalsign",1,0,1,L"hud/console.ini"}
+    {"labplus_speedometer_landing_show",L"LandingEnabled","labplus_speedometer_landing_show",1,0,1,L"hud/console.ini"},
+    {"labplus_speedometer_vertical_show",L"VerticalEnabled","labplus_speedometer_vertical_show",1,0,1,L"hud/console.ini"},
+    {"labplus_speedometer_sign_vertical",L"VerticalShowSign","labplus_speedometer_sign_vertical",1,0,1,L"hud/console.ini"}
 };
 static const std::vector<LabCvarDefinition>& nativeLabCvarDefinitions() {
     static const auto definitions=[] {

@@ -58,6 +58,13 @@ namespace LabPlus.Hud.Overlay {
                     IntPtr state = new(BitConverter.ToInt64(existing, 12));
                     string magic = Encoding.ASCII.GetString(game.ReadBytes(state + 48, 8) ?? Array.Empty<byte>());
                     if(magic == NativeSpeedometerCode.Magic || magic == NativeSpeedometerCode.LegacyMagic) {
+                        // The engine retains pointers to registered names and
+                        // hashes them at registration. Renaming those buffers
+                        // in place would leave the command registry inconsistent.
+                        var retained = game.ReadBytes(state, NativeSpeedometerCode.StateSize);
+                        if(retained == null || !NativeSpeedometerCode.CommandNamesMatch(retained,
+                            magic == NativeSpeedometerCode.LegacyMagic ? 8 : NativeSpeedometerCode.Commands.Length))
+                            throw new NotSupportedException("Restart the game once through this LAB Plus build to load the renamed console commands.");
                         byte[] descriptions = CreateState();
                         for(int i = 0; i < NativeSpeedometerCode.Commands.Length; i++) game.WriteBytes(state + NativeSpeedometerCode.NamesOffset + i * 0x100, descriptions.AsSpan(NativeSpeedometerCode.NamesOffset + i * 0x100, 256).ToArray());
                         if(magic == NativeSpeedometerCode.Magic) return new NativeSpeedometer(game, state, layout);

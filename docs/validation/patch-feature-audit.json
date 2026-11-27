@@ -28,6 +28,14 @@
       "catalogue": "docs/console-toggle-binds.md"
     }
   },
+  "renamedCatalogue": {
+    "settings": 25,
+    "nativeNamesIncludingAliases": 44,
+    "behavior": "Six HUD settings now prefer the _show suffix; previous names remain synchronized binary cvar aliases. Speedometer names are labplus_speedometer_landing_show, labplus_speedometer_vertical_show and labplus_speedometer_sign_vertical in both the native cvar catalogue and the managed command transport.",
+    "validation": "All 44 binary names round-trip with alias isolation in LabCvarTests; all 21 main handlers pass Launcher tests; 392 HUD checks pass, including renamed native callbacks and rejection of in-place retained command renaming.",
+    "liveVerification": "The liveVerification snapshot above predates these renames. Load the rebuilt application and restart the game before probing this 44-name catalogue.",
+    "recordingActions": ["labplus_recording_start", "labplus_recording_stop"]
+  },
   "remainingGaps": [
     {
       "feature": "Managed HUD session",

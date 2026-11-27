@@ -73,6 +73,22 @@ static void checkSettingsCommands(const MeathookHudApi& api,const std::wstring& 
     expect(registerLabConsoleCommands(false,exists,add),"audited cvar backend keeps action commands separate");
     for(const auto& definition:nativeLabCvarDefinitions()) expect(!registered.count(definition.name),"canonical and short native cvars never get duplicate command registrations");
     expect(findLabCvarDefinition("labplus_viewer")&&registered.count("labplus_encounters"),"viewer supports engine toggle while the encounter-list command retains its meaning");
+    for(const char* name:{"labplus_enemies","labplus_enemy_hp_bars","labplus_position","labplus_angles","labplus_timers","labplus_techs"}) {
+        const auto* alias=findLabCvarDefinition(name); const auto* preferred=findLabCvarDefinition(std::string(name)+"_show");
+        expect(alias&&preferred&&alias->maximum==1&&preferred->maximum==1&&!strcmp(alias->request,preferred->request),"new show names and existing short names are synchronized native binary cvars");
+        expect(!registered.count(name)&&!registered.count(preferred->name),"neither binary spelling is registered as a shadowing command");
+    }
+    expect(normalizeLabArguments({"labplus_recording_start"})==std::vector<std::string>{"labplus_record","1"}&&
+        normalizeLabArguments({"labplus_recording_stop"})==std::vector<std::string>{"labplus_record","0"}&&
+        registered.count("labplus_recording_start")&&registered.count("labplus_recording_stop"),"recording has separate start and stop action commands");
+    for(const char* name:{"labplus_speedometer_landing_show","labplus_speedometer_vertical_show","labplus_speedometer_sign_vertical"})
+        expect(findLabCvarDefinition(name)&&findLabCvarDefinition(name)->source,"renamed speedometer cvars retain the HUD persistence path");
+    for(const char* name:{"labplus_speedometer_showlanding","labplus_speedometer_showvertical","labplus_speedometer_verticalsign"})
+        expect(!findLabCvarDefinition(name),"old speedometer spellings are replaced by the requested names");
+    consoleOutput.clear(); printLabCommandList(api,true,true);
+    for(const char* name:{"labplus_enemies","labplus_enemy_hp_bars","labplus_position","labplus_angles","labplus_timers","labplus_techs"})
+        expect(consoleOutput.find(std::string(name)+"_show : ")!=std::string::npos&&consoleOutput.find(std::string(name)+" : ")==std::string::npos,
+            "command list prefers the new show names rather than their short aliases");
     consoleOutput.clear(); printLabCommandList(api,false,true);
     for(const auto& definition:labCvarDefinitions) expect(consoleOutput.find(std::string(definition.name)+" : ")==std::string::npos,"unregistered native cvars are not advertised during loading or after failure");
     registered.clear(); registered.insert("labplus_viewer_show"); auto before=registered.size();
@@ -115,7 +131,7 @@ static void checkEveryBinaryCvar(const MeathookHudApi& api,const std::wstring& i
         for(const auto& other:nativeLabCvarDefinitions()) expect(engine.number(other.name)==before.at(other.name),"two toggles restore the complete original catalogue");
         printf("PASS: binary cvar round trip and alias isolation: %s\n",definition.name); ++checked;
     }
-    expect(checked==38,"all 25 binary settings and 13 short aliases are covered");
+    expect(checked==44,"all 25 binary settings and 19 short aliases are covered");
 }
 int main() {
     MeathookHudApi api{}; api.consolePrint=print; api.executeCommand=execute;
@@ -132,7 +148,7 @@ int main() {
     expect(bridge.initializeBackend(api,engine.backend(),ini,[&](const auto& request) { requests.push_back(request); return true; }),"native creation registers all owned variables");
     expect(engine.creates==nativeLabCvarDefinitions().size()&&engine.number("labplus_path_show")==1&&engine.number("labplus_viewer_distance")==75&&
         engine.number("labplus_player_show")==0&&engine.number("labplus_attempts_show")==1&&
-        engine.number("labplus_speedometer_verticalsign")==0&&commands==0,"initialization uses main and HUD saved values and sends no console commands");
+        engine.number("labplus_speedometer_sign_vertical")==0&&commands==0,"initialization uses main and HUD saved values and sends no console commands");
     for(ULONGLONG time=100;time<1000;time+=100) bridge.poll(api,true,time);
     expect(engine.writes==0&&requests.empty(),"unchanged settings cause no writes or console spam");
     setSaved(L"ShowResearchPath",L"0"); bridge.poll(api,true,1000);
