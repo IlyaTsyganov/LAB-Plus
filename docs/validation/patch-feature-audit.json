@@ -18,7 +18,15 @@
     "layerSha256": "749D1084406A4A93D726390A481110CA33850255CD10FD9394D5FAB363AF3392",
     "bind": "bind x \"toggle labplus_viewer\"",
     "result": "User confirmed toggling works in both directions after restart with the rebuilt module. The game log independently recorded Enabled transitions 1 -> 0 -> 1 -> 0 -> 1. The original cvar-not-found error was reproduced before the alias fix.",
-    "limit": "Live gameplay verification covers 1.1; the other supported patches use the individually audited native ABI profiles and automated resolver/registration tests. They were not all launched for this check."
+    "limit": "Live gameplay verification covers 1.1; the other supported patches use the individually audited native ABI profiles and automated resolver/registration tests. They were not all launched for this check.",
+    "binaryCatalogue": {
+      "settings": 25,
+      "nativeNamesIncludingAliases": 38,
+      "liveRegistryProbe": "1.1: all 38 names found in the actual engine registry with BOOL/NOCHEAT flags, 0..1 bounds and binary values; read-only, no commands executed.",
+      "bridgeRoundTrips": "All 38 names changed and restored using the fixture backend; one companion request per change, no echo, alias synchronization and unrelated-setting isolation verified.",
+      "companionHandlers": "Launcher tests: all 21 main binary settings; HUD tests: all four binary speedometer settings (388 HUD checks passed).",
+      "catalogue": "docs/console-toggle-binds.md"
+    }
   },
   "remainingGaps": [
     {

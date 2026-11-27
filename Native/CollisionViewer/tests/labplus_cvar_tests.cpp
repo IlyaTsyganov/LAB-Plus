@@ -85,6 +85,38 @@ static void checkSettingsCommands(const MeathookHudApi& api,const std::wstring& 
     expect(!validLabArguments({"labplus_viewer_distance","toggle"})&&!validLabArguments({"labplus_debughud_scale","toggle"})&&
         !validLabArguments({"labplus_toggle","labplus_viewer_show"}),"numeric ranges and the rejected generic wrapper are not toggle commands");
 }
+static void checkEveryBinaryCvar(const MeathookHudApi& api,const std::wstring& ini) {
+    unsigned checked=0;
+    std::unordered_set<std::string> names;
+    for(const auto& definition:nativeLabCvarDefinitions()) {
+        expect(names.insert(definition.name).second,"native cvar names are unique");
+        if(definition.minimum!=0||definition.maximum!=1) continue;
+        EngineFixture engine; LabCvarBridge bridge; std::vector<std::vector<std::string>> requests;
+        expect(bridge.initializeBackend(api,engine.backend(),ini,[&](const auto& request) { requests.push_back(request); return true; }),"binary catalogue registration");
+        std::unordered_map<std::string,int> before;
+        for(const auto& other:nativeLabCvarDefinitions()) before[other.name]=engine.number(other.name);
+        const int initial=before.at(definition.name);
+        ULONGLONG now=100;
+        for(int value:{1-initial,initial}) {
+            const auto requestCount=requests.size();
+            engine.change(definition.name,value); bridge.poll(api,true,now); now+=100;
+            expect(bridge.ready()&&requests.size()==requestCount+1&&requests.back()==std::vector<std::string>{definition.request,std::to_string(value)},"every binary native name dispatches exactly one numeric companion request");
+            for(const auto& other:nativeLabCvarDefinitions()) {
+                int expected=!strcmp(other.request,definition.request)?value:before.at(other.name);
+                expect(engine.number(other.name)==expected,"binary toggle mirrors only matching aliases and preserves every other setting");
+            }
+            bridge.poll(api,true,now); now+=100;
+            expect(requests.size()==requestCount+1,"no alias echo while waiting for persistence");
+            auto source=definition.source?(std::filesystem::path(ini).parent_path()/definition.source).wstring():ini;
+            expect(WritePrivateProfileStringW(L"Viewer",definition.setting,std::to_wstring(value).c_str(),source.c_str())!=0,"persist binary main/HUD acknowledgement");
+            bridge.poll(api,true,now); now+=100;
+            expect(bridge.ready()&&requests.size()==requestCount+1&&engine.number(definition.name)==value,"acknowledgement preserves the toggled cvar without a repeat request");
+        }
+        for(const auto& other:nativeLabCvarDefinitions()) expect(engine.number(other.name)==before.at(other.name),"two toggles restore the complete original catalogue");
+        printf("PASS: binary cvar round trip and alias isolation: %s\n",definition.name); ++checked;
+    }
+    expect(checked==38,"all 25 binary settings and 13 short aliases are covered");
+}
 int main() {
     MeathookHudApi api{}; api.consolePrint=print; api.executeCommand=execute;
     auto temporary=std::filesystem::temp_directory_path()/(L"labplus-Cvar-Test-"+std::to_wstring(GetCurrentProcessId()));
@@ -95,6 +127,7 @@ int main() {
     auto hudIni=(temporary/L"hud"/L"console.ini").wstring();
     expect(WritePrivateProfileStringW(L"Viewer",L"VerticalShowSign",L"0",hudIni.c_str())!=0,"isolated HUD console setting");
     checkSettingsCommands(api,ini);
+    checkEveryBinaryCvar(api,ini);
     EngineFixture engine; LabCvarBridge bridge; std::vector<std::vector<std::string>> requests;
     expect(bridge.initializeBackend(api,engine.backend(),ini,[&](const auto& request) { requests.push_back(request); return true; }),"native creation registers all owned variables");
     expect(engine.creates==nativeLabCvarDefinitions().size()&&engine.number("labplus_path_show")==1&&engine.number("labplus_viewer_distance")==75&&

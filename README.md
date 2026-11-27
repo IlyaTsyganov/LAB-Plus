@@ -36,6 +36,7 @@ names printed by `labplus_commands_list`. Short binary setting names such as
 `labplus_viewer` are synchronized cvar aliases, so `bind x "toggle labplus_viewer"`
 also works. `labplus_encounters` retains its encounter-list command behavior;
 use `labplus_encounters_show` to toggle that HUD.
+See the [complete list of binary cvars and short aliases](docs/console-toggle-binds.md).
 
 Native cvar creation is audited for all 22 supported retail builds, including
 1.1. A guarded command fallback remains for unavailable or modified ABIs; it
