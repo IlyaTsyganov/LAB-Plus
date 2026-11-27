@@ -17,6 +17,7 @@ internal static class Program
     }
     private static void Settings()
     {
+        BooleanToggleChecks.Run(Check);
         string folder=Path.GetFullPath(Path.Combine(Environment.GetEnvironmentVariable("LAB_TEST_DATA_ROOT")??Path.Combine(Path.GetTempPath(),"lab-tests"),"settings-"+Guid.NewGuid().ToString("N")));var store=new SettingsStore(folder);
         var initial=store.Snapshot();Check(!initial.SpeedometersEnabled&&initial.Current.Enabled&&initial.Landing.Enabled&&initial.Vertical.Enabled&&initial.VerticalShowSign&&initial.Current.Size==3&&initial.Landing.Size==3&&initial.Vertical.Size==3&&initial.TintOpacity==100,"First-run defaults match release 1.0");
         Check(LabSettings.CreateDefaults(p=>p==LabSettings.DefaultGamePath).GamePath==LabSettings.DefaultGamePath&&LabSettings.CreateDefaults(_=>false).GamePath=="","Steam executable is selected only when the exact default file exists");
@@ -43,7 +44,7 @@ internal static class Program
         using var sign=JsonDocument.Parse("true");Check(store.Apply("verticalShowSign",sign.RootElement)&&new SettingsStore(folder).Snapshot().VerticalShowSign,"UI vertical sign is saved across restart");
         Check(store.Update(v=>ConsoleControls.Apply(v,8,["0"]))&&!new SettingsStore(folder).Snapshot().VerticalShowSign,"Console sign command updates the same persisted setting");
         Check(store.Update(v=>{v.GamePath="";v.SpeedometersEnabled=true;v.VerticalShowSign=false;v.TintOpacity=42;v.Current.Size=2;return true;})&&new SettingsStore(folder).Snapshot() is {GamePath:"",SpeedometersEnabled:true,VerticalShowSign:false,TintOpacity:42,Current.Size:2},"User changes survive restart instead of being overwritten by defaults");
-        Check(ConsoleControls.Apply(s,8,["1"])&&s.VerticalShowSign&&ConsoleControls.Help(s,8).Contains("is: 1"),"Console sign query reports its current state");
+        Check(ConsoleControls.Apply(s,8,["1"])&&s.VerticalShowSign&&ConsoleControls.Help(s,8).Contains("is:\"1\""),"Console sign query reports its current state");
         Check(!ConsoleControls.Apply(s,8,["2"])&&!ConsoleControls.Apply(s,8,["1","vertical"])&&s.VerticalShowSign,"Invalid sign arguments preserve the selected mode");
         Check(NativeSpeedometerCode.MailboxOffset+NativeSpeedometerCode.Commands.Length*NativeSpeedometerCode.MailboxStride<=NativeSpeedometerCode.NamesOffset&&NativeSpeedometerCode.NamesOffset+NativeSpeedometerCode.Commands.Length*256<=NativeSpeedometerCode.StateSize&&NativeSpeedometerCode.CallbackStart+NativeSpeedometerCode.Commands.Length*NativeSpeedometerCode.CallbackStride<=8192,"Nine native mailboxes, names and callbacks fit without overlap");
         string lighting=GameLauncher.PrepareLighting(store);Directory.CreateDirectory(Output);File.WriteAllText(Path.Combine(Output,"lighting-path.txt"),lighting);Console.WriteLine("Lighting manifest prepared");

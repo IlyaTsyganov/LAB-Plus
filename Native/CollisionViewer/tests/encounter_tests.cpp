@@ -76,7 +76,9 @@ int main() {
     expect(validLabArguments({"labplus_encounters_list"})&&!validLabArguments({"labplus_encounters_list","1"}),"list action accepts no state-changing arguments");
     expect(normalizeLabArguments({"labplus_recording_start"})==std::vector<std::string>{"labplus_record","1"}&&
            normalizeLabArguments({"labplus_recording_stop"})==std::vector<std::string>{"labplus_record","0"},"recording actions keep their explicit start/stop names");
-    expect(!validLabArguments({"labplus_encounters_show","1"}),"native engine cvars are not registered as duplicate commands");
+    expect(validLabArguments({"labplus_encounters_show","1"})&&
+           normalizeLabArguments({"labplus_encounters_show","1"})==std::vector<std::string>{"labplus_encounters","1"},
+           "canonical encounter setting is also accepted by the command fallback");
     MeathookHudApi api{}; api.executeCommand=hudExecute; api.addText=hudAdd; api.removeText=hudRemove;
     ActiveEncounterHud hud(&api); ActiveEncounterSnapshot snapshot; snapshot.phase="live"; snapshot.captured=1000;
     ActiveEncounterRow row; row.known=true; row.think=1; row.id=1930; row.name="starting_platform_encounter_manager_1"; row.label="UAC Atlantica / Combat 1 Landing Pad 1";
@@ -86,7 +88,9 @@ int main() {
     hud.update(&snapshot,true,true,1300); expect(hudVisibilityRequests==1,"HUD visibility cvar is requested once per visible interval");
     hud.update(&snapshot,true,true,4000); expect(hudRows.size()==1&&hudRows[280]=="Inspector text","stale encounter block consumes no stack rows");
     hud.update(&snapshot,false,true,4100); expect(hudRows.size()==1&&hudRows[280]=="Inspector text","hiding encounters removes only their own native HUD rows");
-    expect(std::size(labCvarDefinitions)==15,"state preferences including collider, surface HUD and attempt overlays are native cvars");
+    expect(std::size(labCvarDefinitions)==26&&std::count_if(std::begin(labCvarDefinitions),std::end(labCvarDefinitions),
+        [](const LabCvarDefinition& definition) { return definition.minimum==0&&definition.maximum==1; })==25,
+        "all 25 binary controls, including fill, recording and the four HUD controls, are native cvars alongside viewer distance");
     std::array<unsigned char,96> variable{},data{}; const char* cvarName="labplus_encounters_show"; const char* value="1";
     put(variable.data(),0,reinterpret_cast<uintptr_t>(data.data())); put(data.data(),40,reinterpret_cast<uintptr_t>(cvarName));
     put(data.data(),8,int32_t(1)); put(data.data(),0,reinterpret_cast<uintptr_t>(value)); int numeric=0; std::string string;

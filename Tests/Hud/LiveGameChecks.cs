@@ -127,7 +127,7 @@ internal static class LiveGameChecks
                 }else{
                     if(Encoding.ASCII.GetString(Read(hudState+48,8))!=NativeSpeedometerCode.Magic||game.ReadValue<int>(hudState+4)!=NativeSpeedometerCode.Commands.Length)throw new Exception("New LAB console command registration is not ready");
                     string lastName=Encoding.ASCII.GetString(Read(hudState+NativeSpeedometerCode.NamesOffset+8*256,64)).Split('\0')[0];
-                    if(lastName!="labplus_speedometer_verticalsign")throw new Exception("Vertical sign command is missing");
+                    if(lastName!="labplus_speedometer_sign_vertical")throw new Exception("Vertical sign command is missing");
                 }
             }
         }

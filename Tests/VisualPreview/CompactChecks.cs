@@ -35,7 +35,7 @@ internal static class CompactChecks
             await Script(main,$"document.querySelector('[data-help-tab={section}]').click()");
             await Check(main,$"!document.querySelector('[data-help-panel={section}]').hidden","Help section did not open: "+section);
         }
-        await Check(main,"document.querySelector('[data-help-panel=Commands]').innerText.includes('labplus_speedometer_verticalsign')&&!document.querySelector('[data-help-panel=Commands]').innerText.includes('lab_speedometer')","Wrong console prefix in Help");
+        await Check(main,"document.querySelector('[data-help-panel=Commands]').innerText.includes('labplus_speedometer_sign_vertical')&&!document.querySelector('[data-help-panel=Commands]').innerText.includes('lab_speedometer')","Wrong console prefix in Help");
         await Check(main,"(()=>{const text=document.querySelector('[data-help-panel=LAB]').innerText;return text.includes('noclip')&&text.includes('notarget')&&text.includes('god')&&!/75%|quarter|baseline|snapshot|factory|six seconds/i.test(text);})()","Help exposes internal display implementation details");
         await Check(main,"document.querySelector('[data-help-panel=Commands]').innerText.includes('labplus_debughud_scale')","Help is missing the debug HUD scale command");
         await Script(main,"document.querySelector('[data-help-close]').click();document.querySelector('[data-screen=Viewer]').click()");await Sync(main);

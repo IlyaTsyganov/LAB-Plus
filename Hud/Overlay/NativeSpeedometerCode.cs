@@ -4,7 +4,7 @@ namespace LabPlus.Hud.Overlay {
     internal static class NativeSpeedometerCode {
         internal static readonly string[] Commands = {
             "labplus_speedometer_show", "labplus_speedometer_x_pos", "labplus_speedometer_y_pos", "labplus_speedometer_size", "labplus_lowhptintopacity",
-            "labplus_speedometer_showlanding", "labplus_speedometer_color", "labplus_speedometer_showvertical", "labplus_speedometer_verticalsign"
+            "labplus_speedometer_landing_show", "labplus_speedometer_color", "labplus_speedometer_vertical_show", "labplus_speedometer_sign_vertical"
         };
         internal const int MailboxOffset = 1536, MailboxStride = 160, NamesOffset = 3072;
         internal static readonly int[] ReadingOffsets = {64, 128, 512};
@@ -13,6 +13,15 @@ namespace LabPlus.Hud.Overlay {
         internal const int CvarSessionPointerOffset = StateSize - 8;
         internal const string Magic = "LPHUD002", LegacyMagic = "LPHUD001";
         internal const int ConsoleReadyOffset = 768, ConsoleFormatOffset = 772, ConsoleTextOffset = 784, ConsoleTextCapacity = 576;
+
+        internal static bool CommandNamesMatch(ReadOnlySpan<byte> state, int registeredCount) {
+            if (registeredCount < 0 || registeredCount > Commands.Length || state.Length < StateSize) return false;
+            for (int i = 0; i < registeredCount; i++) {
+                byte[] expected = System.Text.Encoding.ASCII.GetBytes(Commands[i] + "\0");
+                if (!state.Slice(NamesOffset + i * 0x100, expected.Length).SequenceEqual(expected)) return false;
+            }
+            return true;
+        }
 
         internal sealed class Code {
             internal readonly List<byte> Bytes = new();

@@ -1,0 +1,215 @@
+{
+  "date": "2026-11-27",
+  "baseCommit": "e482166",
+  "scope": "Static audit of production version gates and registries for the 22 native retail profiles; fixtures are not live gameplay verification.",
+  "fixed": {
+    "feature": "Canonical labplus_ console settings",
+    "problem": "Help advertised 15 settings on every patch, but native cvar creation was enabled only on 6.66 Rev 3.",
+    "behavior": "Create all 25 binary settings (plus viewer distance) as native cvars on individually audited game images, including HUD settings through their own persisted console snapshot. Short binary setting names such as labplus_viewer are synchronized native cvar aliases; labplus_encounters retains its list command. Retain canonical commands and explicit numeric values as a guarded fallback on images without an audited creation ABI. There is no labplus_toggle wrapper.",
+    "sources": [
+      "Native/CollisionViewer/src/labplus_console.h",
+      "Native/CollisionViewer/src/labplus_cvar_definitions.h",
+      "Native/CollisionViewer/src/labplus_cvars.h"
+    ]
+  },
+  "liveVerification": {
+    "date": "2026-11-27",
+    "patch": "1.1",
+    "layerSha256": "749D1084406A4A93D726390A481110CA33850255CD10FD9394D5FAB363AF3392",
+    "bind": "bind x \"toggle labplus_viewer\"",
+    "result": "User confirmed toggling works in both directions after restart with the rebuilt module. The game log independently recorded Enabled transitions 1 -> 0 -> 1 -> 0 -> 1. The original cvar-not-found error was reproduced before the alias fix.",
+    "limit": "Live gameplay verification covers 1.1; the other supported patches use the individually audited native ABI profiles and automated resolver/registration tests. They were not all launched for this check.",
+    "binaryCatalogue": {
+      "settings": 25,
+      "nativeNamesIncludingAliases": 38,
+      "liveRegistryProbe": "1.1: all 38 names found in the actual engine registry with BOOL/NOCHEAT flags, 0..1 bounds and binary values; read-only, no commands executed.",
+      "bridgeRoundTrips": "All 38 names changed and restored using the fixture backend; one companion request per change, no echo, alias synchronization and unrelated-setting isolation verified.",
+      "companionHandlers": "Launcher tests: all 21 main binary settings; HUD tests: all four binary speedometer settings (388 HUD checks passed).",
+      "catalogue": "docs/console-toggle-binds.md"
+    }
+  },
+  "renamedCatalogue": {
+    "settings": 25,
+    "nativeNamesIncludingAliases": 44,
+    "behavior": "Six HUD settings now prefer the _show suffix; previous names remain synchronized binary cvar aliases. Speedometer names are labplus_speedometer_landing_show, labplus_speedometer_vertical_show and labplus_speedometer_sign_vertical in both the native cvar catalogue and the managed command transport.",
+    "validation": "All 44 binary names round-trip with alias isolation in LabCvarTests; all 21 main handlers pass Launcher tests; 392 HUD checks pass, including renamed native callbacks and rejection of in-place retained command renaming.",
+    "liveVerification": "The liveVerification snapshot above predates these renames. Load the rebuilt application and restart the game before probing this 44-name catalogue.",
+    "recordingActions": ["labplus_recording_start", "labplus_recording_stop"]
+  },
+  "consoleHelp": {
+    "listCommand": "labplus_commands_list",
+    "removedAlias": "labplus_command_list",
+    "behavior": "Each cvar has a functional description shared by native engine registration, fallback registration and the list. List entries describe meaning and range without appended toggle examples. Native binary cvars receive a persistent valid-value array containing only 0 and 1; toggle is a separate engine command before the cvar name.",
+    "validation": "Native backend constructor calls are executed against an ABI capture fixture for every cvar and alias; description, bounds, flags and completion argument placement are verified. Native/fallback registration and list tests reject the removed alias and postfix toggle suggestions. All 44 binary round trips, Launcher handler tests and 392 HUD checks pass.",
+    "argumentHelp": "Known commands with missing or invalid parameters print their own description and syntax before executable dispatch. Tests cover bare labplus_trigger_set, incomplete/invalid/extra arguments, every other registered command requiring parameters, and preservation of valid zero-argument actions. Bare setting queries include the setting description."
+  },
+  "latestQueryValidation": {
+    "date": "2026-11-27",
+    "retailImages": 22,
+    "compatibilityReport": "docs/validation/cvar-query-compatibility.json",
+    "productionResolverProbes": "22/22 passed against the actual EXEs mapped as data, including modified-constructor rejection; no game code executed.",
+    "sharedBehavior": "Current/default query formatting, command help, factory-default preservation and owned-description/completion restoration are common code after per-image ABI selection. There is no patch-specific restriction on these changes.",
+    "format": "The exact engine formats are a quoted name/current/default line followed by the description line; their format strings are present in all 22 audited EXEs.",
+    "metadata": "All images reflect the same 104-byte cvarData layout: resetString=48, description=56, valueStrings=80. Metadata restoration writes only those description/completion fields in module-owned inline storage, rejects foreign/shared data pointers and preserves defaults, values, names, flags and bounds.",
+    "unitValidation": "All 44 binary names round-trip without changing factory defaults; stripped metadata restoration and foreign-storage rejection pass; known-command argument help and class-only read-only queries pass. Launcher handlers pass and HUD reports 404 checks.",
+    "livePatch": "1.1",
+    "liveLayerSha256": "B97475742C1CA0C64E01D27FF4AF64409131B37097A318305DF3CF37275E7C1D",
+    "liveRegistry": "45/45 current native names passed types, current values, factory defaults, descriptions and completion validation. Viewer current=1 and factory default=0 were independently read from the engine registry.",
+    "limit": "The other 21 retail builds were audited as EXE data and with resolver/unit probes; they were not all launched for gameplay verification. Existing unrelated HUD/profile feature gaps below are unchanged."
+  },
+  "remainingGaps": [
+    {
+      "feature": "Managed HUD session",
+      "patches": [
+        "6.66 Rev 1",
+        "6.66 Rev 1.1"
+      ],
+      "finding": "Both native retail identities exist, but Assets/game-profiles.json has no matching HUD profiles. GameProfile.Resolve requires an MD5 match, and GameMonitor only creates GameSession when that succeeds.",
+      "effect": "No managed speedometers, performance/cheat HUD, low-health tint adapter or Modbot adapter through this path. This does not remove support from the separate native collision/Meathook layer.",
+      "sources": [
+        "Assets/game-profiles.json",
+        "Hud/Memory/GameReader.cs",
+        "Hud/Runtime/GameSession.cs",
+        "Native/CollisionViewer/src/native_profile.h"
+      ]
+    },
+    {
+      "feature": "Speedometer player/velocity input",
+      "patches": [
+        "6.0",
+        "6.1"
+      ],
+      "finding": "HUD profiles have Velocity=0 and no NativePlayer adapter. GameReader.Player then uses the legacy chain from image+0 instead of a configured player source.",
+      "effect": "The normal managed speedometer path has no valid configured player/velocity source. Other independently resolved adapters are not disabled by this finding.",
+      "sources": [
+        "Assets/game-profiles.json",
+        "Hud/Memory/GameReader.cs",
+        "Hud/Runtime/GameSession.cs"
+      ]
+    },
+    {
+      "feature": "GPU driver string telemetry",
+      "patches": [
+        "6.66"
+      ],
+      "finding": "GPUVendor=0 makes GameReader.DriverName return an empty string. This is a metadata gap, not a GPU restriction on the collision viewer.",
+      "sources": [
+        "Assets/game-profiles.json",
+        "Hud/Memory/GameReader.cs"
+      ]
+    }
+  ],
+  "intentionalVersionDifferences": [
+    {
+      "feature": "NVIDIA lighting correction",
+      "availability": "1.0, 1.1 and 2.0, NVIDIA only",
+      "finding": "Both the launch policy and native layer explicitly restrict this correction to the affected early builds.",
+      "sources": [
+        "Game/GameExecutableInfo.cs",
+        "Game/LightingFixPolicy.cs",
+        "Native/CollisionViewer/src/lighting_fix.h",
+        "Hud/Runtime/FeatureStatus.cs"
+      ]
+    },
+    {
+      "feature": "Remove checkpoint delay",
+      "availability": "Branch patch from 2.0 onward; additional pause-menu cooldown cvar from 5.0 onward",
+      "finding": "1.0/1.1 explicitly report that this delay does not exist. These absent patch sites do not mean the feature was accidentally omitted.",
+      "sources": [
+        "Game/GameExecutableInfo.cs",
+        "Hud/Runtime/NativeCheckpointDelay.cs"
+      ]
+    },
+    {
+      "feature": "Live save campaign slots and archive compatibility",
+      "availability": "Main campaign on all 22 profiles; TAG1 from 3.0; TAG2 from 5.0",
+      "finding": "Archive loading requires the same game patch and compatible campaign. The 3/6/9 slot counts follow the available campaigns.",
+      "sources": [
+        "Game/PracticeSaveSource.cs",
+        "Native/CollisionViewer/src/practice_profile.h"
+      ]
+    },
+    {
+      "feature": "Native cvar objects rather than command fallback",
+      "availability": "All 22 supported retail images, with individually verified constructor/register/set ABIs",
+      "finding": "All supported retail profiles now expose the standard engine toggle syntax for binary settings. The command fallback remains only for unavailable or modified ABIs; it does not claim to implement toggle <name>.",
+      "sources": [
+        "Native/CollisionViewer/src/labplus_cvars.h",
+        "Native/CollisionViewer/src/labplus_console.h"
+      ]
+    }
+  ],
+  "notCurrentlyPatchExclusive": [
+    {
+      "features": [
+        "Game clocks and powerup timers",
+        "Stagger countdown",
+        "Sync release events and player lock timers"
+      ],
+      "finding": "The explicit 1.0/1.1/5.1 branches are followed by the shared observationCodeProfile table, which covers all 22 native identities.",
+      "sources": [
+        "Native/CollisionViewer/src/observation_code_profiles.h",
+        "Native/CollisionViewer/src/game_timers.h",
+        "Native/CollisionViewer/src/enemy_telemetry.h",
+        "Native/CollisionViewer/src/sync_animation_timers.h"
+      ]
+    },
+    {
+      "features": [
+        "BATS weapon switch observation",
+        "Finisher Visualizer",
+        "Live checkpoint adapters"
+      ],
+      "finding": "The current configuredBatsCode, syncPatchFor and practiceProfile registries cover all 22 native profiles. Historical notes describing smaller patch sets do not represent current registration coverage.",
+      "sources": [
+        "Native/CollisionViewer/src/speedrun_techs.h",
+        "Native/CollisionViewer/src/sync_patch_layout.h",
+        "Native/CollisionViewer/src/sync_patch_ports.h",
+        "Native/CollisionViewer/src/practice_profile.h"
+      ]
+    },
+    {
+      "features": [
+        "Low-health tint",
+        "Modbot input protection",
+        "Performance metrics",
+        "Protected cvar and player cheat monitoring"
+      ],
+      "finding": "These adapters resolve metadata or instruction patterns instead of selecting an exclusive patch list. They still depend on the managed HUD profile gaps above and on successful runtime layout validation. Modbot protection additionally requires an internal FPS limit below 1000.",
+      "sources": [
+        "Hud/Overlay/NativeGameLayout.cs",
+        "Hud/Runtime/GameSession.cs",
+        "Hud/Runtime/FeatureStatus.cs"
+      ]
+    }
+  ],
+  "loadingRequirements": "Console registration still requires a recognized game profile, a loaded compatible XINPUT1_3.dll exporting mh_api_get, the native LAB Plus layer, a game-frame callback and a running companion. Unknown command-system thunks/RTTI remain rejected. These are loading/ABI conditions, not additional patch allowlists.",
+  "cvarFactoryAudit": {
+    "auditedRetailImages": 22,
+    "profiles": "docs/validation/cvar-factory-profiles.json",
+    "pendingRetailImages": [],
+    "nativeToggleSyntax": "bind x \"toggle labplus_viewer_show\"",
+    "scope": "Each available EXE was read as data. Constructor parameter/data layouts, cvar RTTI/vtable methods and exact constructor/register/set prefixes were inspected. Runtime checks remain mandatory. Live game validation is separate.",
+    "verifiedInEveryAvailableImage": {
+      "cvarDataSize": 104,
+      "cvarSystemRelativeToCommandSystem": -8,
+      "flags": {
+        "CVAR_BOOL": 1,
+        "CVAR_INTEGER": 2,
+        "CVAR_NOCHEAT": 16
+      },
+      "constructorPrefixBytes": 64,
+      "registrationPrefixBytes": 64,
+      "setterPrefixBytes": 48
+    },
+    "validation": {
+      "nativeSuites": 24,
+      "hudChecks": 388,
+      "launcherSuite": "passed",
+      "updateChecks": 33,
+      "retailProductionResolverProbes": 22,
+      "gameplayVerification": "1.1: native toggle bind using the short labplus_viewer cvar confirmed in both directions; see liveVerification"
+    },
+    "loadingBehavior": "Audited profiles wait while the engine cvar system is not initialized, then register native cvars once it is ready. A transient missing object cannot permanently latch the command fallback. Unknown profiles or rejected function signatures retain the guarded fallback."
+  }
+}

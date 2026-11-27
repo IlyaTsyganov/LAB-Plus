@@ -263,6 +263,12 @@ internal sealed partial class MainForm : LabPlusForm
         BeginInvoke(() =>
         {
             if (IsDisposed || SelectedGameProcess() != process) return;
+            int hudCommand=args.Length>0?Array.IndexOf(Hud.Overlay.NativeSpeedometerCode.Commands,args[0]):-1;
+            if (hudCommand>=0)
+            {
+                _hudStore.Update(settings=>Hud.Runtime.ConsoleControls.Apply(settings,hudCommand,args[1..]));
+                return;
+            }
             if (!LabCommands.Apply(_settings, args, process, DateTime.UtcNow.Ticks)) return;
             _loadingControls = true;
             try { LoadSettingsIntoControls(); }

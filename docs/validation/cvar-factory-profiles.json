@@ -1,0 +1,420 @@
+[
+  {
+    "name": "6.66 Rev 3.2",
+    "timestamp": 1786485644,
+    "imageSize": 121835520,
+    "construct": 3628144,
+    "vtable": 48515688,
+    "register": 24752096,
+    "setter": 24753232,
+    "constructorPrefix": "48895c240848896c24104889742418574883ec20488d410833ed488901418bd940382d21d63304498bf048895028488bf9741e488b01488d0d73676d02488948",
+    "registerPrefix": "48895c240848896c24184889542410565741564883ec20488b0233ed4c8b7108488bf2488bf94d8bc6488b58280fb60384c0741f0fb6c8e8546bc6fe6bed1f48",
+    "setPrefix": "40534883ec20488b01498bd8ff50204885c0741341b001488bd3488bc84883c4205be939aebdfe4883c4205bc3cccccc",
+    "cvarDataSize": 104,
+    "cvarGlobalDelta": -8,
+    "flags": {
+      "CVAR_BOOL": 1,
+      "CVAR_INTEGER": 2,
+      "CVAR_NOCHEAT": 16
+    }
+  },
+  {
+    "name": "1.0 (Release)",
+    "timestamp": 1585004849,
+    "imageSize": 510681088,
+    "construct": 3366288,
+    "vtable": 39503344,
+    "register": 4277664,
+    "setter": 4278736,
+    "constructorPrefix": "4883ec28488d41084533db4889014c8bd144381d508f9d0348895028741e488b01488d0d58eb240248894838498b024c895850498b024c895858eb24488b0948",
+    "registerPrefix": "48895c240848896c24184889542410565741564883ec20488b02488bf9488b5908488bf2488b4828e8e3fdf9ff4c8b4708448bf044237364498b50484885d274",
+    "setPrefix": "40534883ec20488b01498bd8ff50204885c0741341b001488bd3488bc84883c4205be9991af2ff4883c4205bc3cccccc",
+    "cvarDataSize": 104,
+    "cvarGlobalDelta": -8,
+    "flags": {
+      "CVAR_BOOL": 1,
+      "CVAR_INTEGER": 2,
+      "CVAR_NOCHEAT": 16
+    }
+  },
+  {
+    "name": "1.1",
+    "timestamp": 1590157002,
+    "imageSize": 492113920,
+    "construct": 3380832,
+    "vtable": 39845328,
+    "register": 4296096,
+    "setter": 4297168,
+    "constructorPrefix": "4883ec28488d41084533db4889014c8bd144381d006fa40348895028741e488b01488d0dc8e9290248894838498b024c895850498b024c895858eb24488b0948",
+    "registerPrefix": "48895c240848896c24184889542410565741564883ec20488b02488bf9488b5908488bf2488b4828e863f9f9ff4c8b4708448bf044237364498b50484885d274",
+    "setPrefix": "40534883ec20488b01498bd8ff50204885c0741341b001488bd3488bc84883c4205be9990bf2ff4883c4205bc3cccccc",
+    "cvarDataSize": 104,
+    "cvarGlobalDelta": -8,
+    "flags": {
+      "CVAR_BOOL": 1,
+      "CVAR_INTEGER": 2,
+      "CVAR_NOCHEAT": 16
+    }
+  },
+  {
+    "name": "3.0",
+    "timestamp": 1602250202,
+    "imageSize": 475557888,
+    "construct": 3483312,
+    "vtable": 41614064,
+    "register": 4398080,
+    "setter": 4399152,
+    "constructorPrefix": "48895c241048896c2418564883ec20488d410833ed488901498bf040382da6b8c603488bd948895028741e488b01488d0dbb58430248894838488b0348896850",
+    "registerPrefix": "48895c240848896c24184889542410565741564883ec20488b02488bf9488b5908488bf2488b4828e863f5f9ff4c8b4708448bf044237364498b50484885d274",
+    "setPrefix": "40534883ec20488b01498bd8ff50204885c0741341b001488bd3488bc84883c4205be9a90df2ff4883c4205bc3cccccc",
+    "cvarDataSize": 104,
+    "cvarGlobalDelta": -8,
+    "flags": {
+      "CVAR_BOOL": 1,
+      "CVAR_INTEGER": 2,
+      "CVAR_NOCHEAT": 16
+    }
+  },
+  {
+    "name": "3.1",
+    "timestamp": 1603322153,
+    "imageSize": 504107008,
+    "construct": 3483856,
+    "vtable": 41614064,
+    "register": 4398176,
+    "setter": 4399248,
+    "constructorPrefix": "48895c241048896c2418564883ec20488d410833ed488901498bf040382d06b7c603488bd948895028741e488b01488d0d9b56430248894838488b0348896850",
+    "registerPrefix": "48895c240848896c24184889542410565741564883ec20488b02488bf9488b5908488bf2488b4828e833f6f9ff4c8b4708448bf044237364498b50484885d274",
+    "setPrefix": "40534883ec20488b01498bd8ff50204885c0741341b001488bd3488bc84883c4205be9790ff2ff4883c4205bc3cccccc",
+    "cvarDataSize": 104,
+    "cvarGlobalDelta": -8,
+    "flags": {
+      "CVAR_BOOL": 1,
+      "CVAR_INTEGER": 2,
+      "CVAR_NOCHEAT": 16
+    }
+  },
+  {
+    "name": "5.1",
+    "timestamp": 1618897328,
+    "imageSize": 459132928,
+    "construct": 3523648,
+    "vtable": 41979104,
+    "register": 4441792,
+    "setter": 4442864,
+    "constructorPrefix": "48895c241048896c2418564883ec20488d410833ed488901498bf040382d3698d203488bd948895028741e488b01488d0d6b48480248894838488b0348896850",
+    "registerPrefix": "48895c240848896c24184889542410565741564883ec20488b02488bf9488b5908488bf2488b4828e813f5f9ff4c8b4708448bf044237364498b50484885d274",
+    "setPrefix": "40534883ec20488b01498bd8ff50204885c0741341b001488bd3488bc84883c4205be99900f2ff4883c4205bc3cccccc",
+    "cvarDataSize": 104,
+    "cvarGlobalDelta": -8,
+    "flags": {
+      "CVAR_BOOL": 1,
+      "CVAR_INTEGER": 2,
+      "CVAR_NOCHEAT": 16
+    }
+  },
+  {
+    "name": "6.66 Rev 2.2",
+    "timestamp": 1691126427,
+    "imageSize": 121769984,
+    "construct": 3610912,
+    "vtable": 44437824,
+    "register": 4587008,
+    "setter": 4588144,
+    "constructorPrefix": "48895c240848896c24104889742418574883ec20488d410833ed488901418bd940382d312b0904498bf048895028488bf9741e488b01488d0d83ef6c02488948",
+    "registerPrefix": "48895c240848896c24184889542410565741564883ec20488b0233ed4c8b7108488bf2488bf94d8bc6488b58280fb60384c0741f0fb6c8e844d8f9ff6bed1f48",
+    "setPrefix": "40534883ec20488b01498bd8ff50204885c0741341b001488bd3488bc84883c4205be9a91cf1ff4883c4205bc3cccccc",
+    "cvarDataSize": 104,
+    "cvarGlobalDelta": -8,
+    "flags": {
+      "CVAR_BOOL": 1,
+      "CVAR_INTEGER": 2,
+      "CVAR_NOCHEAT": 16
+    }
+  },
+  {
+    "name": "6.66 Rev 3",
+    "timestamp": 1721699791,
+    "imageSize": 121950208,
+    "construct": 3608832,
+    "vtable": 48450360,
+    "register": 24704112,
+    "setter": 24705248,
+    "constructorPrefix": "48895c240848896c24104889742418574883ec20488d410833ed488901418bd940382da1fa3204498bf048895028488bf9741e488b01488d0d63c66c02488948",
+    "registerPrefix": "48895c240848896c24184889542410565741564883ec20488b0233ed4c8b7108488bf2488bf94d8bc6488b58280fb60384c0741f0fb6c8e8e4d9c6fe6bed1f48",
+    "setPrefix": "40534883ec20488b01498bd8ff50204885c0741341b001488bd3488bc84883c4205be9191ebefe4883c4205bc3cccccc",
+    "cvarDataSize": 104,
+    "cvarGlobalDelta": -8,
+    "flags": {
+      "CVAR_BOOL": 1,
+      "CVAR_INTEGER": 2,
+      "CVAR_NOCHEAT": 16
+    }
+  },
+  {
+    "name": "6.1",
+    "timestamp": 1625290034,
+    "imageSize": 465915904,
+    "construct": 3534656,
+    "vtable": 43389424,
+    "register": 4510528,
+    "setter": 4511664,
+    "constructorPrefix": "48895c240848896c24104889742418574883ec20488d410833ed488901418bd940382df1f4ee03498bf048895028488bf9741e488b01488d0d63885d02488948",
+    "registerPrefix": "48895c240848896c24184889542410565741564883ec20488b0233ed4c8b7108488bf2488bf94d8bc6488b58280fb60384c0741f0fb6c8e834e2f9ff6bed1f48",
+    "setPrefix": "40534883ec20488b01498bd8ff50204885c0741341b001488bd3488bc84883c4205be9891df1ff4883c4205bc3cccccc",
+    "cvarDataSize": 104,
+    "cvarGlobalDelta": -8,
+    "flags": {
+      "CVAR_BOOL": 1,
+      "CVAR_INTEGER": 2,
+      "CVAR_NOCHEAT": 16
+    }
+  },
+  {
+    "name": "6.2",
+    "timestamp": 1626499887,
+    "imageSize": 464543744,
+    "construct": 3534656,
+    "vtable": 43389424,
+    "register": 4510528,
+    "setter": 4511664,
+    "constructorPrefix": "48895c240848896c24104889742418574883ec20488d410833ed488901418bd940382d711aef03498bf048895028488bf9741e488b01488d0d63885d02488948",
+    "registerPrefix": "48895c240848896c24184889542410565741564883ec20488b0233ed4c8b7108488bf2488bf94d8bc6488b58280fb60384c0741f0fb6c8e834e2f9ff6bed1f48",
+    "setPrefix": "40534883ec20488b01498bd8ff50204885c0741341b001488bd3488bc84883c4205be9891df1ff4883c4205bc3cccccc",
+    "cvarDataSize": 104,
+    "cvarGlobalDelta": -8,
+    "flags": {
+      "CVAR_BOOL": 1,
+      "CVAR_INTEGER": 2,
+      "CVAR_NOCHEAT": 16
+    }
+  },
+  {
+    "name": "6.3",
+    "timestamp": 1628886709,
+    "imageSize": 483786752,
+    "construct": 3534656,
+    "vtable": 43389424,
+    "register": 4510528,
+    "setter": 4511664,
+    "constructorPrefix": "48895c240848896c24104889742418574883ec20488d410833ed488901418bd940382d711aef03498bf048895028488bf9741e488b01488d0d63885d02488948",
+    "registerPrefix": "48895c240848896c24184889542410565741564883ec20488b0233ed4c8b7108488bf2488bf94d8bc6488b58280fb60384c0741f0fb6c8e834e2f9ff6bed1f48",
+    "setPrefix": "40534883ec20488b01498bd8ff50204885c0741341b001488bd3488bc84883c4205be9891df1ff4883c4205bc3cccccc",
+    "cvarDataSize": 104,
+    "cvarGlobalDelta": -8,
+    "flags": {
+      "CVAR_BOOL": 1,
+      "CVAR_INTEGER": 2,
+      "CVAR_NOCHEAT": 16
+    }
+  },
+  {
+    "name": "6.4",
+    "timestamp": 1629498486,
+    "imageSize": 494395392,
+    "construct": 3534656,
+    "vtable": 43389424,
+    "register": 4510528,
+    "setter": 4511664,
+    "constructorPrefix": "48895c240848896c24104889742418574883ec20488d410833ed488901418bd940382d711aef03498bf048895028488bf9741e488b01488d0d63885d02488948",
+    "registerPrefix": "48895c240848896c24184889542410565741564883ec20488b0233ed4c8b7108488bf2488bf94d8bc6488b58280fb60384c0741f0fb6c8e834e2f9ff6bed1f48",
+    "setPrefix": "40534883ec20488b01498bd8ff50204885c0741341b001488bd3488bc84883c4205be9891df1ff4883c4205bc3cccccc",
+    "cvarDataSize": 104,
+    "cvarGlobalDelta": -8,
+    "flags": {
+      "CVAR_BOOL": 1,
+      "CVAR_INTEGER": 2,
+      "CVAR_NOCHEAT": 16
+    }
+  },
+  {
+    "name": "6.66",
+    "timestamp": 1634282627,
+    "imageSize": 508350464,
+    "construct": 3602864,
+    "vtable": 44278848,
+    "register": 4580912,
+    "setter": 4582048,
+    "constructorPrefix": "48895c240848896c24104889742418574883ec20488d410833ed488901418bd940382dc1150604498bf048895028488bf9741e488b01488d0d739a6a02488948",
+    "registerPrefix": "48895c240848896c24184889542410565741564883ec20488b0233ed4c8b7108488bf2488bf94d8bc6488b58280fb60384c0741f0fb6c8e844d8f9ff6bed1f48",
+    "setPrefix": "40534883ec20488b01498bd8ff50204885c0741341b001488bd3488bc84883c4205be90915f1ff4883c4205bc3cccccc",
+    "cvarDataSize": 104,
+    "cvarGlobalDelta": -8,
+    "flags": {
+      "CVAR_BOOL": 1,
+      "CVAR_INTEGER": 2,
+      "CVAR_NOCHEAT": 16
+    }
+  },
+  {
+    "name": "6.66 Rev 1",
+    "timestamp": 1636695041,
+    "imageSize": 478367744,
+    "construct": 3603056,
+    "vtable": 44389440,
+    "register": 4581104,
+    "setter": 4582240,
+    "constructorPrefix": "48895c240848896c24104889742418574883ec20488d410833ed488901418bd940382d814b0804498bf048895028488bf9741e488b01488d0db3496c02488948",
+    "registerPrefix": "48895c240848896c24184889542410565741564883ec20488b0233ed4c8b7108488bf2488bf94d8bc6488b58280fb60384c0741f0fb6c8e844d8f9ff6bed1f48",
+    "setPrefix": "40534883ec20488b01498bd8ff50204885c0741341b001488bd3488bc84883c4205be90915f1ff4883c4205bc3cccccc",
+    "cvarDataSize": 104,
+    "cvarGlobalDelta": -8,
+    "flags": {
+      "CVAR_BOOL": 1,
+      "CVAR_INTEGER": 2,
+      "CVAR_NOCHEAT": 16
+    }
+  },
+  {
+    "name": "6.66 Rev 1.1",
+    "timestamp": 1641508942,
+    "imageSize": 475570176,
+    "construct": 3603552,
+    "vtable": 44393600,
+    "register": 4581600,
+    "setter": 4582736,
+    "constructorPrefix": "48895c240848896c24104889742418574883ec20488d410833ed488901418bd940382d915d0804498bf048895028488bf9741e488b01488d0d03586c02488948",
+    "registerPrefix": "48895c240848896c24184889542410565741564883ec20488b0233ed4c8b7108488bf2488bf94d8bc6488b58280fb60384c0741f0fb6c8e844d8f9ff6bed1f48",
+    "setPrefix": "40534883ec20488b01498bd8ff50204885c0741341b001488bd3488bc84883c4205be90915f1ff4883c4205bc3cccccc",
+    "cvarDataSize": 104,
+    "cvarGlobalDelta": -8,
+    "flags": {
+      "CVAR_BOOL": 1,
+      "CVAR_INTEGER": 2,
+      "CVAR_NOCHEAT": 16
+    }
+  },
+  {
+    "name": "6.66 Rev 2",
+    "timestamp": 1649828172,
+    "imageSize": 510251008,
+    "construct": 3612144,
+    "vtable": 44577136,
+    "register": 4588224,
+    "setter": 4589360,
+    "constructorPrefix": "48895c240848896c24104889742418574883ec20488d410833ed488901418bd940382de1e60b04498bf048895028488bf9741e488b01488d0d330b6f02488948",
+    "registerPrefix": "48895c240848896c24184889542410565741564883ec20488b0233ed4c8b7108488bf2488bf94d8bc6488b58280fb60384c0741f0fb6c8e844d8f9ff6bed1f48",
+    "setPrefix": "40534883ec20488b01498bd8ff50204885c0741341b001488bd3488bc84883c4205be9b91cf1ff4883c4205bc3cccccc",
+    "cvarDataSize": 104,
+    "cvarGlobalDelta": -8,
+    "flags": {
+      "CVAR_BOOL": 1,
+      "CVAR_INTEGER": 2,
+      "CVAR_NOCHEAT": 16
+    }
+  },
+  {
+    "name": "2.0",
+    "timestamp": 1592459879,
+    "imageSize": 490299392,
+    "construct": 3408704,
+    "vtable": 40176016,
+    "register": 4323232,
+    "setter": 4324304,
+    "constructorPrefix": "48895c241048896c2418564883ec20488d410833ed488901498bf040382d06aeab03488bd948895028741e488b01488d0d9b8a2e0248894838488b0348896850",
+    "registerPrefix": "48895c240848896c24184889542410565741564883ec20488b02488bf9488b5908488bf2488b4828e873fbf9ff4c8b4708448bf044237364498b50484885d274",
+    "setPrefix": "40534883ec20488b01498bd8ff50204885c0741341b001488bd3488bc84883c4205be9990ef2ff4883c4205bc3cccccc",
+    "cvarDataSize": 104,
+    "cvarGlobalDelta": -8,
+    "flags": {
+      "CVAR_BOOL": 1,
+      "CVAR_INTEGER": 2,
+      "CVAR_NOCHEAT": 16
+    }
+  },
+  {
+    "name": "2.1",
+    "timestamp": 1595948377,
+    "imageSize": 505344000,
+    "construct": 3411440,
+    "vtable": 40180304,
+    "register": 4324832,
+    "setter": 4325904,
+    "constructorPrefix": "48895c241048896c2418564883ec20488d410833ed488901498bf040382dd6d3ab03488bd948895028741e488b01488d0dab902e0248894838488b0348896850",
+    "registerPrefix": "48895c240848896c24184889542410565741564883ec20488b02488bf9488b5908488bf2488b4828e813faf9ff4c8b4708448bf044237364498b50484885d274",
+    "setPrefix": "40534883ec20488b01498bd8ff50204885c0741341b001488bd3488bc84883c4205be91913f2ff4883c4205bc3cccccc",
+    "cvarDataSize": 104,
+    "cvarGlobalDelta": -8,
+    "flags": {
+      "CVAR_BOOL": 1,
+      "CVAR_INTEGER": 2,
+      "CVAR_NOCHEAT": 16
+    }
+  },
+  {
+    "name": "4.0",
+    "timestamp": 1605799681,
+    "imageSize": 478056448,
+    "construct": 3487920,
+    "vtable": 41185440,
+    "register": 4405216,
+    "setter": 4406288,
+    "constructorPrefix": "48895c241048896c2418564883ec20488d410833ed488901498bf040382d36a0bf03488bd948895028741e488b01488d0d7bb83c0248894838488b0348896850",
+    "registerPrefix": "48895c240848896c24184889542410565741564883ec20488b02488bf9488b5908488bf2488b4828e873faf9ff4c8b4708448bf044237364498b50484885d274",
+    "setPrefix": "40534883ec20488b01498bd8ff50204885c0741341b001488bd3488bc84883c4205be9c903f2ff4883c4205bc3cccccc",
+    "cvarDataSize": 104,
+    "cvarGlobalDelta": -8,
+    "flags": {
+      "CVAR_BOOL": 1,
+      "CVAR_INTEGER": 2,
+      "CVAR_NOCHEAT": 16
+    }
+  },
+  {
+    "name": "4.1",
+    "timestamp": 1607064212,
+    "imageSize": 472821760,
+    "construct": 3488592,
+    "vtable": 41185440,
+    "register": 4406432,
+    "setter": 4407504,
+    "constructorPrefix": "48895c241048896c2418564883ec20488d410833ed488901498bf040382d969dbf03488bd948895028741e488b01488d0ddbb53c0248894838488b0348896850",
+    "registerPrefix": "48895c240848896c24184889542410565741564883ec20488b02488bf9488b5908488bf2488b4828e853faf9ff4c8b4708448bf044237364498b50484885d274",
+    "setPrefix": "40534883ec20488b01498bd8ff50204885c0741341b001488bd3488bc84883c4205be9b901f2ff4883c4205bc3cccccc",
+    "cvarDataSize": 104,
+    "cvarGlobalDelta": -8,
+    "flags": {
+      "CVAR_BOOL": 1,
+      "CVAR_INTEGER": 2,
+      "CVAR_NOCHEAT": 16
+    }
+  },
+  {
+    "name": "5.0",
+    "timestamp": 1614321395,
+    "imageSize": 475787264,
+    "construct": 3523568,
+    "vtable": 41979104,
+    "register": 4440448,
+    "setter": 4441520,
+    "constructorPrefix": "48895c241048896c2418564883ec20488d410833ed488901498bf040382d8698d203488bd948895028741e488b01488d0dbb48480248894838488b0348896850",
+    "registerPrefix": "48895c240848896c24184889542410565741564883ec20488b02488bf9488b5908488bf2488b4828e8a3f9f9ff4c8b4708448bf044237364498b50484885d274",
+    "setPrefix": "40534883ec20488b01498bd8ff50204885c0741341b001488bd3488bc84883c4205be98905f2ff4883c4205bc3cccccc",
+    "cvarDataSize": 104,
+    "cvarGlobalDelta": -8,
+    "flags": {
+      "CVAR_BOOL": 1,
+      "CVAR_INTEGER": 2,
+      "CVAR_NOCHEAT": 16
+    }
+  },
+  {
+    "name": "6.0",
+    "timestamp": 1623821782,
+    "imageSize": 481435648,
+    "construct": 3534656,
+    "vtable": 43389424,
+    "register": 4510528,
+    "setter": 4511664,
+    "constructorPrefix": "48895c240848896c24104889742418574883ec20488d410833ed488901418bd940382df1f4ee03498bf048895028488bf9741e488b01488d0d63885d02488948",
+    "registerPrefix": "48895c240848896c24184889542410565741564883ec20488b0233ed4c8b7108488bf2488bf94d8bc6488b58280fb60384c0741f0fb6c8e834e2f9ff6bed1f48",
+    "setPrefix": "40534883ec20488b01498bd8ff50204885c0741341b001488bd3488bc84883c4205be9891df1ff4883c4205bc3cccccc",
+    "cvarDataSize": 104,
+    "cvarGlobalDelta": -8,
+    "flags": {
+      "CVAR_BOOL": 1,
+      "CVAR_INTEGER": 2,
+      "CVAR_NOCHEAT": 16
+    }
+  }
+]
