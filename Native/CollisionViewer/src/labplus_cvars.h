@@ -73,7 +73,7 @@ static LabCvarBackend nativeLabCvarBackend(const LabCvarSystem& system,const Lab
             // are LAB Plus settings; expose them in normal console completion.
             int flags=(definition.maximum==1?1:2)|0x10;
             reinterpret_cast<Construct>(factory.construct)(owned.object,definition.name,owned.initial,flags,
-                "LAB Plus companion setting",float(definition.minimum),float(definition.maximum),nullptr,nullptr);
+                definition.description,float(definition.minimum),float(definition.maximum),labCvarValueCompletions(definition),nullptr);
             reinterpret_cast<Register>(factory.registerVariable)(reinterpret_cast<void*>(system.object),owned.object);
         },
         [system,factory](const char* name,const char* value) {

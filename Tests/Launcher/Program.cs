@@ -172,7 +172,7 @@ try
     MotionChecks.Run(temporary);
     var commandStore = new SettingsStore(Path.Combine(temporary, "canonical-commands"));
     var commandDefinitions = Regex.Matches(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "labplus_cvar_definitions.h")),
-        "\\{\"([^\"]+)\",L\"([^\"]+)\",\"([^\"]+)\",(\\d+),(\\d+),(\\d+)\\}");
+        """\{"([^"]+)",L"([^"]+)","([^"]+)",(\d+),(\d+),(\d+),nullptr,"[^"]+"\}""");
     Check(commandDefinitions.Count == 22, "Canonical native setting catalogue fixture is missing or incomplete");
     foreach (Match definition in commandDefinitions)
     {

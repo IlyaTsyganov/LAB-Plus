@@ -5,7 +5,7 @@
   "fixed": {
     "feature": "Canonical labplus_ console settings",
     "problem": "Help advertised 15 settings on every patch, but native cvar creation was enabled only on 6.66 Rev 3.",
-    "behavior": "Create all 25 binary settings (plus viewer distance) as native cvars on individually audited game images, including HUD settings through their own persisted console snapshot. Short binary setting names such as labplus_viewer are synchronized native cvar aliases; labplus_encounters retains its list command. Retain canonical commands and explicit toggle arguments as a guarded fallback on images without an audited creation ABI. There is no labplus_toggle wrapper.",
+    "behavior": "Create all 25 binary settings (plus viewer distance) as native cvars on individually audited game images, including HUD settings through their own persisted console snapshot. Short binary setting names such as labplus_viewer are synchronized native cvar aliases; labplus_encounters retains its list command. Retain canonical commands and explicit numeric values as a guarded fallback on images without an audited creation ABI. There is no labplus_toggle wrapper.",
     "sources": [
       "Native/CollisionViewer/src/labplus_console.h",
       "Native/CollisionViewer/src/labplus_cvar_definitions.h",
@@ -35,6 +35,12 @@
     "validation": "All 44 binary names round-trip with alias isolation in LabCvarTests; all 21 main handlers pass Launcher tests; 392 HUD checks pass, including renamed native callbacks and rejection of in-place retained command renaming.",
     "liveVerification": "The liveVerification snapshot above predates these renames. Load the rebuilt application and restart the game before probing this 44-name catalogue.",
     "recordingActions": ["labplus_recording_start", "labplus_recording_stop"]
+  },
+  "consoleHelp": {
+    "listCommand": "labplus_commands_list",
+    "removedAlias": "labplus_command_list",
+    "behavior": "Each cvar has a functional description shared by native engine registration, fallback registration and the list. List entries describe meaning and range without appended toggle examples. Native binary cvars receive a persistent valid-value array containing only 0 and 1; toggle is a separate engine command before the cvar name.",
+    "validation": "Native backend constructor calls are executed against an ABI capture fixture for every cvar and alias; description, bounds, flags and completion argument placement are verified. Native/fallback registration and list tests reject the removed alias and postfix toggle suggestions. All 44 binary round trips, Launcher handler tests and 392 HUD checks pass."
   },
   "remainingGaps": [
     {

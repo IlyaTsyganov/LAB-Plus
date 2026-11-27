@@ -39,9 +39,10 @@ use `labplus_encounters_show` to toggle that HUD.
 See the [complete list of binary cvars and short aliases](docs/console-toggle-binds.md).
 
 Native cvar creation is audited for all 22 supported retail builds, including
-1.1. A guarded command fallback remains for unavailable or modified ABIs; it
-accepts `labplus_viewer_show toggle` instead of `toggle labplus_viewer_show`.
-The list prints the syntax available in the current process.
+1.1. A guarded command fallback remains for unavailable or modified ABIs and
+accepts explicit setting values. The list describes each setting and its range.
+For native cvars, `toggle` is a separate engine command placed before the cvar
+name; cvar value completion offers `0` and `1`.
 See [the cvar ABI audit](docs/validation/cvar-factory-profiles.json).
 
 ## Download & Installation

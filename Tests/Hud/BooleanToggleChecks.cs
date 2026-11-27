@@ -14,7 +14,7 @@ internal static class BooleanToggleChecks
             check(ConsoleControls.Apply(settings, command, ["toggle"]) && read(settings) != before
                 && ConsoleControls.Apply(settings, command, ["toggle"]) && read(settings) == before,
                 "Binary HUD control toggles both ways: " + command);
-            check(ConsoleControls.Help(settings, command).Contains("0|1|toggle"), "Binary HUD help advertises toggle: " + command);
+            check(ConsoleControls.Help(settings, command).Contains("<0|1>")&&!ConsoleControls.Help(settings, command).Contains("toggle"), "Binary HUD help describes values without suggesting a postfix toggle argument: " + command);
         }
         foreach (string target in new[] { "current", "landing", "vertical" })
         {

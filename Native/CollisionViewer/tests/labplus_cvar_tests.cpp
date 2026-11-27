@@ -9,6 +9,36 @@ static void print(const char* format,...) {
     vsnprintf(text,sizeof(text),format,args); va_end(args); consoleOutput+=text;
 }
 static void execute(const char*) { ++commands; }
+struct CvarConstructorCall {
+    void* object=nullptr; const char* name=nullptr; const char* description=nullptr;
+    int flags=0; float minimum=0,maximum=0; const char* const* completions=nullptr; void* callback=nullptr;
+    void* registeredSystem=nullptr; void* registeredObject=nullptr;
+} constructorCall;
+static void captureCvarConstructor(void* object,const char* name,const char*,int flags,const char* description,
+    float minimum,float maximum,const char* const* completions,void* callback) {
+    constructorCall={object,name,description,flags,minimum,maximum,completions,callback,nullptr,nullptr};
+}
+static void captureCvarRegistration(void* system,void* object) {
+    constructorCall.registeredSystem=system; constructorCall.registeredObject=object;
+}
+static void checkNativeCvarDescriptionsAndCompletion() {
+    LabCvarSystem system{0x1234,1};
+    LabCvarFactory factory{reinterpret_cast<uintptr_t>(&captureCvarConstructor),reinterpret_cast<uintptr_t>(&captureCvarRegistration),1};
+    auto backend=nativeLabCvarBackend(system,factory);
+    for(const auto& definition:nativeLabCvarDefinitions()) {
+        OwnedLabCvar owned; sprintf_s(owned.initial,"%d",definition.initial); backend.create(owned,definition);
+        expect(constructorCall.object==owned.object&&constructorCall.registeredObject==owned.object&&
+            reinterpret_cast<uintptr_t>(constructorCall.registeredSystem)==system.object,"native constructor and registration receive the owned cvar object");
+        expect(constructorCall.name==definition.name&&constructorCall.description==definition.description&&strlen(definition.description)>10&&
+            !strstr(definition.description,"toggle")&&!strchr(definition.description,';'),"each native cvar receives a useful description without injected commands");
+        expect(constructorCall.minimum==definition.minimum&&constructorCall.maximum==definition.maximum&&!constructorCall.callback,"cvar bounds and default engine completion callback ABI are preserved");
+        if(definition.maximum==1) {
+            auto values=constructorCall.completions;
+            expect(values&&!strcmp(values[0],"0")&&!strcmp(values[1],"1")&&!values[2]&&(constructorCall.flags&3)==1,
+                "native binary cvar value completion offers exactly 0 and 1, never postfix toggle");
+        } else expect(!constructorCall.completions&&(constructorCall.flags&3)==2,"numeric range cvars do not get binary value completion");
+    }
+}
 struct EngineFixture {
     std::unordered_map<std::string,uintptr_t> names;
     std::unordered_map<std::string,std::string> values;
@@ -42,7 +72,7 @@ static void checkSettingsCommands(const MeathookHudApi& api,const std::wstring& 
     std::unordered_set<std::string> registered;
     auto exists=[&](const char* name) { return registered.count(name)!=0; };
     auto add=[&](const char* name,const char* usage) {
-        expect(usage&&*usage&&registered.insert(name).second,"engine receives each completion name once");
+        expect(usage&&*usage&&!strstr(usage,"toggle")&&registered.insert(name).second,"engine receives each completion name once with descriptive help and no postfix toggle suggestion");
     };
     expect(registerLabConsoleCommands(true,exists,add),"settings commands register when native cvar creation is unavailable");
     for(const auto& definition:labCvarDefinitions) {
@@ -58,11 +88,13 @@ static void checkSettingsCommands(const MeathookHudApi& api,const std::wstring& 
             {definition.name,"1;quit"},{definition.name,""},{definition.name,"1","extra"}})
             expect(!validLabArguments(invalid),"fallback rejects invalid values before transport");
     }
-    expect(normalizeLabArguments({"labplus_command_list"})==std::vector<std::string>{"labplus_help"}&&
-        registered.count("labplus_command_list"),"singular list alias remains discoverable and usable");
+    expect(!registered.count("labplus_command_list")&&!validLabArguments({"labplus_command_list"})&&registered.count("labplus_commands_list"),
+        "only the plural list command is registered and accepted");
     expect(normalizeLabArguments({"labplus_viewer_show","1"})==std::vector<std::string>{"labplus_viewer","1"}&&
         normalizeLabArguments({"labplus_shots_show","1"})==std::vector<std::string>{"labplus_shots","1"},"viewer and shot toggles use the existing companion handlers");
     consoleOutput.clear(); printLabCommandList(api,true);
+    expect(consoleOutput.find("toggle")==std::string::npos&&consoleOutput.find("Show trigger volumes.")!=std::string::npos,
+        "command list describes settings instead of appending executable toggle text");
     std::istringstream help(consoleOutput); std::string line;
     while(std::getline(help,line)) expect(registered.count(line.substr(0,line.find(' ')))==1,"every help entry has an engine registration");
     consoleOutput.clear();
@@ -86,6 +118,8 @@ static void checkSettingsCommands(const MeathookHudApi& api,const std::wstring& 
     for(const char* name:{"labplus_speedometer_showlanding","labplus_speedometer_showvertical","labplus_speedometer_verticalsign"})
         expect(!findLabCvarDefinition(name),"old speedometer spellings are replaced by the requested names");
     consoleOutput.clear(); printLabCommandList(api,true,true);
+    expect(consoleOutput.find("toggle")==std::string::npos&&consoleOutput.find("labplus_command_list")==std::string::npos,
+        "native command list contains descriptions and excludes the removed alias and toggle examples");
     for(const char* name:{"labplus_enemies","labplus_enemy_hp_bars","labplus_position","labplus_angles","labplus_timers","labplus_techs"})
         expect(consoleOutput.find(std::string(name)+"_show : ")!=std::string::npos&&consoleOutput.find(std::string(name)+" : ")==std::string::npos,
             "command list prefers the new show names rather than their short aliases");
@@ -135,6 +169,7 @@ static void checkEveryBinaryCvar(const MeathookHudApi& api,const std::wstring& i
 }
 int main() {
     MeathookHudApi api{}; api.consolePrint=print; api.executeCommand=execute;
+    checkNativeCvarDescriptionsAndCompletion();
     auto temporary=std::filesystem::temp_directory_path()/(L"labplus-Cvar-Test-"+std::to_wstring(GetCurrentProcessId()));
     std::filesystem::create_directories(temporary); auto ini=(temporary/L"viewer.ini").wstring();
     auto setSaved=[&](const wchar_t* key,const wchar_t* value) { expect(WritePrivateProfileStringW(L"Viewer",key,value,ini.c_str())!=0,"isolated saved setting"); };

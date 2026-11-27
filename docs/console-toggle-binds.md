@@ -10,6 +10,10 @@ The preferred names match `labplus_commands_list`. Each short name below is a
 synchronized native cvar alias and also works with `toggle`. These are 25 settings
 with 44 distinct names, on all 22 audited retail profiles.
 
+`labplus_commands_list` describes each setting and its range. Binary cvar value
+completion offers only `0` and `1`; `toggle` is a separate command before the
+cvar name, rather than a value after it.
+
 | Setting | Preferred cvar | Short alias |
 | --- | --- | --- |
 | Viewer master switch | `labplus_viewer_show` | `labplus_viewer` |

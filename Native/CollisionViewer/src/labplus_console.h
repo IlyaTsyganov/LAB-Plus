@@ -10,27 +10,26 @@ static constexpr LabCommandDefinition labCommandDefinitions[]{
     {"labplus_encounters_list","List active encounter managers with reference names"},
     {"labplus_debughud_scale","[0.5..3] - query or set DebugHUD text scale"},
     {"labplus_load_last_save","Reload the last successfully loaded LAB Plus archive for the current account, patch and campaign"},
-    {"labplus_enemies","0|1|toggle - living enemies and health HUD",true},
-    {"labplus_enemy_hp_bars","0|1|toggle - world enemy health bars",true},
-    {"labplus_position","0|1|toggle - player coordinates in debug HUD",true},
-    {"labplus_angles","0|1|toggle - player angles in debug HUD",true},
-    {"labplus_timers","0|1|toggle - engine countdown HUD",true},
-    {"labplus_techs","0|1|toggle - speedrun technique states HUD",true},
+    {"labplus_enemies","0|1 - living enemies and health HUD",true},
+    {"labplus_enemy_hp_bars","0|1 - world enemy health bars",true},
+    {"labplus_position","0|1 - player coordinates in debug HUD",true},
+    {"labplus_angles","0|1 - player angles in debug HUD",true},
+    {"labplus_timers","0|1 - engine countdown HUD",true},
+    {"labplus_techs","0|1 - speedrun technique states HUD",true},
     {"labplus_recording_start","Start/resume research recording"}, {"labplus_recording_stop","Stop research recording"},
     {"labplus_recording_clear","Start a new research session"}, {"labplus_markers_add","<text> - add a research marker"},
-    {"labplus_trigger_set","<class> 0|1|toggle - one exact trigger class"},
-    {"labplus_help","Legacy alias",true}, {"labplus_encounters","Legacy list / 0|1 HUD alias",true},
-    {"labplus_command_list","Alias for labplus_commands_list",true},
+    {"labplus_trigger_set","<class> 0|1 - one exact trigger class"},
+    {"labplus_help","List LAB Plus console variables and action commands",true}, {"labplus_encounters","List active encounters; 0|1 controls their HUD",true},
     {"labplus_viewer","Legacy alias",true}, {"labplus_triggers","Legacy alias",true},
     {"labplus_shots","Legacy alias",true},
     {"labplus_collision","Legacy alias",true}, {"labplus_walls","Legacy alias",true},
     {"labplus_inspector","Legacy alias",true}, {"labplus_disabled","Legacy alias",true},
     {"labplus_history","Legacy alias",true}, {"labplus_fill","Legacy alias",true},
-    {"labplus_distance","Legacy alias",true}, {"labplus_trigger","Legacy alias",true},
+    {"labplus_distance","[20..200] - viewer draw distance in metres",true}, {"labplus_trigger","<class> 0|1 - show or hide one exact trigger class",true},
     {"labplus_path","Legacy alias",true}, {"labplus_record","Legacy alias",true},
     {"labplus_player","Player collider alias",true}, {"labplus_attempts","Attempt overlay alias",true},
     {"labplus_surface","Support plane HUD alias",true},
-    {"labplus_clear","Legacy alias",true}, {"labplus_mark","Legacy alias",true}
+    {"labplus_clear","Clear the current research session",true}, {"labplus_mark","<text> - add a research marker",true}
 };
 static bool labBooleanRequest(const std::string& name) {
     for(const auto& definition:labCvarDefinitions)
@@ -46,7 +45,6 @@ static std::vector<std::string> normalizeLabArguments(const std::vector<std::str
         auto result=args; result[0]=definition->request; return result;
     }
     for(const auto& alias:{std::pair<const char*,const char*>{"labplus_commands_list","labplus_help"},
-        {"labplus_command_list","labplus_help"},
         {"labplus_encounters_list","labplus_encounters"},{"labplus_recording_clear","labplus_clear"}})
         if(name==alias.first) return args.size()==1?std::vector<std::string>{alias.second}:std::vector<std::string>{};
     if(name=="labplus_recording_start"||name=="labplus_recording_stop") return args.size()==1?
@@ -154,13 +152,15 @@ static LabCommandSystem resolveLabCommandSystem(const WallMemory& memory,uintptr
 // Use the same names for engine completion and execution. Unsupported cvar
 // constructors never run: those profiles expose ordinary settings commands.
 template<class Visit> static void visitLabConsoleCommands(bool settingsAsCommands,Visit visit) {
-    for(const auto& definition:labCommandDefinitions)
-        if(settingsAsCommands||!findLabCvarDefinition(definition.name)) visit(definition.name,definition.usage);
+    for(const auto& definition:labCommandDefinitions) {
+        const auto* setting=findLabCvarDefinition(definition.name);
+        if(settingsAsCommands||!setting) visit(definition.name,setting?setting->description:definition.usage);
+    }
     if(settingsAsCommands) for(const auto& definition:labCvarDefinitions) {
         if(definition.source) continue; // The managed HUD owns its fallback commands.
         bool alreadyListed=false;
         for(const auto& command:labCommandDefinitions) if(!strcmp(command.name,definition.name)) alreadyListed=true;
-        if(!alreadyListed) visit(definition.name,definition.maximum==1?"[0|1|toggle] - query or set LAB Plus setting":"[20..200] - query or set viewer distance");
+        if(!alreadyListed) visit(definition.name,definition.description);
     }
 }
 static bool registerLabConsoleCommands(bool settingsAsCommands,
@@ -176,8 +176,7 @@ static bool registerLabConsoleCommands(bool settingsAsCommands,
 static void printLabCommandList(const MeathookHudApi& api,bool settingsAvailable,bool nativeCvars=false) {
     if(settingsAvailable) for(const auto& definition:labCvarDefinitions) {
         if(definition.source&&!nativeCvars) continue;
-        std::string toggle=definition.maximum==1?(nativeCvars?std::string("; toggle ")+definition.name:std::string("; ")+definition.name+" toggle"):"";
-        api.consolePrint("%s : %d..%d%s\n",definition.name,definition.minimum,definition.maximum,toggle.c_str());
+        api.consolePrint("%s : %s [%d..%d]\n",definition.name,definition.description,definition.minimum,definition.maximum);
     }
     else api.consolePrint("%s","labplus_: state settings are not registered; see the LAB Plus log.\n");
     for(const auto& definition:labCommandDefinitions) if(!definition.legacy&&(!nativeCvars||!findLabCvarDefinition(definition.name)))
