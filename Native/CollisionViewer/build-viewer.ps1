@@ -23,6 +23,7 @@ $suites = [ordered]@{
  'sync_interaction_tests.cpp'='SyncInteractionTests';
  'sync_target_tests.cpp'='SyncTargetTests';
  'performance_tests.cpp'='PerformanceTests';
+ 'projectile_trim_tests.cpp'='ProjectileTrimTests';
  'appearance_tests.cpp'='AppearanceTests'; 'practice_live_tests.cpp'='PracticeLiveTests'; 'viewer_behavior_tests.cpp'='ViewerBehaviorTests';
  'depth_tracker_tests.cpp'='DepthTrackerTests'; 'inspector_tests.cpp'='InspectorTests';
  'research_tests.cpp'='ResearchTests'; 'movement_tests.cpp'='MovementTests';
